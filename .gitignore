@@ -1,0 +1,10 @@
+.vs/
+node_modules/
+build/
+tmp/
+__pycache__/
+*.pyc
+~$*.docx
+~$*.pptx
+*.pptx.inspect.ndjson
+tmp_*.png
