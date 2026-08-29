@@ -62,9 +62,9 @@ function textBox(slide, text, left, top, width, height, options = {}) {
   return shape;
 }
 
-function heading(slide, number, title, strap = "") {
+function heading(slide, number, title, strap = "", titleFontSize = 42) {
   textBox(slide, number, 1000, 42, 222, 24, { fontSize: 15, bold: true, color: C.blue, fontFamily: "Bahnschrift" });
-  textBox(slide, title, 58, 82, 1100, 72, { fontSize: 42, bold: true, fontFamily: "Bahnschrift" });
+  textBox(slide, title, 58, 82, 1100, 72, { fontSize: titleFontSize, bold: true, fontFamily: "Bahnschrift" });
   rect(slide, 58, 160, 1164, 3, C.blue);
   if (strap) textBox(slide, strap, 58, 174, 1100, 38, { fontSize: 17, color: C.gray });
 }
@@ -172,7 +172,7 @@ function notes(slide, body, sources) {
 {
   const slide = deck.slides.add();
   slide.background.fill = C.paper;
-  heading(slide, "04 / TRUST", "The data model makes the promise enforceable.", "Normalised relationships, explicit constraints and a project access boundary.");
+  heading(slide, "04 / TRUST", "The data model makes the promise enforceable.", "Normalised relationships, explicit constraints and a project access boundary.", 38);
   const metrics = [
     { x: 58, value: "13", label: "normalised tables" },
     { x: 286, value: "18", label: "traceable requirements" },
@@ -205,29 +205,32 @@ function notes(slide, body, sources) {
   const slide = deck.slides.add();
   slide.background.fill = C.paper;
   heading(slide, "05 / DELIVERY", "Freeze the MVP. Deliver tested vertical slices.", "Weeks 5-12, with search and export held behind the core quality gates.");
+  rect(slide, 58, 218, 1164, 42, C.pale, 12, C.line);
+  textBox(slide, "FRAMEWORKS", 82, 226, 150, 26, { fontSize: 16, bold: true, color: C.blue, fontFamily: "Bahnschrift" });
+  textBox(slide, "React  ·  Express  ·  PostgreSQL + Prisma  ·  Vitest + Playwright  ·  Docker + GitHub Actions", 234, 225, 950, 28, { fontSize: 16, bold: true, fontFamily: "Bahnschrift" });
   const weeks = ["W5", "W6", "W7", "W8", "W9", "W10", "W11", "W12"];
   const startX = 346;
   const colW = 100;
   weeks.forEach((week, index) => {
-    textBox(slide, week, startX + index * colW, 232, 60, 24, { fontSize: 13, bold: true, color: C.gray, fontFamily: "Bahnschrift" });
-    rect(slide, startX + index * colW, 262, 1, 286, C.line);
+    textBox(slide, week, startX + index * colW, 270, 60, 24, { fontSize: 13, bold: true, color: C.gray, fontFamily: "Bahnschrift" });
+    rect(slide, startX + index * colW, 296, 1, 216, C.line);
   });
   const rows = [
-    { y: 278, label: "Validate + freeze", start: 0, span: 1, fill: C.coral },
-    { y: 344, label: "Core vertical slices", start: 1, span: 4, fill: C.blue },
-    { y: 410, label: "Integrate + test", start: 5, span: 2, fill: C.ink },
-    { y: 476, label: "Rehearse + harden", start: 7, span: 1, fill: "#4D7C78" },
+    { y: 312, label: "Validate + freeze", start: 0, span: 1, fill: C.coral },
+    { y: 362, label: "Core vertical slices", start: 1, span: 4, fill: C.blue },
+    { y: 412, label: "Integrate + test", start: 5, span: 2, fill: C.ink },
+    { y: 462, label: "Rehearse + harden", start: 7, span: 1, fill: "#4D7C78" },
   ];
   for (const row of rows) {
     textBox(slide, row.label, 58, row.y + 6, 250, 28, { fontSize: 17, bold: true, fontFamily: "Bahnschrift" });
-    rect(slide, startX + row.start * colW + 6, row.y, row.span * colW - 14, 42, row.fill, 16);
+    rect(slide, startX + row.start * colW + 6, row.y, row.span * colW - 14, 34, row.fill, 16);
   }
-  rect(slide, 58, 572, 1164, 64, C.ink, 12);
-  textBox(slide, "MVP DECISION", 84, 592, 170, 24, { fontSize: 14, bold: true, color: C.mint, fontFamily: "Bahnschrift" });
-  textBox(slide, "Approve the 15-requirement baseline; keep search and export as gated stretch work.", 260, 590, 900, 28, { fontSize: 19, bold: true, color: C.white, fontFamily: "Bahnschrift" });
+  rect(slide, 58, 536, 1164, 84, C.ink, 12);
+  textBox(slide, "MVP DECISION", 84, 563, 170, 24, { fontSize: 14, bold: true, color: C.mint, fontFamily: "Bahnschrift" });
+  textBox(slide, "Approve the 15-requirement baseline; keep search and export as gated stretch work.", 260, 561, 900, 28, { fontSize: 19, bold: true, color: C.white, fontFamily: "Bahnschrift" });
   footer(slide, 6);
   notes(slide,
-    "4:00-4:50 · Speaker D\nOur approved baseline is authentication, private projects, tasks, comments, meetings, notifications and contribution evidence. We build those from weeks 7 to 10, integrate and test in weeks 10 to 11, then rehearse and harden in week 12. Search and export remain stretch goals until the core passes.\n\n4:50-5:00 close\nStudyCrew does not judge who worked hardest. It gives teams the shared facts to notice risk earlier, coordinate better, and have fairer conversations. We are ready to validate the MVP and begin implementation.",
+    "4:00-4:50 · Speaker D\nOur approved baseline is authentication, private projects, tasks, comments, meetings, notifications and contribution evidence. We will build it with React and Express, PostgreSQL with Prisma, Vitest and Playwright, plus Docker and GitHub Actions. The Gantt moves from MVP validation into core vertical slices, integration and testing, then rehearsal and hardening. Search and export remain gated stretch goals.\n\n4:50-5:00 close\nStudyCrew does not judge who worked hardest. It gives teams the shared facts to notice risk earlier, coordinate better, and have fairer conversations. We are ready to validate the MVP and begin implementation.",
     ["StudyCrew Proposed MVP, approved-baseline candidate.", "Assignment brief: milestone and final submission schedule.", "StudyCrew Presentation Script, rehearsal timings."]);
 }
 
