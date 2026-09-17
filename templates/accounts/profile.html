@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+
+{% block title %}Your profile · StudyCrew{% endblock %}
+
+{% block content %}
+<div class="page-shell">
+  <header class="page-header">
+    <div>
+      <p class="eyebrow">Account settings</p>
+      <h1>Your profile</h1>
+      <p>Keep your team identity and local time-zone display accurate.</p>
+    </div>
+    <a class="button button--secondary" href="{% url 'accounts:password_change' %}">Change password</a>
+  </header>
+
+  <section class="panel" aria-labelledby="profile-details-heading">
+    <h2 id="profile-details-heading">Profile details</h2>
+    <form method="post" action="{% url 'accounts:profile' %}" novalidate>
+      {% csrf_token %}
+      {% include "accounts/_form_fields.html" with form=form %}
+      <button class="button" type="submit">Save profile</button>
+    </form>
+  </section>
+</div>
+{% endblock %}

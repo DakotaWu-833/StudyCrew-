@@ -1,0 +1,90 @@
+name: Quality gates
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements/dev.txt
+
+      - name: Install backend dependencies
+        run: python -m pip install -r requirements/dev.txt
+
+      - name: Validate migrations and Django configuration
+        run: |
+          python manage.py makemigrations --check --dry-run
+          python manage.py migrate --noinput
+          python manage.py check
+          python manage.py spectacular --file docs/assignment-2/openapi.yml --validate
+          git diff --exit-code -- docs/assignment-2/openapi.yml
+
+      - name: Validate fail-closed production settings
+        env:
+          DJANGO_ENVIRONMENT: production
+          DJANGO_DEBUG: "false"
+          DJANGO_SECRET_KEY: "ci-only_9uNdzQAH24xXytYh_Mb8xT1Pc5JkWqzBv7Lr6F0sE3aC2dG8hK"
+          DJANGO_ALLOWED_HOSTS: studycrew.example.edu
+          DJANGO_CSRF_TRUSTED_ORIGINS: https://studycrew.example.edu
+          DB_ENGINE: postgresql
+          DB_NAME: studycrew
+          DB_USER: studycrew_app
+          DB_PASSWORD: ci-only
+          DB_HOST: 127.0.0.1
+          EMAIL_BACKEND: django.core.mail.backends.smtp.EmailBackend
+          EMAIL_HOST: smtp.example.edu
+          EMAIL_HOST_USER: studycrew
+          EMAIL_HOST_PASSWORD: ci-only
+          USE_X_ACCEL_REDIRECT: "true"
+        run: python manage.py check --deploy
+
+      - name: Validate deployment helpers
+        run: |
+          bash -n deploy/scripts/migrate-production.sh
+          bash -n deploy/scripts/run-production-management.sh
+          bash -n deploy/scripts/reload-nginx-after-cert-renewal.sh
+          bash -n deploy/studycrew.env.example
+          python -m py_compile deploy/scripts/verify_deployment.py
+
+      - name: Run backend tests with coverage gate
+        run: |
+          coverage run manage.py test
+          coverage report --fail-under=85
+          coverage xml
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Test and build frontend
+        working-directory: frontend
+        run: |
+          npm ci
+          npm test
+          npm run typecheck
+          npm run build
+
+      - name: Ensure reviewed frontend bundle is current
+        run: git diff --exit-code -- static/workspace
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-coverage
+          path: coverage.xml

@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+
+{% block title %}{{ status }} · {{ title }} · StudyCrew{% endblock %}
+
+{% block content %}
+<section class="error-page">
+  <p class="eyebrow">Error {{ status }}</p>
+  <h1>{{ title }}</h1>
+  <p>{{ error_message }}</p>
+  <a class="button" href="{% url 'web:home' %}">Return to StudyCrew</a>
+</section>
+{% endblock %}

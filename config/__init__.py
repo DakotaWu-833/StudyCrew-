@@ -1,0 +1,1 @@
+"""StudyCrew Django project configuration."""

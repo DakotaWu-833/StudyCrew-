@@ -7,7 +7,8 @@ reviewable record of contribution. The product boundary includes account access,
 project membership, task collaboration, meeting coordination, notifications,
 activity evidence and export. It does not grade students, infer contribution
 quality, replace the learning-management system or message people outside the
-application during the MVP.
+application for general conversation. Transactional email is limited to
+security OTPs and project invitations.
 
 The requirements use the IEEE 830-1998 functional-requirement structure: each
 item identifies its trigger/input, required processing, observable output and
@@ -18,10 +19,15 @@ verifiable acceptance condition. "Shall" denotes a mandatory system behaviour.
 - **Visitor:** a person who is not authenticated.
 - **Member:** an authenticated user who belongs to a project.
 - **Project owner:** the single member permitted to administer a project.
+- **Site moderator:** a narrowly privileged website user who may review flagged
+  comments and suspend or restore accounts, without ordinary project access.
 - **System clock:** UTC timestamps stored by the server and rendered in the
   authenticated user's selected IANA time zone.
 - **Authorisation rule:** unless stated otherwise, project data is visible only
   to current members of that project.
+- **Archive rule:** an archived project is absent from active lists and permits
+  retained members to read or export history, but ordinary collaboration writes
+  are rejected.
 
 ## 3. Functional requirements
 
@@ -33,10 +39,10 @@ a password of at least 12 characters.
 
 - **Input/trigger:** visitor submits the registration form.
 - **Processing:** normalise the email to lowercase, reject an existing email,
-  hash the password with the configured one-way password algorithm, create one
-  user and one profile in a transaction, and start an authenticated session.
-- **Success output:** redirect to the empty project dashboard within 2 seconds
-  under normal test load and display a registration confirmation.
+  hash the password with Argon2, create one inactive user and one profile in a
+  transaction, and send a short-lived one-time verification code.
+- **Success output:** activate the account and open the project dashboard only
+  after the matching one-time code is accepted.
 - **Failure output:** preserve non-secret form fields and identify each invalid
   field without revealing whether a different account is active.
 - **Acceptance:** valid input creates exactly one `users` row and one `profiles`
@@ -44,13 +50,15 @@ a password of at least 12 characters.
 
 ### FR-AUTH-02 - Sign in and sign out
 
-**Requirement.** The system shall authenticate a registered user from an email
-and password and shall terminate that user's current session on sign-out.
+**Requirement.** The system shall authenticate a registered user with email,
+password and a short-lived email one-time code, and shall terminate that user's
+current session on sign-out.
 
 - **Input/trigger:** sign-in or sign-out submission.
 - **Processing:** compare the password using the configured hash verifier,
-  rotate the session identifier after successful sign-in, and invalidate the
-  server-side session on sign-out.
+  enforce persisted account/IP failure limits, verify a hashed, attempt-limited
+  single-use code, rotate the session identifier, attach an MFA marker, and
+  invalidate the server-side session on sign-out.
 - **Success output:** show the project dashboard after sign-in and the public
   sign-in view after sign-out.
 - **Failure output:** return one generic credential error and create no session.
@@ -161,25 +169,28 @@ text comment of 1-2000 characters to a task and edit or delete their own comment
 
 - **Input/trigger:** member submits a comment action.
 - **Processing:** escape active content, retain created/edited timestamps and
-  permit project owners to moderate with an audit event.
+  permit project owners or facilitators to moderate with an audit event.
 - **Success output:** append or update the comment thread in chronological order.
 - **Failure output:** reject blank, oversized or unauthorised modifications.
-- **Acceptance:** scripts render as text, not executable markup; a non-author,
-  non-owner cannot modify the comment.
+- **Acceptance:** scripts render as text, not executable markup; a non-author
+  without an owner or facilitator role cannot modify the comment.
 
 ### FR-MEET-01 - Schedule a meeting
 
-**Requirement.** The system shall allow a current project member to create,
-update or cancel a meeting with title, start time, end time, location/link and
-agenda.
+**Requirement.** The system shall allow a current project member to create a
+meeting with title, start time, end time, location/link and agenda. The organiser,
+a project facilitator or the project owner shall be able to update or cancel it.
 
-- **Input/trigger:** member submits the meeting form.
+- **Input/trigger:** a member submits the create form, or an authorised meeting
+  manager submits an update or cancellation.
 - **Processing:** require the end after the start, store UTC, retain organiser,
-  and mark cancellation rather than deleting attendance evidence.
-- **Success output:** show the meeting in chronological project and calendar views.
+  enforce the organiser/facilitator/owner management boundary, and mark
+  cancellation rather than deleting attendance evidence.
+- **Success output:** show the meeting in the chronological project schedule view.
 - **Failure output:** identify invalid times or fields and preserve stored data.
 - **Acceptance:** the same UTC meeting renders correctly in two test time zones;
-  an end time equal to the start time is rejected.
+  an end time equal to the start time is rejected; a regular member cannot edit
+  or cancel another organiser's meeting.
 
 ### FR-MEET-02 - Respond to a meeting
 
@@ -221,8 +232,8 @@ selected project and date range of no more than 366 days.
 - **Success output:** render summary totals, an accessible table and drill-down
   event list within 3 seconds under the seeded test dataset.
 - **Failure output:** identify invalid ranges and return no data for non-members.
-- **Acceptance:** dashboard totals reconcile exactly with a reference SQL query;
-  zero-activity members remain visible with zero values.
+- **Acceptance:** dashboard totals reconcile with independently asserted fixture
+  aggregates; zero-activity members remain visible with zero values.
 
 ### FR-NOTIF-01 - Manage in-app notifications
 
@@ -277,15 +288,33 @@ membership on every server-side read or mutation of project-scoped data.
 - **Success output:** allow the request only when the stated permission holds.
 - **Failure output:** return HTTP 401 when unauthenticated and HTTP 403 when
   authenticated but unauthorised, without returning protected record content.
-- **Acceptance:** an automated access-control matrix test covers every protected
-  route with visitor, non-member, member and owner identities.
+- **Acceptance:** representative automated access-control matrices plus
+  route-specific tests cover visitor, non-member, member, facilitator, owner and
+  site-moderator boundaries across every protected resource family.
+
+### FR-MOD-01 - Moderate reported content and account status
+
+**Requirement.** The system shall provide a custom, non-Django-admin panel for a
+site moderator to review pending comment reports and suspend or restore users.
+
+- **Input/trigger:** a permitted moderator submits a report resolution or account
+  status action through `/control/`.
+- **Processing:** verify the narrow Django permission, prevent self-suspension,
+  expose only flagged comment context and account status, and append a site audit
+  event for each successful action.
+- **Success output:** update the moderation queue or account status without
+  granting the moderator general access to the affected project.
+- **Failure output:** return HTTP 403 to ordinary users and leave data unchanged
+  for invalid or repeated actions.
+- **Acceptance:** a user with only the required moderator permissions can perform
+  the limited actions; a project owner without those permissions cannot.
 
 ## 4. MVP boundary
 
 The proposed MVP includes FR-AUTH-01/02, FR-PROF-01, FR-PROJ-01/02,
 FR-TASK-01/02/03, FR-COLL-01, FR-MEET-01/02, FR-CONTR-01/02, FR-NOTIF-01 and
-FR-SEC-01. Search/filter and export are planned post-MVP enhancements if core
-quality gates are met early.
+FR-SEC-01. Search/filter, export and the required site moderation panel were
+delivered after the original MVP quality gates passed.
 
 MVP acceptance means all included requirements pass their stated acceptance
 checks, protected routes pass the access-control matrix, seeded user journeys can

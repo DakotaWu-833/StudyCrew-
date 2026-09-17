@@ -1,0 +1,66 @@
+{% load static %}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <meta name="theme-color" content="#14213d">
+  <title>{% block title %}StudyCrew{% endblock %}</title>
+  <link rel="icon" href="{% static 'img/favicon.svg' %}" type="image/svg+xml">
+  <link rel="stylesheet" href="{% static 'css/app.css' %}">
+  {% block extra_head %}{% endblock %}
+</head>
+<body class="{% block body_class %}{% endblock %}">
+  <a class="skip-link" href="#main-content">Skip to main content</a>
+  <header class="site-header">
+    <div class="site-header__inner">
+      <a class="brand" href="{% url 'web:home' %}" aria-label="StudyCrew home">
+        <span class="brand__mark" aria-hidden="true">S</span>
+        <span>StudyCrew</span>
+      </a>
+      <nav class="site-nav" aria-label="Main navigation">
+        {% if user.is_authenticated %}
+          <a href="{% url 'web:dashboard' %}">Workspace</a>
+          <a href="{% url 'accounts:profile' %}">Profile</a>
+          {% if is_site_moderator %}<a href="{% url 'web:control_dashboard' %}">Control centre</a>{% endif %}
+          <form action="{% url 'accounts:logout' %}" method="post" class="inline-form">
+            {% csrf_token %}
+            <button class="link-button" type="submit">Sign out</button>
+          </form>
+        {% else %}
+          <a href="{% url 'accounts:login' %}">Sign in</a>
+          <a class="button button--small" href="{% url 'accounts:register' %}">Create account</a>
+        {% endif %}
+      </nav>
+    </div>
+  </header>
+
+  {% if messages %}
+    <div class="flash-stack" aria-live="polite" aria-atomic="true">
+      {% for message in messages %}
+        <div class="flash flash--{{ message.tags|default:'info' }}" role="status">
+          <span>{{ message }}</span>
+          <button type="button" class="flash__close" data-dismiss-flash aria-label="Dismiss message">×</button>
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  <main id="main-content" tabindex="-1">
+    {% block content %}{% endblock %}
+  </main>
+
+  <footer class="site-footer">
+    <div>
+      <a class="brand brand--footer" href="{% url 'web:home' %}">
+        <span class="brand__mark" aria-hidden="true">S</span><span>StudyCrew</span>
+      </a>
+      <p>Clear plans. Fairer conversations. Stronger teams.</p>
+    </div>
+    <p class="site-footer__note">Built for university project teams.</p>
+  </footer>
+  <script type="module" src="{% static 'js/site.js' %}"></script>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

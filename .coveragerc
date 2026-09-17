@@ -1,0 +1,32 @@
+[run]
+branch = True
+source =
+    accounts
+    activity
+    api
+    config
+    integrations
+    meetings
+    projects
+    tasks
+    web
+omit =
+    */migrations/*
+    */tests/*
+    */apps.py
+    */__init__.py
+    config/asgi.py
+    config/settings.py
+    config/wsgi.py
+
+[report]
+show_missing = True
+skip_covered = True
+precision = 1
+exclude_lines =
+    pragma: no cover
+    if TYPE_CHECKING:
+    if __name__ == .__main__.:
+
+[xml]
+output = coverage.xml

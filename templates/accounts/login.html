@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+
+{% block title %}Sign in · StudyCrew{% endblock %}
+
+{% block content %}
+<div class="auth-shell">
+  <section class="auth-card" aria-labelledby="sign-in-heading">
+    <p class="eyebrow">Welcome back</p>
+    <h1 id="sign-in-heading">Sign in to StudyCrew</h1>
+    <p>Enter your password first. We will then email a short-lived security code.</p>
+
+    <form method="post" action="{% url 'accounts:login' %}" novalidate>
+      {% csrf_token %}
+      {% include "accounts/_form_fields.html" with form=form %}
+      <button class="button" type="submit">Continue securely</button>
+    </form>
+
+    <p class="auth-switch">New to StudyCrew? <a href="{% url 'accounts:register' %}">Create an account</a>.</p>
+  </section>
+</div>
+{% endblock %}

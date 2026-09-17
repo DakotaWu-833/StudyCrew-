@@ -1,0 +1,25 @@
+{% load static %}
+<!doctype html>
+<html lang="en" data-time-zone="{{ request.user.profile.time_zone }}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <meta name="theme-color" content="#14213d">
+  <title>Workspace · StudyCrew</title>
+  <link rel="icon" href="{% static 'img/favicon.svg' %}" type="image/svg+xml">
+  <link rel="stylesheet" href="{% static 'css/app.css' %}">
+  <link rel="stylesheet" href="{% static 'workspace/workspace.css' %}">
+</head>
+<body class="workspace-body">
+  <a class="skip-link" href="#workspace-main-content">Skip to workspace</a>
+  <div id="workspace-root">
+    <main class="workspace-loading" aria-live="polite">
+      <span class="workspace-loading__mark">S</span>
+      <p>Opening your workspace…</p>
+    </main>
+  </div>
+  <noscript><p class="noscript-message">StudyCrew's workspace requires JavaScript. Account and security pages remain available without it.</p></noscript>
+  <script type="module" src="{% static 'workspace/main.js' %}"></script>
+</body>
+</html>

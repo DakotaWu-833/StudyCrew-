@@ -1,0 +1,3080 @@
+openapi: 3.0.3
+info:
+  title: StudyCrew REST API
+  version: 1.0.0
+  description: Versioned API for project, task, meeting and collaboration workflows.
+paths:
+  /api/v1/comments/:
+    get:
+      operationId: comments_list
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - in: query
+        name: task
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - comments
+      security:
+      - mfaSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedCommentList'
+          description: ''
+    post:
+      operationId: comments_create
+      tags:
+      - comments
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CommentCreate'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/CommentCreate'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/CommentCreate'
+        required: true
+      security:
+      - mfaSession: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Comment'
+          description: ''
+  /api/v1/comments/{id}/:
+    get:
+      operationId: comments_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - comments
+      security:
+      - mfaSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Comment'
+          description: ''
+    put:
+      operationId: comments_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - comments
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CommentWrite'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/CommentWrite'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/CommentWrite'
+        required: true
+      security:
+      - mfaSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Comment'
+          description: ''
+    patch:
+      operationId: comments_partial_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - comments
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedCommentWrite'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedCommentWrite'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedCommentWrite'
+      security:
+      - mfaSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Comment'
+          description: ''
+    delete:
+      operationId: comments_destroy
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - comments
+      security:
+      - mfaSession: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/comments/{id}/report/:
+    post:
+      operationId: comments_report_create
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - comments
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CommentReport'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/CommentReport'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/CommentReport'
+        required: true
+      security:
+      - mfaSession: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CommentReportResult'
+          description: ''
+  /api/v1/exports/:
+    get:
+      operationId: exports_list
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      tags:
+      - exports
+      security:
+      - mfaSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedExportJobList'
+          description: ''
+    post:
+      operationId: exports_create
+      tags:
+      - exports
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExportRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ExportRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ExportRequest'
+        required: true
+      security:
+      - mfaSession: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExportJob'
+          description: ''
+  /api/v1/exports/{id}/:
+    get:
+      operationId: exports_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - exports
+      security:
+      - mfaSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExportJob'
+          description: ''
+  /api/v1/exports/{id}/download/:
+    get:
+      operationId: exports_download_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - exports
+      security:
+      - mfaSession: []
+      responses:
+        '200':
+          content:
+            text/csv:
+              schema:
+                type: string
+                format: binary
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+          description: ''
+  /api/v1/health/:
+    get:
+      operationId: health_retrieve
+      tags:
+      - health
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Health'
+          description: ''
+  /api/v1/invitations/:
+    get:
+      operationId: invitations_list
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - in: query
+        name: project
+        schema:
+          type: string
+          format: uuid
+      tags:
+      - invitations
+      security:
+      - mfaSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedInvitationList'
+          description: ''
+    post:
+      operationId: invitations_create
+      tags:
+      - invitations
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Invitation'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Invitation'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Invitation'
+        required: true
+      security:
+      - mfaSession: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InvitationDispatch'
+          description: ''
+        '503':
+          description: Email delivery failed and the invitation was rolled back.
+  /api/v1/invitations/{id}/:
+    delete:
+      operationId: invitations_destroy
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - invitations
+      security:
+      - mfaSession: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/invitations/{id}/accept/:
+    post:
+      operationId: invitations_accept_create
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - invitations
+      security:
+      - mfaSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Project'
+          description: ''
+  /api/v1/invitations/{id}/decline/:
+    post:
+      operationId: invitations_decline_create
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - invitations
+      security:
+      - mfaSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Invitation'
+          description: ''
+  /api/v1/me/:
+    get:
+      operationId: me_retrieve
+      tags:
+      - me
+      security:
+      - mfaSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Me'
+          description: ''
+  /api/v1/meetings/:
+    get:
+      operationId: meetings_list
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - in: query
+        name: project
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - meetings
+      security:
+      - mfaSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedMeetingList'
+          description: ''
+    post:
+      operationId: meetings_create
+      tags:
+      - meetings
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MeetingCreate'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/MeetingCreate'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/MeetingCreate'
+        required: true
+      security:
+      - mfaSession: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Meeting'
+          description: ''
+  /api/v1/meetings/{id}/:
+    get:
+      operationId: meetings_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - meetings
+      security:
+      - mfaSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Meeting'
+          description: ''
+    put:
+      operationId: meetings_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - meetings
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MeetingReplace'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/MeetingReplace'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/MeetingReplace'
+        required: true
+      security:
+      - mfaSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Meeting'
+          description: ''
+    patch:
+      operationId: meetings_partial_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - meetings
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedMeetingWrite'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedMeetingWrite'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedMeetingWrite'
+      security:
+      - mfaSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Meeting'
+          description: ''
+    delete:
+      operationId: meetings_destroy
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - meetings
+      security:
+      - mfaSession: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/meetings/{id}/holiday/:
+    get:
+      operationId: meetings_holiday_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - meetings
+      security:
+      - mfaSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HolidayAdvisory'
+          description: ''
+  /api/v1/meetings/{id}/rsvp/:
+    put:
+      operationId: meetings_rsvp_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - meetings
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RSVP'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/RSVP'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/RSVP'
+        required: true
+      security:
+      - mfaSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Meeting'
+          description: ''
+  /api/v1/memberships/:
+    get:
+      operationId: memberships_list
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - in: query
+        name: project
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - memberships
+      security:
+      - mfaSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedMembershipList'
+          description: ''
+  /api/v1/memberships/{id}/:
+    put:
+      operationId: memberships_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - memberships
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MembershipRoleUpdate'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/MembershipRoleUpdate'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/MembershipRoleUpdate'
+        required: true
+      security:
+      - mfaSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Membership'
+          description: ''
+    patch:
+      operationId: memberships_partial_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - memberships
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedMembershipRoleUpdate'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedMembershipRoleUpdate'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedMembershipRoleUpdate'
+      security:
+      - mfaSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Membership'
+          description: ''
+    delete:
+      operationId: memberships_destroy
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - memberships
+      security:
+      - mfaSession: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/memberships/{id}/transfer-ownership/:
+    post:
+      operationId: memberships_transfer_ownership_create
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - memberships
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OwnershipTransfer'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/OwnershipTransfer'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/OwnershipTransfer'
+      security:
+      - mfaSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Membership'
+          description: ''
+  /api/v1/notifications/:
+    get:
+      operationId: notifications_list
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - in: query
+        name: unread
+        schema:
+          type: boolean
+      tags:
+      - notifications
+      security:
+      - mfaSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedNotificationList'
+          description: ''
+  /api/v1/notifications/{id}/:
+    get:
+      operationId: notifications_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - notifications
+      security:
+      - mfaSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Notification'
+          description: ''
+  /api/v1/notifications/{id}/read/:
+    patch:
+      operationId: notifications_read_partial_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - notifications
+      security:
+      - mfaSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Notification'
+          description: ''
+  /api/v1/profile/:
+    get:
+      operationId: profile_retrieve
+      tags:
+      - profile
+      security:
+      - mfaSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Profile'
+          description: ''
+    put:
+      operationId: profile_update
+      tags:
+      - profile
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProfileReplace'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ProfileReplace'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ProfileReplace'
+        required: true
+      security:
+      - mfaSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Profile'
+          description: ''
+    patch:
+      operationId: profile_partial_update
+      tags:
+      - profile
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedProfile'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedProfile'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedProfile'
+      security:
+      - mfaSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Profile'
+          description: ''
+  /api/v1/projects/:
+    get:
+      operationId: projects_list
+      summary: List current projects
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - in: query
+        name: scope
+        schema:
+          enum:
+          - active
+          - archived
+          - all
+          type: string
+          default: active
+          minLength: 1
+        description: |-
+          * `active` - active
+          * `archived` - archived
+          * `all` - all
+      tags:
+      - projects
+      security:
+      - mfaSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedProjectList'
+          description: ''
+    post:
+      operationId: projects_create
+      summary: Create a project and owner membership
+      tags:
+      - projects
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Project'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Project'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Project'
+        required: true
+      security:
+      - mfaSession: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Project'
+          description: ''
+  /api/v1/projects/{id}/:
+    get:
+      operationId: projects_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - projects
+      security:
+      - mfaSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Project'
+          description: ''
+    put:
+      operationId: projects_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - projects
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProjectReplace'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ProjectReplace'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ProjectReplace'
+        required: true
+      security:
+      - mfaSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Project'
+          description: ''
+    patch:
+      operationId: projects_partial_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - projects
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedProject'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedProject'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedProject'
+      security:
+      - mfaSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Project'
+          description: ''
+    delete:
+      operationId: projects_destroy
+      summary: Soft-archive a project
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - projects
+      security:
+      - mfaSession: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/projects/{id}/activity/:
+    get:
+      operationId: projects_activity_list
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      tags:
+      - projects
+      security:
+      - mfaSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedActivityEventList'
+          description: ''
+  /api/v1/projects/{id}/insights/:
+    get:
+      operationId: projects_insights_retrieve
+      parameters:
+      - in: query
+        name: event_type
+        schema:
+          enum:
+          - ''
+          - project_created
+          - project_updated
+          - project_archived
+          - invitation_created
+          - invitation_declined
+          - invitation_cancelled
+          - invitation_expired
+          - member_joined
+          - member_role_changed
+          - member_removed
+          - ownership_transferred
+          - task_created
+          - task_updated
+          - task_archived
+          - task_assignees_changed
+          - task_assigned
+          - task_unassigned
+          - task_status_changed
+          - comment_created
+          - comment_edited
+          - comment_deleted
+          - comment_moderated
+          - comment_reported
+          - meeting_created
+          - meeting_updated
+          - meeting_cancelled
+          - meeting_rsvp
+          - export_requested
+          - export_ready
+          - export_failed
+          type: string
+          default: ''
+        description: |-
+          * `` - All
+          * `project_created` - Project created
+          * `project_updated` - Project updated
+          * `project_archived` - Project archived
+          * `invitation_created` - Invitation created
+          * `invitation_declined` - Invitation declined
+          * `invitation_cancelled` - Invitation cancelled
+          * `invitation_expired` - Invitation expired
+          * `member_joined` - Member joined
+          * `member_role_changed` - Member role changed
+          * `member_removed` - Member removed
+          * `ownership_transferred` - Ownership transferred
+          * `task_created` - Task created
+          * `task_updated` - Task updated
+          * `task_archived` - Task archived
+          * `task_assignees_changed` - Task assignees changed
+          * `task_assigned` - Task assigned
+          * `task_unassigned` - Task unassigned
+          * `task_status_changed` - Task status changed
+          * `comment_created` - Comment created
+          * `comment_edited` - Comment edited
+          * `comment_deleted` - Comment deleted
+          * `comment_moderated` - Comment moderated
+          * `comment_reported` - Comment reported
+          * `meeting_created` - Meeting created
+          * `meeting_updated` - Meeting updated
+          * `meeting_cancelled` - Meeting cancelled
+          * `meeting_rsvp` - Meeting RSVP changed
+          * `export_requested` - Export requested
+          * `export_ready` - Export ready
+          * `export_failed` - Export failed
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - in: query
+        name: range_end
+        schema:
+          type: string
+          format: date
+      - in: query
+        name: range_start
+        schema:
+          type: string
+          format: date
+      tags:
+      - projects
+      security:
+      - mfaSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InsightsResponse'
+          description: ''
+  /api/v1/tasks/:
+    get:
+      operationId: tasks_list
+      parameters:
+      - in: query
+        name: assignee
+        schema:
+          type: string
+          format: uuid
+      - in: query
+        name: due
+        schema:
+          enum:
+          - overdue
+          - upcoming
+          - none
+          - ''
+          type: string
+        description: |-
+          * `overdue` - overdue
+          * `upcoming` - upcoming
+          * `none` - none
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - in: query
+        name: priority
+        schema:
+          enum:
+          - low
+          - medium
+          - high
+          - urgent
+          - ''
+          type: string
+        description: |-
+          * `low` - Low
+          * `medium` - Medium
+          * `high` - High
+          * `urgent` - Urgent
+      - in: query
+        name: project
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - in: query
+        name: q
+        schema:
+          type: string
+          maxLength: 200
+      - in: query
+        name: scope
+        schema:
+          enum:
+          - active
+          - archived
+          - all
+          type: string
+          default: active
+          minLength: 1
+        description: |-
+          * `active` - active
+          * `archived` - archived
+          * `all` - all
+      - in: query
+        name: status
+        schema:
+          enum:
+          - todo
+          - in_progress
+          - blocked
+          - done
+          - ''
+          type: string
+        description: |-
+          * `todo` - To do
+          * `in_progress` - In progress
+          * `blocked` - Blocked
+          * `done` - Done
+      tags:
+      - tasks
+      security:
+      - mfaSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedTaskList'
+          description: ''
+    post:
+      operationId: tasks_create
+      tags:
+      - tasks
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TaskCreate'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/TaskCreate'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/TaskCreate'
+        required: true
+      security:
+      - mfaSession: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Task'
+          description: ''
+  /api/v1/tasks/{id}/:
+    get:
+      operationId: tasks_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - tasks
+      security:
+      - mfaSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Task'
+          description: ''
+    put:
+      operationId: tasks_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - tasks
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TaskReplace'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/TaskReplace'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/TaskReplace'
+        required: true
+      security:
+      - mfaSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Task'
+          description: ''
+    patch:
+      operationId: tasks_partial_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - tasks
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedTaskWrite'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedTaskWrite'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedTaskWrite'
+      security:
+      - mfaSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Task'
+          description: ''
+    delete:
+      operationId: tasks_destroy
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - tasks
+      security:
+      - mfaSession: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/tasks/{id}/assignees/:
+    put:
+      operationId: tasks_assignees_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - tasks
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AssigneeUpdate'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/AssigneeUpdate'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/AssigneeUpdate'
+        required: true
+      security:
+      - mfaSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Task'
+          description: ''
+  /api/v1/tasks/{id}/transition/:
+    post:
+      operationId: tasks_transition_create
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - tasks
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TaskTransition'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/TaskTransition'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/TaskTransition'
+        required: true
+      security:
+      - mfaSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Task'
+          description: ''
+components:
+  schemas:
+    ActivityEvent:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        project:
+          type: string
+          format: uuid
+          readOnly: true
+        actor:
+          allOf:
+          - $ref: '#/components/schemas/UserSummary'
+          readOnly: true
+        event_type:
+          allOf:
+          - $ref: '#/components/schemas/EventTypeEnum'
+          readOnly: true
+        target_type:
+          allOf:
+          - $ref: '#/components/schemas/TargetTypeEnum'
+          readOnly: true
+        target_id:
+          type: string
+          format: uuid
+          readOnly: true
+          nullable: true
+        metadata:
+          readOnly: true
+        occurred_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - actor
+      - event_type
+      - id
+      - metadata
+      - occurred_at
+      - project
+      - target_id
+      - target_type
+    AssigneeUpdate:
+      type: object
+      description: Reject undeclared and read-only input instead of silently discarding
+        it.
+      properties:
+        assignee_ids:
+          type: array
+          items:
+            type: string
+            format: uuid
+      required:
+      - assignee_ids
+    Comment:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        task:
+          type: string
+          format: uuid
+          readOnly: true
+        author:
+          allOf:
+          - $ref: '#/components/schemas/UserSummary'
+          readOnly: true
+        body:
+          type: string
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        edited_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        deleted_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        is_deleted:
+          type: boolean
+          readOnly: true
+      required:
+      - author
+      - body
+      - created_at
+      - deleted_at
+      - edited_at
+      - id
+      - is_deleted
+      - task
+    CommentCreate:
+      type: object
+      description: Reject undeclared and read-only input instead of silently discarding
+        it.
+      properties:
+        body:
+          type: string
+          maxLength: 2000
+          minLength: 1
+        task:
+          type: string
+          format: uuid
+        mentioned_user_ids:
+          type: array
+          items:
+            type: string
+            format: uuid
+      required:
+      - body
+      - task
+    CommentReport:
+      type: object
+      description: Reject undeclared and read-only input instead of silently discarding
+        it.
+      properties:
+        reason:
+          $ref: '#/components/schemas/ReasonEnum'
+        details:
+          type: string
+          default: ''
+          maxLength: 500
+      required:
+      - reason
+    CommentReportResult:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        status:
+          type: string
+          readOnly: true
+          description: Current moderation state.
+      required:
+      - id
+      - status
+    CommentWrite:
+      type: object
+      description: Reject undeclared and read-only input instead of silently discarding
+        it.
+      properties:
+        body:
+          type: string
+          maxLength: 2000
+          minLength: 1
+      required:
+      - body
+    EventTypeEnum:
+      enum:
+      - project_created
+      - project_updated
+      - project_archived
+      - invitation_created
+      - invitation_declined
+      - invitation_cancelled
+      - invitation_expired
+      - member_joined
+      - member_role_changed
+      - member_removed
+      - ownership_transferred
+      - task_created
+      - task_updated
+      - task_archived
+      - task_assignees_changed
+      - task_assigned
+      - task_unassigned
+      - task_status_changed
+      - comment_created
+      - comment_edited
+      - comment_deleted
+      - comment_moderated
+      - comment_reported
+      - meeting_created
+      - meeting_updated
+      - meeting_cancelled
+      - meeting_rsvp
+      - export_requested
+      - export_ready
+      - export_failed
+      type: string
+      description: |-
+        * `project_created` - Project created
+        * `project_updated` - Project updated
+        * `project_archived` - Project archived
+        * `invitation_created` - Invitation created
+        * `invitation_declined` - Invitation declined
+        * `invitation_cancelled` - Invitation cancelled
+        * `invitation_expired` - Invitation expired
+        * `member_joined` - Member joined
+        * `member_role_changed` - Member role changed
+        * `member_removed` - Member removed
+        * `ownership_transferred` - Ownership transferred
+        * `task_created` - Task created
+        * `task_updated` - Task updated
+        * `task_archived` - Task archived
+        * `task_assignees_changed` - Task assignees changed
+        * `task_assigned` - Task assigned
+        * `task_unassigned` - Task unassigned
+        * `task_status_changed` - Task status changed
+        * `comment_created` - Comment created
+        * `comment_edited` - Comment edited
+        * `comment_deleted` - Comment deleted
+        * `comment_moderated` - Comment moderated
+        * `comment_reported` - Comment reported
+        * `meeting_created` - Meeting created
+        * `meeting_updated` - Meeting updated
+        * `meeting_cancelled` - Meeting cancelled
+        * `meeting_rsvp` - Meeting RSVP changed
+        * `export_requested` - Export requested
+        * `export_ready` - Export ready
+        * `export_failed` - Export failed
+    ExportJob:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        project:
+          type: string
+          format: uuid
+        format:
+          $ref: '#/components/schemas/FormatEnum'
+        range_start:
+          type: string
+          format: date
+        range_end:
+          type: string
+          format: date
+        status:
+          allOf:
+          - $ref: '#/components/schemas/ExportJobStatusEnum'
+          readOnly: true
+        error_message:
+          type: string
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        completed_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        expires_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        download_url:
+          type: string
+          nullable: true
+          readOnly: true
+      required:
+      - completed_at
+      - created_at
+      - download_url
+      - error_message
+      - expires_at
+      - format
+      - id
+      - project
+      - range_end
+      - range_start
+      - status
+    ExportJobStatusEnum:
+      enum:
+      - queued
+      - processing
+      - ready
+      - failed
+      - expired
+      type: string
+      description: |-
+        * `queued` - Queued
+        * `processing` - Processing
+        * `ready` - Ready
+        * `failed` - Failed
+        * `expired` - Expired
+    ExportRequest:
+      type: object
+      description: Reject undeclared and read-only input instead of silently discarding
+        it.
+      properties:
+        project:
+          type: string
+          format: uuid
+        format:
+          $ref: '#/components/schemas/FormatEnum'
+        range_start:
+          type: string
+          format: date
+        range_end:
+          type: string
+          format: date
+      required:
+      - format
+      - project
+      - range_end
+      - range_start
+    FormatEnum:
+      enum:
+      - pdf
+      - csv
+      type: string
+      description: |-
+        * `pdf` - PDF
+        * `csv` - CSV
+    Health:
+      type: object
+      properties:
+        status:
+          type: string
+          readOnly: true
+        database:
+          type: string
+          readOnly: true
+      required:
+      - database
+      - status
+    HolidayAdvisory:
+      type: object
+      properties:
+        meeting_date:
+          type: string
+          format: date
+          readOnly: true
+        available:
+          type: boolean
+          readOnly: true
+        is_public_holiday:
+          type: boolean
+          readOnly: true
+          nullable: true
+        holiday_name:
+          type: string
+          readOnly: true
+          nullable: true
+        source:
+          allOf:
+          - $ref: '#/components/schemas/SourceEnum'
+          readOnly: true
+        message:
+          type: string
+          readOnly: true
+      required:
+      - available
+      - holiday_name
+      - is_public_holiday
+      - meeting_date
+      - message
+      - source
+    InsightsResponse:
+      type: object
+      properties:
+        range_start:
+          type: string
+          format: date
+          readOnly: true
+        range_end:
+          type: string
+          format: date
+          readOnly: true
+        event_type:
+          type: string
+          readOnly: true
+        members:
+          type: array
+          items:
+            $ref: '#/components/schemas/MemberInsight'
+          readOnly: true
+        events:
+          type: array
+          items:
+            $ref: '#/components/schemas/ActivityEvent'
+          readOnly: true
+        events_truncated:
+          type: boolean
+          readOnly: true
+      required:
+      - event_type
+      - events
+      - events_truncated
+      - members
+      - range_end
+      - range_start
+    Invitation:
+      type: object
+      description: Reject undeclared and read-only input instead of silently discarding
+        it.
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        project:
+          type: string
+          format: uuid
+        project_name:
+          type: string
+          readOnly: true
+        invited_email:
+          type: string
+          format: email
+          maxLength: 254
+        invited_by:
+          allOf:
+          - $ref: '#/components/schemas/UserSummary'
+          readOnly: true
+        status:
+          allOf:
+          - $ref: '#/components/schemas/InvitationStatusEnum'
+          readOnly: true
+        expires_at:
+          type: string
+          format: date-time
+          readOnly: true
+        responded_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created_at
+      - expires_at
+      - id
+      - invited_by
+      - invited_email
+      - project
+      - project_name
+      - responded_at
+      - status
+    InvitationDispatch:
+      type: object
+      description: Invitation response returned only once with its share token.
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        project:
+          type: string
+          format: uuid
+        project_name:
+          type: string
+          readOnly: true
+        invited_email:
+          type: string
+          format: email
+          maxLength: 254
+        invited_by:
+          allOf:
+          - $ref: '#/components/schemas/UserSummary'
+          readOnly: true
+        status:
+          allOf:
+          - $ref: '#/components/schemas/InvitationStatusEnum'
+          readOnly: true
+        expires_at:
+          type: string
+          format: date-time
+          readOnly: true
+        responded_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        share_token:
+          type: string
+          readOnly: true
+      required:
+      - created_at
+      - expires_at
+      - id
+      - invited_by
+      - invited_email
+      - project
+      - project_name
+      - responded_at
+      - share_token
+      - status
+    InvitationStatusEnum:
+      enum:
+      - pending
+      - accepted
+      - declined
+      - cancelled
+      - expired
+      type: string
+      description: |-
+        * `pending` - Pending
+        * `accepted` - Accepted
+        * `declined` - Declined
+        * `cancelled` - Cancelled
+        * `expired` - Expired
+    Me:
+      type: object
+      properties:
+        user:
+          allOf:
+          - $ref: '#/components/schemas/UserSummary'
+          readOnly: true
+        email:
+          type: string
+          format: email
+          readOnly: true
+        profile:
+          allOf:
+          - $ref: '#/components/schemas/Profile'
+          readOnly: true
+        permissions:
+          allOf:
+          - $ref: '#/components/schemas/PermissionSummary'
+          readOnly: true
+      required:
+      - email
+      - permissions
+      - profile
+      - user
+    Meeting:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        project:
+          type: string
+          format: uuid
+          readOnly: true
+        organiser:
+          allOf:
+          - $ref: '#/components/schemas/UserSummary'
+          readOnly: true
+        title:
+          type: string
+          readOnly: true
+        starts_at:
+          type: string
+          format: date-time
+          readOnly: true
+        ends_at:
+          type: string
+          format: date-time
+          readOnly: true
+        location:
+          type: string
+          readOnly: true
+        agenda:
+          type: string
+          readOnly: true
+        cancelled_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+        attendance_counts:
+          type: object
+          additionalProperties:
+            type: integer
+          readOnly: true
+        my_response:
+          type: string
+          readOnly: true
+        my_availability_note:
+          type: string
+          readOnly: true
+      required:
+      - agenda
+      - attendance_counts
+      - cancelled_at
+      - created_at
+      - ends_at
+      - id
+      - location
+      - my_availability_note
+      - my_response
+      - organiser
+      - project
+      - starts_at
+      - title
+      - updated_at
+    MeetingCreate:
+      type: object
+      description: Reject undeclared and read-only input instead of silently discarding
+        it.
+      properties:
+        title:
+          type: string
+          maxLength: 120
+          minLength: 3
+        starts_at:
+          type: string
+          format: date-time
+        ends_at:
+          type: string
+          format: date-time
+        location:
+          type: string
+          maxLength: 2048
+        agenda:
+          type: string
+          maxLength: 4000
+        project:
+          type: string
+          format: uuid
+      required:
+      - ends_at
+      - project
+      - starts_at
+      - title
+    MeetingReplace:
+      type: object
+      description: Reject undeclared and read-only input instead of silently discarding
+        it.
+      properties:
+        title:
+          type: string
+          maxLength: 120
+          minLength: 3
+        starts_at:
+          type: string
+          format: date-time
+        ends_at:
+          type: string
+          format: date-time
+        location:
+          type: string
+          maxLength: 2048
+        agenda:
+          type: string
+          maxLength: 4000
+      required:
+      - agenda
+      - ends_at
+      - location
+      - starts_at
+      - title
+    MemberInsight:
+      type: object
+      properties:
+        user_id:
+          type: string
+          format: uuid
+          readOnly: true
+        display_name:
+          type: string
+          readOnly: true
+        role:
+          allOf:
+          - $ref: '#/components/schemas/MembershipRoleEnum'
+          readOnly: true
+        total_events:
+          type: integer
+          minimum: 0
+          readOnly: true
+        completed_tasks:
+          type: integer
+          minimum: 0
+          readOnly: true
+        comments:
+          type: integer
+          minimum: 0
+          readOnly: true
+        accepted_meetings:
+          type: integer
+          minimum: 0
+          readOnly: true
+      required:
+      - accepted_meetings
+      - comments
+      - completed_tasks
+      - display_name
+      - role
+      - total_events
+      - user_id
+    Membership:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        project:
+          type: string
+          format: uuid
+          readOnly: true
+        user:
+          allOf:
+          - $ref: '#/components/schemas/UserSummary'
+          readOnly: true
+        role:
+          $ref: '#/components/schemas/MembershipRoleEnum'
+        joined_at:
+          type: string
+          format: date-time
+          readOnly: true
+        removed_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+      required:
+      - id
+      - joined_at
+      - project
+      - removed_at
+      - user
+    MembershipRoleEnum:
+      enum:
+      - owner
+      - facilitator
+      - member
+      type: string
+      description: |-
+        * `owner` - Owner
+        * `facilitator` - Facilitator
+        * `member` - Member
+    MembershipRoleUpdate:
+      type: object
+      description: Reject undeclared and read-only input instead of silently discarding
+        it.
+      properties:
+        role:
+          $ref: '#/components/schemas/MutableMembershipRoleEnum'
+      required:
+      - role
+    MutableMembershipRoleEnum:
+      enum:
+      - member
+      - facilitator
+      type: string
+      description: |-
+        * `member` - member
+        * `facilitator` - facilitator
+    Notification:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        project:
+          type: string
+          format: uuid
+          readOnly: true
+        project_name:
+          type: string
+          readOnly: true
+        notification_type:
+          allOf:
+          - $ref: '#/components/schemas/NotificationTypeEnum'
+          readOnly: true
+        target_url:
+          type: string
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        read_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        is_read:
+          type: boolean
+          readOnly: true
+      required:
+      - created_at
+      - id
+      - is_read
+      - notification_type
+      - project
+      - project_name
+      - read_at
+      - target_url
+    NotificationTypeEnum:
+      enum:
+      - invitation
+      - task_assignment
+      - comment_mention
+      - meeting_change
+      type: string
+      description: |-
+        * `invitation` - Invitation
+        * `task_assignment` - Task assignment
+        * `comment_mention` - Comment mention
+        * `meeting_change` - Meeting change
+    OwnershipTransfer:
+      type: object
+      description: Reject undeclared and read-only input instead of silently discarding
+        it.
+      properties:
+        previous_owner_role:
+          allOf:
+          - $ref: '#/components/schemas/MutableMembershipRoleEnum'
+          default: facilitator
+    PaginatedActivityEventList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/ActivityEvent'
+    PaginatedCommentList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Comment'
+    PaginatedExportJobList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/ExportJob'
+    PaginatedInvitationList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Invitation'
+    PaginatedMeetingList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Meeting'
+    PaginatedMembershipList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Membership'
+    PaginatedNotificationList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Notification'
+    PaginatedProjectList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Project'
+    PaginatedTaskList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Task'
+    PatchedCommentWrite:
+      type: object
+      description: Reject undeclared and read-only input instead of silently discarding
+        it.
+      properties:
+        body:
+          type: string
+          maxLength: 2000
+          minLength: 1
+    PatchedMeetingWrite:
+      type: object
+      description: Reject undeclared and read-only input instead of silently discarding
+        it.
+      properties:
+        title:
+          type: string
+          maxLength: 120
+          minLength: 3
+        starts_at:
+          type: string
+          format: date-time
+        ends_at:
+          type: string
+          format: date-time
+        location:
+          type: string
+          maxLength: 2048
+        agenda:
+          type: string
+          maxLength: 4000
+    PatchedMembershipRoleUpdate:
+      type: object
+      description: Reject undeclared and read-only input instead of silently discarding
+        it.
+      properties:
+        role:
+          $ref: '#/components/schemas/MutableMembershipRoleEnum'
+    PatchedProfile:
+      type: object
+      description: Reject undeclared and read-only input instead of silently discarding
+        it.
+      properties:
+        email:
+          type: string
+          format: email
+          readOnly: true
+        display_name:
+          type: string
+          maxLength: 80
+          minLength: 2
+        course_code:
+          type: string
+          maxLength: 20
+        time_zone:
+          type: string
+          maxLength: 64
+        biography:
+          type: string
+          maxLength: 500
+        avatar_url:
+          oneOf:
+          - type: string
+            format: uri
+            maxLength: 2048
+          - type: string
+            maxLength: 0
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+    PatchedProject:
+      type: object
+      description: Reject undeclared and read-only input instead of silently discarding
+        it.
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        name:
+          type: string
+          maxLength: 100
+          minLength: 3
+        description:
+          type: string
+          maxLength: 2000
+        due_at:
+          type: string
+          format: date-time
+          nullable: true
+        created_by:
+          allOf:
+          - $ref: '#/components/schemas/UserSummary'
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+        archived_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        current_user_role:
+          type: string
+          nullable: true
+          readOnly: true
+        member_count:
+          type: integer
+          readOnly: true
+    PatchedTaskWrite:
+      type: object
+      description: Reject undeclared and read-only input instead of silently discarding
+        it.
+      properties:
+        title:
+          type: string
+          maxLength: 120
+          minLength: 3
+        description:
+          type: string
+          maxLength: 4000
+        priority:
+          $ref: '#/components/schemas/PriorityEnum'
+        due_at:
+          type: string
+          format: date-time
+          nullable: true
+    PermissionSummary:
+      type: object
+      properties:
+        site_moderator:
+          type: boolean
+          readOnly: true
+      required:
+      - site_moderator
+    PriorityEnum:
+      enum:
+      - low
+      - medium
+      - high
+      - urgent
+      type: string
+      description: |-
+        * `low` - Low
+        * `medium` - Medium
+        * `high` - High
+        * `urgent` - Urgent
+    Profile:
+      type: object
+      description: Reject undeclared and read-only input instead of silently discarding
+        it.
+      properties:
+        email:
+          type: string
+          format: email
+          readOnly: true
+        display_name:
+          type: string
+          maxLength: 80
+          minLength: 2
+        course_code:
+          type: string
+          maxLength: 20
+        time_zone:
+          type: string
+          maxLength: 64
+        biography:
+          type: string
+          maxLength: 500
+        avatar_url:
+          oneOf:
+          - type: string
+            format: uri
+            maxLength: 2048
+          - type: string
+            maxLength: 0
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - display_name
+      - email
+      - updated_at
+    ProfileReplace:
+      type: object
+      description: A PUT contract that requires every writable profile field.
+      properties:
+        email:
+          type: string
+          format: email
+          readOnly: true
+        display_name:
+          type: string
+          maxLength: 80
+          minLength: 2
+        course_code:
+          type: string
+          maxLength: 20
+        time_zone:
+          type: string
+          maxLength: 64
+        biography:
+          type: string
+          maxLength: 500
+        avatar_url:
+          oneOf:
+          - type: string
+            format: uri
+            maxLength: 2048
+          - type: string
+            maxLength: 0
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - avatar_url
+      - biography
+      - course_code
+      - display_name
+      - email
+      - time_zone
+      - updated_at
+    Project:
+      type: object
+      description: Reject undeclared and read-only input instead of silently discarding
+        it.
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        name:
+          type: string
+          maxLength: 100
+          minLength: 3
+        description:
+          type: string
+          maxLength: 2000
+        due_at:
+          type: string
+          format: date-time
+          nullable: true
+        created_by:
+          allOf:
+          - $ref: '#/components/schemas/UserSummary'
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+        archived_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        current_user_role:
+          type: string
+          nullable: true
+          readOnly: true
+        member_count:
+          type: integer
+          readOnly: true
+      required:
+      - archived_at
+      - created_at
+      - created_by
+      - current_user_role
+      - id
+      - member_count
+      - name
+      - updated_at
+    ProjectReplace:
+      type: object
+      description: A PUT contract that replaces every writable project field.
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        name:
+          type: string
+          maxLength: 100
+          minLength: 3
+        description:
+          type: string
+          maxLength: 2000
+        due_at:
+          type: string
+          format: date-time
+          nullable: true
+        created_by:
+          allOf:
+          - $ref: '#/components/schemas/UserSummary'
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+        archived_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        current_user_role:
+          type: string
+          nullable: true
+          readOnly: true
+        member_count:
+          type: integer
+          readOnly: true
+      required:
+      - archived_at
+      - created_at
+      - created_by
+      - current_user_role
+      - description
+      - due_at
+      - id
+      - member_count
+      - name
+      - updated_at
+    RSVP:
+      type: object
+      description: Reject undeclared and read-only input instead of silently discarding
+        it.
+      properties:
+        response:
+          $ref: '#/components/schemas/ResponseEnum'
+        availability_note:
+          type: string
+          default: ''
+          maxLength: 500
+      required:
+      - response
+    ReasonEnum:
+      enum:
+      - abuse
+      - privacy
+      - spam
+      - other
+      type: string
+      description: |-
+        * `abuse` - Abusive content
+        * `privacy` - Personal or private information
+        * `spam` - Spam
+        * `other` - Other
+    ResponseEnum:
+      enum:
+      - pending
+      - accepted
+      - declined
+      type: string
+      description: |-
+        * `pending` - Pending
+        * `accepted` - Accepted
+        * `declined` - Declined
+    SourceEnum:
+      enum:
+      - live
+      - cache
+      - stale
+      - unavailable
+      type: string
+      description: |-
+        * `live` - live
+        * `cache` - cache
+        * `stale` - stale
+        * `unavailable` - unavailable
+    TargetTypeEnum:
+      enum:
+      - project
+      - membership
+      - invitation
+      - task
+      - comment
+      - meeting
+      - attendance
+      - export
+      type: string
+      description: |-
+        * `project` - Project
+        * `membership` - Project membership
+        * `invitation` - Project invitation
+        * `task` - Task
+        * `comment` - Task comment
+        * `meeting` - Meeting
+        * `attendance` - Meeting attendance
+        * `export` - Export job
+    Task:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        project:
+          type: string
+          format: uuid
+          readOnly: true
+        title:
+          type: string
+          readOnly: true
+        description:
+          type: string
+          readOnly: true
+        status:
+          allOf:
+          - $ref: '#/components/schemas/TaskStatusEnum'
+          readOnly: true
+        priority:
+          allOf:
+          - $ref: '#/components/schemas/PriorityEnum'
+          readOnly: true
+        blocker_note:
+          type: string
+          readOnly: true
+        due_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        completed_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        created_by:
+          allOf:
+          - $ref: '#/components/schemas/UserSummary'
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+        archived_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        assignees:
+          type: array
+          items:
+            $ref: '#/components/schemas/UserSummary'
+          readOnly: true
+        comment_count:
+          type: integer
+          readOnly: true
+      required:
+      - archived_at
+      - assignees
+      - blocker_note
+      - comment_count
+      - completed_at
+      - created_at
+      - created_by
+      - description
+      - due_at
+      - id
+      - priority
+      - project
+      - status
+      - title
+      - updated_at
+    TaskCreate:
+      type: object
+      description: Reject undeclared and read-only input instead of silently discarding
+        it.
+      properties:
+        title:
+          type: string
+          maxLength: 120
+          minLength: 3
+        description:
+          type: string
+          maxLength: 4000
+        priority:
+          $ref: '#/components/schemas/PriorityEnum'
+        due_at:
+          type: string
+          format: date-time
+          nullable: true
+        project:
+          type: string
+          format: uuid
+      required:
+      - project
+      - title
+    TaskReplace:
+      type: object
+      description: Reject undeclared and read-only input instead of silently discarding
+        it.
+      properties:
+        title:
+          type: string
+          maxLength: 120
+          minLength: 3
+        description:
+          type: string
+          maxLength: 4000
+        priority:
+          $ref: '#/components/schemas/PriorityEnum'
+        due_at:
+          type: string
+          format: date-time
+          nullable: true
+      required:
+      - description
+      - due_at
+      - priority
+      - title
+    TaskStatusEnum:
+      enum:
+      - todo
+      - in_progress
+      - blocked
+      - done
+      type: string
+      description: |-
+        * `todo` - To do
+        * `in_progress` - In progress
+        * `blocked` - Blocked
+        * `done` - Done
+    TaskTransition:
+      type: object
+      description: Reject undeclared and read-only input instead of silently discarding
+        it.
+      properties:
+        status:
+          $ref: '#/components/schemas/TaskStatusEnum'
+        blocker_note:
+          type: string
+          default: ''
+          maxLength: 500
+      required:
+      - status
+    UserSummary:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        display_name:
+          type: string
+          readOnly: true
+      required:
+      - display_name
+      - id
+  securitySchemes:
+    mfaSession:
+      type: apiKey
+      in: cookie
+      name: sessionid
+      description: Authenticated Django session created only after password and email
+        OTP. Unsafe requests also require the csrftoken cookie value in X-CSRFToken.

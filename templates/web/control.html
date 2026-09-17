@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Control centre · StudyCrew{% endblock %}
+{% block body_class %}control-page{% endblock %}
+
+{% block content %}
+<section class="control-shell">
+  <header class="control-heading">
+    <div><p class="eyebrow">Limited site administration</p><h1>Control centre</h1></div>
+    <p>Moderate reported content and manage account access. Passwords, secrets and system settings are never shown here.</p>
+  </header>
+
+  <div class="control-live" role="status" aria-live="polite" aria-atomic="true" data-control-live hidden></div>
+
+  <div class="metric-grid" aria-label="Site summary">
+    <article><strong>{{ metrics.users }}</strong><span>Users</span></article>
+    <article><strong>{{ metrics.active_projects }}</strong><span>Active projects</span></article>
+    <article><strong data-pending-report-count>{{ metrics.pending_reports }}</strong><span>Pending reports</span></article>
+    <article><strong data-control-action-count>{{ metrics.control_actions }}</strong><span>Control actions</span></article>
+  </div>
+
+  <section class="control-section" aria-labelledby="reports-title">
+    <div class="control-section__heading"><div><p class="eyebrow">Content queue</p><h2 id="reports-title">Pending reports</h2></div></div>
+    <div class="control-list" data-report-list>
+      {% for report in reports %}
+        <article class="control-row" data-report-id="{{ report.id }}">
+          <div class="control-row__main">
+            <div class="control-row__meta"><span class="status-pill status-pill--pending">{{ report.get_reason_display }}</span><span>{{ report.created_at|timesince }} ago</span></div>
+            <h3>{{ report.comment.task.title }}</h3>
+            <p class="quoted-content">{{ report.comment.body }}</p>
+            <p class="control-row__note">Reported by {{ report.reporter.profile.display_name }} in {{ report.comment.task.project.name }}{% if report.details %}: {{ report.details }}{% endif %}</p>
+          </div>
+          <form action="{% url 'web:control_report_resolution' report.id %}" method="post" class="control-actions" data-ajax-control>
+            {% csrf_token %}
+            <label><span class="sr-only">Resolution note</span><input name="resolution_note" maxlength="500" placeholder="Resolution note" required></label>
+            <button class="button button--small" name="outcome" value="resolved" type="submit" data-extra-name="remove_comment" data-extra-value="true" data-confirm="Remove this comment and resolve the report? The moderation record will be retained.">Remove & resolve</button>
+            <button class="button button--small button--quiet" name="outcome" value="dismissed" type="submit">Dismiss</button>
+          </form>
+        </article>
+      {% empty %}
+        <div class="empty-state"><h3>No pending reports</h3><p>The moderation queue is clear.</p></div>
+      {% endfor %}
+    </div>
+  </section>
+
+  <section class="control-section" aria-labelledby="users-title">
+    <div class="control-section__heading">
+      <div><p class="eyebrow">Account access</p><h2 id="users-title">Users</h2></div>
+      <form method="get" class="control-search"><label class="sr-only" for="user-search">Search users</label><input id="user-search" name="q" value="{{ query }}" maxlength="100" placeholder="Search name or email"><button class="button button--small button--quiet">Search</button></form>
+    </div>
+    <div class="control-list">
+      {% for account in users %}
+        <article class="control-row control-row--user" data-user-id="{{ account.id }}" data-user-name="{{ account.profile.display_name }}">
+          <div><h3>{{ account.profile.display_name }}</h3><p>{{ account.email }}</p></div>
+          <span class="status-pill {% if account.is_active %}status-pill--active{% endif %}" data-user-state>{% if account.is_active %}Active{% else %}Suspended{% endif %}</span>
+          {% if account != user and not account.is_superuser %}
+            <form action="{% url 'web:control_user_status' account.id %}" method="post" data-ajax-control>
+              {% csrf_token %}
+              <input type="hidden" name="active" value="{% if account.is_active %}false{% else %}true{% endif %}">
+              <button class="button button--small {% if account.is_active %}button--danger{% else %}button--quiet{% endif %}" type="submit"{% if account.is_active %} data-confirm="Suspend {{ account.profile.display_name }}? Their current sessions will be ended."{% endif %}>{% if account.is_active %}Suspend{% else %}Restore{% endif %}</button>
+            </form>
+          {% else %}<span class="control-row__protected">Protected account</span>{% endif %}
+        </article>
+      {% empty %}<div class="empty-state"><h3>No users found</h3><p>Try another search.</p></div>{% endfor %}
+    </div>
+  </section>
+
+  <section class="control-section" aria-labelledby="audit-title">
+    <div class="control-section__heading"><div><p class="eyebrow">Immutable record</p><h2 id="audit-title">Recent control actions</h2></div></div>
+    <ol class="audit-list" data-control-audit>
+      {% for action in recent_actions %}<li><span>{{ action.get_action_display }}</span><small>{{ action.actor.profile.display_name }} · {{ action.occurred_at }}</small></li>
+      {% empty %}<li data-audit-empty>No control actions have been recorded.</li>{% endfor %}
+    </ol>
+  </section>
+</section>
+{% endblock %}
+
+{% block scripts %}<script type="module" src="{% static 'js/control.js' %}"></script>{% endblock %}

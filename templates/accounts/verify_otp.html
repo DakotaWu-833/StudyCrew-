@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+
+{% block title %}Enter security code · StudyCrew{% endblock %}
+
+{% block content %}
+<div class="auth-shell">
+  <section class="auth-card" aria-labelledby="verify-heading">
+    <p class="eyebrow">Security check</p>
+    <h1 id="verify-heading">
+      {% if purpose == "registration" %}Verify your email{% else %}Complete sign in{% endif %}
+    </h1>
+    <p>Enter the six-digit code sent to <strong>{{ masked_email }}</strong>. The code expires shortly and works once.</p>
+
+    <form method="post" action="{% url 'accounts:verify_otp' %}" novalidate>
+      {% csrf_token %}
+      {% include "accounts/_form_fields.html" with form=form %}
+      <button class="button" type="submit">Verify code</button>
+    </form>
+
+    <div class="auth-secondary-action">
+      <p>Did not receive it? Wait a moment before requesting another code.</p>
+      <form method="post" action="{% url 'accounts:resend_otp' %}">
+        {% csrf_token %}
+        <button class="button button--secondary" type="submit">Resend code</button>
+      </form>
+    </div>
+
+    <p class="auth-switch"><a href="{% url 'accounts:login' %}">Restart sign in</a></p>
+  </section>
+</div>
+{% endblock %}

@@ -24,9 +24,9 @@ than traceable activity.
 9. Server-side project membership and role enforcement on all protected data
    (`FR-SEC-01`).
 
-Search/filter (`FR-SEARCH-01`) and PDF/CSV export (`FR-EXPORT-01`) are deliberately
-outside the MVP. They remain fully designed, but will be implemented only after
-the core quality gates pass.
+Search/filter (`FR-SEARCH-01`) and PDF/CSV export (`FR-EXPORT-01`) were outside
+the original milestone MVP. The Assignment 2 implementation now includes both
+after the core quality gates passed.
 
 ## Completion test
 
@@ -37,8 +37,10 @@ be completed, and there are no unresolved severity-1 defects.
 
 ## Feasibility
 
-The proposed implementation uses a React client, Node.js/Express API and
-PostgreSQL database. A small team can deliver the MVP incrementally because each
-feature maps to explicit tables and acceptance tests; contribution insights are
-derived from the same activity events already recorded by normal collaboration.
+The delivered implementation uses Django 5.2 MVT and Django REST Framework for
+the server, a React/TypeScript/Vite authenticated workspace, SQLite for the
+zero-configuration local path and PostgreSQL with separate migration/runtime
+roles in production. Each feature maps to explicit models, domain services and
+acceptance tests; contribution insights are derived from the same append-only
+activity events recorded by normal collaboration.
 

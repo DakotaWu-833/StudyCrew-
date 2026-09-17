@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+
+{% block title %}Create account · StudyCrew{% endblock %}
+
+{% block content %}
+<div class="auth-shell">
+  <section class="auth-card" aria-labelledby="register-heading">
+    <p class="eyebrow">Join your team</p>
+    <h1 id="register-heading">Create your StudyCrew account</h1>
+    <p>Your email stays private to authorised project workflows. We will verify it before signing you in.</p>
+
+    <form method="post" action="{% url 'accounts:register' %}" novalidate>
+      {% csrf_token %}
+      {% include "accounts/_form_fields.html" with form=form %}
+      <button class="button" type="submit">Create account</button>
+    </form>
+
+    <p class="auth-switch">Already registered? <a href="{% url 'accounts:login' %}">Sign in</a>.</p>
+  </section>
+</div>
+{% endblock %}
