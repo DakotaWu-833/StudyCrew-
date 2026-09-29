@@ -24,7 +24,7 @@
     </div>
   </div>
 
-  <div class="hero__stage" data-reveal="scale" aria-hidden="true">
+  <div class="hero__stage" data-feature-showcase data-reveal="scale">
     <div class="hero-board">
       <div class="hero-board__top">
         <span class="hero-board__mark">S</span>
@@ -32,51 +32,83 @@
         <span class="hero-board__preview">PREVIEW</span>
       </div>
       <div class="hero-board__toolbar">
-        <span class="hero-board__tab hero-board__tab--active">Tasks</span>
-        <span class="hero-board__tab">Meetings</span>
-        <span class="hero-board__tab">Activity</span>
-        <span class="hero-board__toolbar-mark">•••</span>
+        <div class="hero-showcase__tabs" role="tablist" aria-label="StudyCrew feature preview">
+          <button class="hero-board__tab hero-board__tab--active" id="showcase-tab-tasks" type="button" role="tab" aria-selected="true" aria-controls="showcase-panel-tasks" tabindex="0" data-feature-tab="tasks" data-primary-title="Move work forward" data-primary-detail="Owners, due dates and status" data-record-title="Keep the next step clear" data-record-detail="Everyone can see what's moving" data-feature-summary="Tasks, meetings and updates—together.">Tasks</button>
+          <button class="hero-board__tab" id="showcase-tab-meetings" type="button" role="tab" aria-selected="false" aria-controls="showcase-panel-meetings" tabindex="-1" data-feature-tab="meetings" data-primary-title="Meet with context" data-primary-detail="Agenda and RSVPs, in one place" data-record-title="Keep decisions connected" data-record-detail="Notes stay with the project" data-feature-summary="Make every meeting part of the project.">Meetings</button>
+          <button class="hero-board__tab" id="showcase-tab-activity" type="button" role="tab" aria-selected="false" aria-controls="showcase-panel-activity" tabindex="-1" data-feature-tab="activity" data-primary-title="See the work, fairly" data-primary-detail="Clear, attributable activity" data-record-title="Facts, not rankings" data-record-detail="No contribution scores" data-feature-summary="A clear record for better team conversations.">Activity</button>
+        </div>
+        <button class="hero-showcase__pause" type="button" aria-label="Pause automatic feature preview" aria-pressed="false" data-showcase-toggle><span aria-hidden="true">Ⅱ</span></button>
       </div>
-      <div class="hero-board__columns">
-        <div class="hero-board__column">
-          <div class="hero-board__column-title"><span><i class="task-dot task-dot--blue"></i>TO DO</span><small>01</small></div>
-          <article class="hero-task">
-            <span class="hero-task__tag">PLANNING</span>
-            <b>Shape the proposal</b>
-            <span class="hero-task__meta"><i></i><i></i><small>Due Thursday</small></span>
-          </article>
-        </div>
-        <div class="hero-board__column">
-          <div class="hero-board__column-title"><span><i class="task-dot task-dot--amber"></i>IN PROGRESS</span><small>01</small></div>
-          <article class="hero-task">
-            <span class="hero-task__tag hero-task__tag--mint">RESEARCH</span>
-            <b>Review the sources</b>
-            <span class="hero-task__meta"><i></i><i></i><small>Owner assigned</small></span>
-          </article>
-        </div>
-        <div class="hero-board__column hero-board__column--done">
-          <div class="hero-board__column-title"><span><i class="task-dot task-dot--mint"></i>DONE</span><small>01</small></div>
-          <article class="hero-task hero-task--done">
-            <span class="hero-task__tag">AGREED</span>
-            <b>Set the direction</b>
-            <span class="hero-task__meta"><i></i><small>Completed</small></span>
-          </article>
-        </div>
+      <div class="hero-board__views">
+        <section class="hero-board__view" id="showcase-panel-tasks" role="tabpanel" aria-labelledby="showcase-tab-tasks" tabindex="0" data-feature-view="tasks">
+          <div class="hero-board__columns">
+            <div class="hero-board__column">
+              <div class="hero-board__column-title"><span><i class="task-dot task-dot--blue"></i>TO DO</span><small>01</small></div>
+              <article class="hero-task">
+                <span class="hero-task__tag">PLANNING</span>
+                <b>Shape the proposal</b>
+                <span class="hero-task__meta"><i></i><i></i><small>Due Thursday</small></span>
+              </article>
+            </div>
+            <div class="hero-board__column">
+              <div class="hero-board__column-title"><span><i class="task-dot task-dot--amber"></i>IN PROGRESS</span><small>01</small></div>
+              <article class="hero-task">
+                <span class="hero-task__tag hero-task__tag--mint">RESEARCH</span>
+                <b>Review the sources</b>
+                <span class="hero-task__meta"><i></i><i></i><small>Owner assigned</small></span>
+              </article>
+            </div>
+            <div class="hero-board__column hero-board__column--done">
+              <div class="hero-board__column-title"><span><i class="task-dot task-dot--mint"></i>DONE</span><small>01</small></div>
+              <article class="hero-task hero-task--done">
+                <span class="hero-task__tag">AGREED</span>
+                <b>Set the direction</b>
+                <span class="hero-task__meta"><i></i><small>Completed</small></span>
+              </article>
+            </div>
+          </div>
+        </section>
+        <section class="hero-board__view" id="showcase-panel-meetings" role="tabpanel" aria-labelledby="showcase-tab-meetings" tabindex="0" data-feature-view="meetings" hidden>
+          <div class="showcase-meeting">
+            <div class="showcase-meeting__header">
+              <span class="showcase-meeting__calendar"><small>TEAM</small><b>MEET</b></span>
+              <span class="showcase-meeting__title"><small>UPCOMING MEETING</small><b>Planning session</b><span>Bring the team into the same conversation.</span></span>
+              <span class="showcase-meeting__status"><i></i>Scheduled</span>
+            </div>
+            <div class="showcase-meeting__agenda">
+              <div class="showcase-meeting__label"><span>SHARED AGENDA</span><span>READY TO REVIEW</span></div>
+              <div class="showcase-meeting__item"><i>01</i><span>Review project updates</span><b>↗</b></div>
+              <div class="showcase-meeting__item"><i>02</i><span>Agree on next actions</span><b>↗</b></div>
+            </div>
+            <div class="showcase-meeting__attendees"><span class="hero-float__avatars"><i>A</i><i>M</i><i>J</i></span><span><b>Team responses</b><small>RSVPs stay with the meeting</small></span><span class="showcase-meeting__arrow">→</span></div>
+          </div>
+        </section>
+        <section class="hero-board__view" id="showcase-panel-activity" role="tabpanel" aria-labelledby="showcase-tab-activity" tabindex="0" data-feature-view="activity" hidden>
+          <div class="showcase-activity">
+            <div class="showcase-activity__heading"><span><small>PROJECT RECORD</small><b>Recent team activity</b></span><span class="showcase-activity__verified"><i></i>Attributable</span></div>
+            <div class="showcase-activity__list">
+              <article class="showcase-activity__item"><span class="showcase-activity__avatar showcase-activity__avatar--blue">A</span><span><b>Member A</b><small>Updated a task</small></span><span class="showcase-activity__kind">TASK UPDATE</span></article>
+              <article class="showcase-activity__item"><span class="showcase-activity__avatar showcase-activity__avatar--mint">M</span><span><b>Member M</b><small>Shared meeting notes</small></span><span class="showcase-activity__kind">MEETING NOTE</span></article>
+              <article class="showcase-activity__item"><span class="showcase-activity__avatar showcase-activity__avatar--amber">J</span><span><b>Member J</b><small>Completed a project task</small></span><span class="showcase-activity__kind">COMPLETED</span></article>
+            </div>
+            <div class="showcase-activity__note"><span>↗</span> A shared record for fairer conversations.</div>
+          </div>
+        </section>
       </div>
       <div class="hero-board__foot">
         <span class="hero-board__pulse"></span>
-        Tasks, meetings and updates—together.
+        <span data-showcase-summary>Tasks, meetings and updates—together.</span>
       </div>
     </div>
-    <div class="hero-float hero-float--meeting">
+    <div class="hero-float hero-float--meeting" aria-hidden="true">
       <span class="hero-float__icon">↗</span>
-      <span><b>Meet with context</b><small>Agenda and RSVPs, in one place</small></span>
+      <span><b data-showcase-callout="primary-title">Move work forward</b><small data-showcase-callout="primary-detail">Owners, due dates and status</small></span>
     </div>
-    <div class="hero-float hero-float--record">
+    <div class="hero-float hero-float--record" aria-hidden="true">
       <span class="hero-float__avatars"><i>A</i><i>M</i><i>J</i></span>
-      <span><b>A shared team view</b><small>Clear, attributable activity</small></span>
+      <span><b data-showcase-callout="record-title">Keep the next step clear</b><small data-showcase-callout="record-detail">Everyone can see what's moving</small></span>
     </div>
-    <p class="hero__caption">A simple view of what’s moving.</p>
+    <p class="hero__caption">Feature preview · Illustrative workspace</p>
   </div>
 </section>
 

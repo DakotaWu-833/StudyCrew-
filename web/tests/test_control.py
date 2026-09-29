@@ -173,6 +173,10 @@ class ControlCentreTests(TestCase):
         self.assertContains(response, "Meet with context")
         self.assertContains(response, "No contribution scores")
         self.assertContains(response, 'data-reveal="rise"')
+        self.assertContains(response, 'role="tablist"')
+        self.assertContains(response, 'data-feature-tab="meetings"')
+        self.assertContains(response, 'data-feature-view="activity"')
+        self.assertContains(response, "Pause automatic feature preview")
         self.assertContains(response, "/static/css/app.css?v=")
         self.assertContains(response, "/static/js/site.js?v=")
 
