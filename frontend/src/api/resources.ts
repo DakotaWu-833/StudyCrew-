@@ -7,6 +7,7 @@ import type {
   Invitation,
   Me,
   Meeting,
+  ReminderDelivery,
   Membership,
   Notification,
   Profile,
@@ -104,6 +105,11 @@ export const taskApi = {
       method: "PUT",
       ...jsonBody({ assignee_ids }),
     }),
+  sendReminder: (id: UUID) =>
+    apiFetch<ReminderDelivery>(`/api/v1/tasks/${id}/send-reminder/`, {
+      method: "POST",
+      ...jsonBody({}),
+    }),
 };
 
 export const commentApi = {
@@ -124,7 +130,8 @@ export const commentApi = {
 };
 
 export const meetingApi = {
-  list: (project: UUID) => apiFetchAll<Meeting>(`/api/v1/meetings/${query({ project })}`),
+  list: (project: UUID, scope: "active" | "archived" | "all" = "active") =>
+    apiFetchAll<Meeting>(`/api/v1/meetings/${query({ project, scope })}`),
   create: (data: {
     project: UUID;
     title: string;
@@ -135,13 +142,22 @@ export const meetingApi = {
   }) => apiFetch<Meeting>("/api/v1/meetings/", { method: "POST", ...jsonBody(data) }),
   update: (id: UUID, data: Partial<Pick<Meeting, "title" | "starts_at" | "ends_at" | "location" | "agenda">>) =>
     apiFetch<Meeting>(`/api/v1/meetings/${id}/`, { method: "PATCH", ...jsonBody(data) }),
-  cancel: (id: UUID) => apiFetch<void>(`/api/v1/meetings/${id}/`, { method: "DELETE" }),
+  cancel: (id: UUID) => apiFetch<void>(`/api/v1/meetings/${id}/cancel/`, {
+    method: "POST",
+    ...jsonBody({}),
+  }),
+  archive: (id: UUID) => apiFetch<void>(`/api/v1/meetings/${id}/`, { method: "DELETE" }),
   rsvp: (id: UUID, response: RSVP, availability_note = "") =>
     apiFetch<Meeting>(`/api/v1/meetings/${id}/rsvp/`, {
       method: "PUT",
       ...jsonBody({ response, availability_note }),
     }),
   holiday: (id: UUID) => apiFetch<HolidayAdvisory>(`/api/v1/meetings/${id}/holiday/`),
+  sendReminder: (id: UUID) =>
+    apiFetch<ReminderDelivery>(`/api/v1/meetings/${id}/send-reminder/`, {
+      method: "POST",
+      ...jsonBody({}),
+    }),
 };
 
 export const notificationApi = {

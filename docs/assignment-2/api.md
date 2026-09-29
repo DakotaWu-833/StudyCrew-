@@ -88,7 +88,7 @@ details.
 | 404 | `not_found` | The resource does not exist or is unavailable at that route. |
 | 405 | `method_not_allowed` | The resource does not implement that HTTP verb. |
 | 429 | `throttled` | A configured request throttle rejected the request. |
-| 503 | `service_unavailable` | Invitation email delivery failed; its database transaction was rolled back and can be retried. |
+| 503 | `service_unavailable` | Invitation delivery failed and was rolled back, or a reminder batch was not fully confirmed and no successful-send audit event was recorded. The action can be retried. |
 | 500 | `server_error` | A safe generic failure; exception text and traceback are logged, not returned. |
 
 ## Endpoint reference
@@ -119,7 +119,11 @@ details.
 
 An insight range cannot exceed 366 days. Zero-activity current members remain in
 the result. `events_truncated: true` tells the client that the 200-event display
-limit was reached.
+limit was reached. The React contribution cards, proportional member bars,
+exact-value table and timeline all consume this same response; there is no
+separate chart endpoint, contribution score, grade or ranking field. The
+activity-type filter changes `total_events` and the event drill-down, while the
+other factual member totals continue to represent the selected date range.
 
 Archived projects are omitted from the default active list and are available
 through `scope=archived` or `scope=all`. The workspace exposes them in an
@@ -139,10 +143,18 @@ rejected.
 | `DELETE /api/v1/tasks/{task_id}/` | None | Any active project member; soft-archives it. |
 | `PUT /api/v1/tasks/{task_id}/assignees/` | `assignee_ids: UUID[]` | Any active project member; replaces the complete assignee set. Every assignee must be a current member of the same project. |
 | `POST /api/v1/tasks/{task_id}/transition/` | `status`, and `blocker_note` when blocked | The project owner or a current assignee. |
+| `POST /api/v1/tasks/{task_id}/send-reminder/` | Empty JSON object | Project owner or facilitator only; emails each eligible current assignee other than the sender and returns `recipient_count` plus `sent_at`. |
 
 Task statuses are `todo`, `in_progress`, `blocked`, and `done`; priorities are
 `low`, `medium`, `high`, and `urgent`. The `due` filter accepts `overdue`,
 `upcoming`, or `none`. A blocked task requires a 3–500 character blocker note.
+
+Task reminder recipients are derived by the server from active, email-verified
+project memberships and current assignments. The endpoint accepts no address or
+recipient identifier, rejects archived tasks/projects and an empty eligible set,
+and applies a 60-second cooldown to the same task. The integration sends a
+separate plain-text message to each recipient so no teammate address appears in
+another recipient's headers.
 
 Example transition:
 
@@ -177,20 +189,52 @@ not by this project API.
 
 | Method and path | Input or filters | Access and result |
 | --- | --- | --- |
-| `GET /api/v1/meetings/?project={project_id}` | Required `project`, optional `page` | Project members; retained cancelled meetings are included. |
-| `POST /api/v1/meetings/` | `project`, `title`, timezone-aware `starts_at`, `ends_at`; optional `location`, `agenda` | Any active project member. End must be after start. |
-| `GET /api/v1/meetings/{meeting_id}/` | None | Project members. |
-| `PUT /api/v1/meetings/{meeting_id}/` | All of `title`, `starts_at`, `ends_at`, `location`, `agenda` | Organiser, project facilitator, or project owner; complete replacement in a non-archived project. |
-| `PATCH /api/v1/meetings/{meeting_id}/` | Any meeting fields except `project` | Organiser, project facilitator, or project owner; partial update in a non-archived project. |
-| `DELETE /api/v1/meetings/{meeting_id}/` | None | Organiser, project facilitator, or project owner; soft-cancels it. |
-| `PUT /api/v1/meetings/{meeting_id}/rsvp/` | `response`, optional `availability_note` | Any active project member; upserts one RSVP. |
+| `GET /api/v1/meetings/?project={project_id}` | Required `project`; optional `scope=active|archived|all`, `page`; default `active` | Project members. `active` means every non-archived meeting, including retained cancelled/ended records; `archived` and `all` make historical evidence explicit. |
+| `POST /api/v1/meetings/` | `project`, `title`, timezone-aware `starts_at`, `ends_at`; optional `location`, `agenda` | Any active project member. End must be after start and neither instant may exceed the inclusive ten-calendar-year horizon at validation time. |
+| `GET /api/v1/meetings/{meeting_id}/` | None | Project members; includes `cancelled_at`, `archived_at` and derived `lifecycle_state`. |
+| `PUT /api/v1/meetings/{meeting_id}/` | All of `title`, `starts_at`, `ends_at`, `location`, `agenda` | Organiser, project facilitator, or project owner; complete replacement of a scheduled meeting in a non-archived project. |
+| `PATCH /api/v1/meetings/{meeting_id}/` | Any meeting fields except `project` | Organiser, project facilitator, or project owner; partial update of a scheduled meeting in a non-archived project. |
+| `POST /api/v1/meetings/{meeting_id}/cancel/` | Empty JSON object | Organiser, project facilitator, or project owner; explicitly soft-cancels a scheduled meeting and retains attendance. |
+| `DELETE /api/v1/meetings/{meeting_id}/` | None | Organiser, project facilitator, or project owner; archives only a cancelled or ended meeting. Repeating an archive is idempotent. |
+| `PUT /api/v1/meetings/{meeting_id}/rsvp/` | `response`, optional `availability_note` | Any active project member; upserts one RSVP only while the meeting is scheduled. |
 | `GET /api/v1/meetings/{meeting_id}/holiday/` | None | Project members; returns a non-blocking Australian public-holiday advisory. |
+| `POST /api/v1/meetings/{meeting_id}/send-reminder/` | Empty JSON object | Project owner or facilitator only; emails each eligible current project member other than the sender and returns `recipient_count` plus `sent_at`. |
 
-RSVP values are `pending`, `accepted`, and `declined`. The holiday endpoint is
-the only path that consults Nager.Date. It uses the meeting date in
+Meeting lifecycle is `scheduled -> cancelled or ended -> archived`. `ended` is
+derived when the current time reaches `ends_at`; cancellation and archival have
+retained timestamps. Cancelled/ended meetings remain in the default non-archived
+scope until explicitly archived, while archived meetings are read-only. The
+ten-year limit uses calendar-year replacement rather than 3,650 days and safely
+contracts 29 February to 28 February when the target year is not a leap year.
+
+RSVP values are `pending`, `accepted`, and `declined`. A cancelled, ended or
+archived meeting rejects RSVP changes. The holiday endpoint is the only path
+that consults Nager.Date. It uses the meeting date in
 `Australia/Sydney`, caches a validated response by calendar year, and returns
 one of `live`, `cache`, `stale`, or `unavailable` in `source`. Provider failure
 still returns `200` with `available: false`; it never prevents meeting CRUD.
+
+Meeting reminder recipients are active, email-verified current project members
+other than the sender and are derived entirely by the server. Cancelled, ended,
+archived or archived-project meetings reject reminder dispatch, as does an empty
+eligible set. A 60-second cooldown applies to each meeting.
+
+Both reminder endpoints return this address-free shape after the mail backend
+confirms every separate message:
+
+```json
+{
+  "recipient_count": 3,
+  "sent_at": "2026-09-20T06:45:00Z"
+}
+```
+
+A confirmed dispatch appends one immutable `task_reminder_sent` or
+`meeting_reminder_sent` event containing only the recipient count. A backend
+exception or incomplete batch returns the safe `503` envelope and does not
+append that success event. An external mail system may already have accepted a
+subset before reporting an incomplete batch, so the API never falsely claims
+that email delivery itself can be rolled back.
 
 ```json
 {
@@ -285,8 +329,15 @@ Response (`201 Created`):
   logout are server-rendered security workflows under `/account/`.
 - Project membership is checked for every project-owned object. A global site
   moderator does not bypass private project boundaries.
+- Project “manager” actions mean a current project owner or facilitator. They do
+  not grant the separate global site moderator access to reminders or project
+  data.
+- Transactional email is limited to OTPs, invitations and explicit task/meeting
+  reminders. Reminder endpoints accept no caller-provided addresses and never
+  expose recipient addresses in their response or audit metadata.
 - Delete operations retain collaboration/audit evidence through archive,
-  cancellation, removal, or body-redaction states.
+  removal or body-redaction states. Meeting cancellation is a separate explicit
+  action because `DELETE` represents terminal-state archival.
 - The API provides no bulk write endpoint and no WebSocket interface. The
   selected modern-web option is the routed React/TypeScript client with Fetch
   and React Query.

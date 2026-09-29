@@ -1,8 +1,9 @@
 from datetime import UTC, datetime, timedelta
 from unittest.mock import patch
 
-from django.core.exceptions import PermissionDenied
+from django.core.exceptions import PermissionDenied, ValidationError
 from django.test import TestCase
+from django.utils import timezone
 
 from accounts.models import User
 from integrations.nager_date import PublicHoliday, PublicHolidayResult
@@ -62,6 +63,57 @@ class MeetingSelectorTests(TestCase):
         )
         with self.assertRaises(PermissionDenied):
             meeting_for_member(meeting_id=self.meeting.pk, user=self.outsider)
+
+    def test_meeting_scopes_keep_archived_evidence_discoverable(self):
+        now = timezone.now()
+        archived = Meeting.objects.create(
+            project=self.project,
+            organiser=self.member,
+            title="Archived retrospective",
+            starts_at=now - timedelta(hours=2),
+            ends_at=now - timedelta(hours=1),
+            archived_at=now,
+        )
+
+        active_ids = set(
+            meetings_for_project(
+                project=self.project,
+                user=self.member,
+                scope="active",
+            ).values_list("id", flat=True)
+        )
+        archived_ids = set(
+            meetings_for_project(
+                project=self.project,
+                user=self.member,
+                scope="archived",
+            ).values_list("id", flat=True)
+        )
+        all_ids = set(
+            meetings_for_project(
+                project=self.project,
+                user=self.member,
+                scope="all",
+            ).values_list("id", flat=True)
+        )
+
+        self.assertEqual(active_ids, {self.meeting.id})
+        self.assertEqual(archived_ids, {archived.id})
+        self.assertEqual(all_ids, {self.meeting.id, archived.id})
+        self.assertEqual(
+            meeting_for_member(meeting_id=archived.id, user=self.member),
+            archived,
+        )
+
+    def test_unknown_meeting_scope_is_rejected(self):
+        with self.assertRaises(ValidationError) as raised:
+            meetings_for_project(
+                project=self.project,
+                user=self.member,
+                scope="deleted",
+            )
+
+        self.assertIn("scope", raised.exception.message_dict)
 
     def test_attendance_counts_include_zero_categories(self):
         MeetingAttendance.objects.create(

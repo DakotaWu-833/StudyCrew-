@@ -9,8 +9,10 @@ from projects.policies import (
     active_membership,
     is_authenticated_active,
     is_project_member,
+    is_project_manager,
     is_project_owner,
     require_project_member,
+    require_project_manager,
     require_project_owner,
 )
 
@@ -56,6 +58,16 @@ class ProjectPolicyTests(TestCase):
             user=cls.inactive,
             role=ProjectMembership.Role.MEMBER,
         )
+        cls.facilitator = User.objects.create_user(
+            email="policy-facilitator@example.com",
+            password="Strong!Passphrase42",
+            display_name="Policy Facilitator",
+        )
+        cls.facilitator_membership = ProjectMembership.objects.create(
+            project=cls.project,
+            user=cls.facilitator,
+            role=ProjectMembership.Role.FACILITATOR,
+        )
 
     def test_authentication_requires_authenticated_and_active_user(self):
         self.assertFalse(is_authenticated_active(AnonymousUser()))
@@ -84,3 +96,15 @@ class ProjectPolicyTests(TestCase):
             require_project_member(self.outsider, self.project)
         with self.assertRaises(PermissionDenied):
             require_project_owner(self.member, self.project)
+
+    def test_project_manager_is_limited_to_active_owner_and_facilitator(self):
+        self.assertTrue(is_project_manager(self.owner, self.project))
+        self.assertTrue(is_project_manager(self.facilitator, self.project))
+        self.assertFalse(is_project_manager(self.member, self.project))
+        self.assertFalse(is_project_manager(self.outsider, self.project))
+        self.assertEqual(
+            require_project_manager(self.facilitator, self.project),
+            self.facilitator_membership,
+        )
+        with self.assertRaises(PermissionDenied):
+            require_project_manager(self.member, self.project)

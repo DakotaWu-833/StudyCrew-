@@ -13,8 +13,9 @@ FR-MEET-01,"meetings; activity_events; notifications","WF-03; WF-07",Yes
 FR-MEET-02,"meeting_attendees; activity_events",WF-07,Yes
 FR-CONTR-01,activity_events,"WF-03; WF-07; WF-08",Yes
 FR-CONTR-02,"activity_events; tasks; task_comments; meeting_attendees","WF-08; WF-11",Yes
-FR-NOTIF-01,"notifications; activity_events","WF-05; WF-07; WF-09",Yes
+FR-NOTIF-01,"notifications; activity_events; task_assignees; project_members","WF-05; WF-07; WF-09",Yes
 FR-SEARCH-01,"tasks; task_assignees",WF-04,No
 FR-EXPORT-01,"export_jobs; activity_events","WF-08; WF-11",No
 FR-SEC-01,"all project-scoped tables","WF-02 to WF-11",Yes
+FR-MOD-01,"users; content_reports; site_audit_events","WF-05 report entry; /control/ delivered post-MVP view",No
 

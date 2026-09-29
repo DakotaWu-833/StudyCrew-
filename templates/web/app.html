@@ -9,7 +9,7 @@
   <title>Workspace · StudyCrew</title>
   <link rel="icon" href="{% static 'img/favicon.svg' %}" type="image/svg+xml">
   <link rel="stylesheet" href="{% static 'css/app.css' %}">
-  <link rel="stylesheet" href="{% static 'workspace/workspace.css' %}">
+  <link rel="stylesheet" href="{% static 'workspace/workspace.css' %}?v={{ workspace_css_version }}">
 </head>
 <body class="workspace-body">
   <a class="skip-link" href="#workspace-main-content">Skip to workspace</a>
@@ -20,6 +20,6 @@
     </main>
   </div>
   <noscript><p class="noscript-message">StudyCrew's workspace requires JavaScript. Account and security pages remain available without it.</p></noscript>
-  <script type="module" src="{% static 'workspace/main.js' %}"></script>
+  <script type="module" src="{% static 'workspace/main.js' %}?v={{ workspace_js_version }}"></script>
 </body>
 </html>

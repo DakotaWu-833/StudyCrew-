@@ -104,11 +104,18 @@ export interface Meeting {
   location: string;
   agenda: string;
   cancelled_at: string | null;
+  archived_at: string | null;
+  lifecycle_state: "scheduled" | "ended" | "cancelled" | "archived";
   created_at: string;
   updated_at: string;
   attendance_counts: Record<RSVP, number>;
   my_response: RSVP;
   my_availability_note: string;
+}
+
+export interface ReminderDelivery {
+  recipient_count: number;
+  sent_at: string;
 }
 
 export interface HolidayAdvisory {

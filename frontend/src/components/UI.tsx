@@ -30,7 +30,7 @@ export function ConfirmAction({
     <span className="confirm-action" role="group" aria-label={message}>
       <span className="confirm-action__message">{message}</span>
       <span className="confirm-action__buttons">
-        <Button type="button" variant="danger" disabled={busy} onClick={onConfirm}>
+        <Button type="button" variant="danger" disabled={busy} onClick={() => { setConfirming(false); onConfirm(); }}>
           {busy ? "Working…" : confirmLabel}
         </Button>
         <Button type="button" variant="quiet" disabled={busy} onClick={() => setConfirming(false)}>Go back</Button>

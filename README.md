@@ -21,10 +21,12 @@ artifacts remain under `design/`, `database/` and `deliverables/`.
   soft archive.
 - Plain-text task comments, author editing/deletion, reporting and a separately
   permissioned moderation centre.
-- Meeting CRUD, RSVP counts and a cached Australian public-holiday advisory
+- Ten-year-bounded meeting scheduling, RSVP counts, explicit cancellation,
+  terminal-state archival and a cached Australian public-holiday advisory
   fetched only by the backend from Nager.Date.
-- Append-only activity evidence, inclusive per-member insights, notifications,
-  and authorised CSV/PDF exports.
+- Append-only activity evidence, accessible factual contribution charts and
+  tables, in-app notifications, owner/facilitator email reminders, and
+  authorised CSV/PDF exports.
 - A responsive React workspace with query caching and client routing; security
   and account pages remain server-rendered Django views.
 - A custom `/control/` site panel. Django's developer admin is deliberately not
@@ -152,7 +154,8 @@ The versioned base is `/api/v1/`; the generated OpenAPI contract is
 - `/projects/{id}/activity/` and `/projects/{id}/insights/`
 
 Normal resources use `GET`, `POST`, `PUT`, `PATCH` and `DELETE` as applicable.
-Deletes archive/cancel collaboration records rather than destroying evidence.
+Deletes soft-archive collaboration records rather than destroying evidence;
+meeting cancellation is the explicit `POST /meetings/{id}/cancel/` transition.
 Authentication uses the same server-side session established after email OTP;
 unsafe requests must send the CSRF cookie value as `X-CSRFToken`.
 
@@ -193,10 +196,10 @@ tests and framework bootstrap files rather than inflating results with generated
 code. See `docs/assignment-2/test-plan.md` for the access matrix and evidence
 plan.
 
-Verified on 16 September 2026: 275 Django tests, 96.3% branch coverage (86.0%
-minimum among reported key files), 4 files/18 Vitest cases, zero-warning OpenAPI
-validation, TypeScript checking, a production build and dependency audits all
-passed. An executable architecture test also prevents domain-to-HTTP imports,
+Verified on 29 September 2026: 318 Django tests, 96.3% branch coverage (86.0%
+minimum among reported key files), 6 files/31 Vitest cases, zero-warning OpenAPI
+validation, TypeScript checking and a production build all passed. An executable
+architecture test also prevents domain-to-HTTP imports,
 external HTTP outside `integrations/` and direct frontend API calls outside the
 shared client.
 
@@ -228,9 +231,9 @@ team must still capture the real hostname, certificate, EC2 reboot, firewall,
 | `accounts/` | identity, MFA, lockout, sessions and profile |
 | `projects/` | projects, invitations, roles and ownership |
 | `tasks/` | tasks, assignments, comments and reports |
-| `meetings/` | scheduling and attendance |
+| `meetings/` | bounded scheduling, lifecycle, attendance and reminders |
 | `activity/` | append-only evidence, insights, notifications and exports |
-| `integrations/` | resilient Nager.Date cache boundary |
+| `integrations/` | resilient Nager.Date cache and private email-delivery boundaries |
 | `api/` | REST authentication, serializers, views, errors and schema |
 | `web/` | public shell and custom moderation centre |
 | `frontend/` | React/TypeScript source and tests |

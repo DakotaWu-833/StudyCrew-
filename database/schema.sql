@@ -1,4 +1,6 @@
--- StudyCrew physical model (PostgreSQL 16)
+-- Assignment 1 StudyCrew physical design model (PostgreSQL 16), retained as a
+-- historical design artefact. Do not use this 13-table sketch to initialise the
+-- current 18-table Django application; its migrations define the live schema.
 -- UUIDs prevent guessable public identifiers; timestamptz stores instants in UTC.
 
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
@@ -123,7 +125,11 @@ CREATE TABLE meetings (
     created_at timestamptz NOT NULL DEFAULT now(),
     updated_at timestamptz NOT NULL DEFAULT now(),
     cancelled_at timestamptz,
-    CONSTRAINT ck_meeting_time_order CHECK (ends_at > starts_at)
+    archived_at timestamptz,
+    CONSTRAINT ck_meeting_time_order CHECK (ends_at > starts_at),
+    CONSTRAINT ck_meeting_archive_terminal CHECK (
+        archived_at IS NULL OR cancelled_at IS NOT NULL OR ends_at <= archived_at
+    )
 );
 
 CREATE TABLE meeting_attendees (
@@ -145,7 +151,9 @@ CREATE TABLE activity_events (
         'member_joined', 'member_role_changed', 'member_removed',
         'task_created', 'task_updated', 'task_status_changed',
         'comment_created', 'comment_edited', 'comment_deleted',
-        'meeting_created', 'meeting_updated', 'meeting_cancelled', 'meeting_rsvp'
+        'meeting_created', 'meeting_updated', 'meeting_cancelled',
+        'meeting_archived', 'meeting_rsvp',
+        'task_reminder_sent', 'meeting_reminder_sent'
     )),
     task_id uuid REFERENCES tasks(task_id) ON DELETE SET NULL,
     comment_id uuid REFERENCES task_comments(comment_id) ON DELETE SET NULL,
@@ -194,6 +202,8 @@ CREATE INDEX ix_tasks_project_board ON tasks(project_id, status, priority) WHERE
 CREATE INDEX ix_tasks_due_at ON tasks(project_id, due_at) WHERE archived_at IS NULL;
 CREATE INDEX ix_comments_task_time ON task_comments(task_id, created_at);
 CREATE INDEX ix_meetings_project_start ON meetings(project_id, starts_at);
+CREATE INDEX ix_meetings_project_archive
+    ON meetings(project_id, archived_at, starts_at);
 CREATE INDEX ix_activity_project_time ON activity_events(project_id, occurred_at);
 CREATE INDEX ix_activity_actor_time ON activity_events(actor_id, occurred_at);
 CREATE INDEX ix_notifications_unread ON notifications(recipient_id, created_at DESC) WHERE read_at IS NULL;

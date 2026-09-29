@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
@@ -19,11 +20,23 @@ def home(request: HttpRequest) -> HttpResponse:
     return render(request, "web/home.html")
 
 
+def _workspace_asset_version(filename: str) -> str:
+    """Change the static URL whenever a rebuilt client asset changes."""
+
+    try:
+        return str((settings.BASE_DIR / "static" / "workspace" / filename).stat().st_mtime_ns)
+    except OSError:
+        return "0"
+
+
 @login_required
 @ensure_csrf_cookie
 def dashboard(request: HttpRequest, route: str = "") -> HttpResponse:
     # React owns the nested workspace route; Django only serves the safe shell.
-    return render(request, "web/app.html")
+    return render(request, "web/app.html", {
+        "workspace_css_version": _workspace_asset_version("workspace.css"),
+        "workspace_js_version": _workspace_asset_version("main.js"),
+    })
 
 
 @login_required

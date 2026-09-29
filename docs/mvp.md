@@ -16,11 +16,12 @@ than traceable activity.
 4. Task create/edit/archive, multi-member assignment and status workflow
    (`FR-TASK-01/02/03`).
 5. Sanitised task comments with ownership and moderation rules (`FR-COLL-01`).
-6. Meeting scheduling, cancellation and per-member RSVP (`FR-MEET-01/02`).
-7. Immutable activity evidence and per-member contribution insights
+6. Bounded meeting scheduling, cancellation, terminal-state archival and
+   per-member RSVP (`FR-MEET-01/02`).
+7. Immutable activity evidence and accessible factual contribution insights
    (`FR-CONTR-01/02`).
-8. In-app assignment, mention, meeting and invitation notifications
-   (`FR-NOTIF-01`).
+8. In-app assignment, mention, meeting and invitation notifications plus
+   owner/facilitator task and meeting reminders (`FR-NOTIF-01`).
 9. Server-side project membership and role enforcement on all protected data
    (`FR-SEC-01`).
 

@@ -19,14 +19,27 @@ def require(condition: bool, message: str) -> None:
 
 requirements_text = (ROOT / "docs" / "requirements.md").read_text(encoding="utf-8")
 requirement_ids = re.findall(r"^### (FR-[A-Z]+-\d+)", requirements_text, flags=re.MULTILINE)
-require(len(requirement_ids) == 18, "18 uniquely identified functional requirements")
-require(len(set(requirement_ids)) == 18, "functional requirement identifiers are unique")
-require(requirements_text.lower().count("the system shall") >= 18, "every requirement uses mandatory shall language")
+expected_requirement_count = 19
+require(
+    len(requirement_ids) == expected_requirement_count,
+    f"{expected_requirement_count} functional requirements are identified",
+)
+require(
+    len(set(requirement_ids)) == expected_requirement_count,
+    "functional requirement identifiers are unique",
+)
+require(
+    requirements_text.lower().count("the system shall") >= expected_requirement_count,
+    "every requirement uses mandatory shall language",
+)
 
 with (ROOT / "docs" / "traceability.csv").open(encoding="utf-8", newline="") as trace_file:
     trace_rows = list(csv.DictReader(trace_file))
 trace_ids = [row["Requirement"] for row in trace_rows]
-require(set(trace_ids) == set(requirement_ids), "traceability covers every requirement exactly once")
+require(
+    len(trace_ids) == len(requirement_ids) and set(trace_ids) == set(requirement_ids),
+    "traceability covers every requirement exactly once",
+)
 require(all(row["Primary tables"] and row["Wireframe views"] for row in trace_rows), "every requirement maps to data and interface evidence")
 
 schema_text = (ROOT / "database" / "schema.sql").read_text(encoding="utf-8")
@@ -67,4 +80,4 @@ with zipfile.ZipFile(pptx_path) as deck:
         note_xml = deck.read(note_name).decode("utf-8")
         require("[Sources]" in note_xml and "[/Sources]" in note_xml, f"{Path(note_name).name} has a source block")
 
-print("\nSubmission audit passed.")
+print("\nAssignment 1 design-artifact audit passed.")

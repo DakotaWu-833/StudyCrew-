@@ -115,5 +115,19 @@ export function today(offsetDays = 0): string {
     .slice(0, 10);
 }
 
+/** Inclusive ten-calendar-year limit for meeting datetime controls. */
+export function meetingDateTimeLimit(reference = new Date()): string {
+  // The server adds ten years to the UTC instant, then validates UTC instants.
+  // Convert that exact horizon for the user's datetime-local control so DST
+  // changes cannot make the browser permit a value the API rejects.
+  const targetYear = reference.getUTCFullYear() + 10;
+  const month = reference.getUTCMonth();
+  const finalDay = new Date(Date.UTC(targetYear, month + 1, 0)).getUTCDate();
+  const horizon = new Date(reference);
+  horizon.setUTCFullYear(targetYear, month, Math.min(reference.getUTCDate(), finalDay));
+  const local = partsInZone(horizon, preferredTimeZone());
+  return `${local.year}-${twoDigits(local.month)}-${twoDigits(local.day)}T${twoDigits(local.hour)}:${twoDigits(local.minute)}`;
+}
+
 export const titleCase = (value: string) =>
   value.replaceAll("_", " ").replace(/\b\w/g, (letter) => letter.toUpperCase());

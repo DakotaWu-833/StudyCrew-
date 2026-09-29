@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { formatDate, parseOptionalDateTime, titleCase, toDateTimeLocal, today } from "./format";
+import { formatDate, meetingDateTimeLimit, parseOptionalDateTime, titleCase, toDateTimeLocal, today } from "./format";
 
 describe("workspace formatting", () => {
   afterEach(() => {
@@ -56,5 +56,16 @@ describe("workspace formatting", () => {
     document.documentElement.dataset.timeZone = "Pacific/Kiritimati";
 
     expect(today()).toBe("2026-01-02");
+  });
+
+  it("uses an inclusive ten-calendar-year meeting limit and contracts leap day", () => {
+    document.documentElement.dataset.timeZone = "UTC";
+    expect(meetingDateTimeLimit(new Date("2028-02-29T09:45:00Z"))).toBe("2038-02-28T09:45");
+    expect(meetingDateTimeLimit(new Date("2026-09-20T13:05:00Z"))).toBe("2036-09-20T13:05");
+  });
+
+  it("uses the server's UTC horizon when Sydney daylight saving differs ten years later", () => {
+    document.documentElement.dataset.timeZone = "Australia/Sydney";
+    expect(meetingDateTimeLimit(new Date("2026-10-03T17:30:00Z"))).toBe("2036-10-04T03:30");
   });
 });

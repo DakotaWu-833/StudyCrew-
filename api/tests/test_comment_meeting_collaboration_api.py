@@ -5,7 +5,7 @@ from django.utils import timezone
 
 from api.tests.base import APIDomainTestCase
 from integrations.nager_date import PublicHolidayResult
-from meetings.models import Meeting
+from meetings.models import Meeting, latest_allowed_meeting_datetime
 from tasks.models import Task, TaskComment
 
 
@@ -131,8 +131,44 @@ class CommentMeetingAPITests(APIDomainTestCase):
         self.assertEqual(rsvp.json()["my_response"], "accepted")
         self.assertEqual(rsvp.json()["my_availability_note"], "On time")
         self.authenticate(self.owner)
-        self.assertEqual(self.client.delete(f"/api/v1/meetings/{meeting_id}/").status_code, 204)
+        cancelled = self.client.post(
+            f"/api/v1/meetings/{meeting_id}/cancel/", {}, format="json"
+        )
+        self.assertEqual(cancelled.status_code, 204, cancelled.content)
         self.assertIsNotNone(Meeting.objects.get(id=meeting_id).cancelled_at)
+
+        archived = self.client.delete(f"/api/v1/meetings/{meeting_id}/")
+        self.assertEqual(archived.status_code, 204, archived.content)
+        detail = self.client.get(f"/api/v1/meetings/{meeting_id}/")
+        self.assertEqual(detail.status_code, 200)
+        self.assertEqual(detail.json()["lifecycle_state"], "archived")
+        self.assertIsNotNone(detail.json()["archived_at"])
+        self.assertEqual(
+            self.client.get(f"/api/v1/meetings/?project={self.project.id}").json()["count"],
+            0,
+        )
+        self.assertEqual(
+            self.client.get(
+                f"/api/v1/meetings/?project={self.project.id}&scope=archived"
+            ).json()["count"],
+            1,
+        )
+        self.assertEqual(
+            self.client.patch(
+                f"/api/v1/meetings/{meeting_id}/",
+                {"title": "Rewrite archived evidence"},
+                format="json",
+            ).status_code,
+            400,
+        )
+        self.assertEqual(
+            self.client.put(
+                f"/api/v1/meetings/{meeting_id}/rsvp/",
+                {"response": "declined"},
+                format="json",
+            ).status_code,
+            400,
+        )
 
     def test_invalid_meeting_time_returns_field_error(self):
         self.authenticate(self.owner)
@@ -149,6 +185,73 @@ class CommentMeetingAPITests(APIDomainTestCase):
         )
         self.assertEqual(response.status_code, 400)
         self.assertIn("ends_at", response.json()["error"]["fields"])
+
+    def test_meeting_more_than_ten_calendar_years_ahead_is_rejected(self):
+        self.authenticate(self.owner)
+        starts = latest_allowed_meeting_datetime() + timedelta(seconds=1)
+
+        response = self.client.post(
+            "/api/v1/meetings/",
+            {
+                "project": str(self.project.id),
+                "title": "Too distant planning",
+                "starts_at": starts.isoformat(),
+                "ends_at": (starts + timedelta(hours=1)).isoformat(),
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("starts_at", response.json()["error"]["fields"])
+        self.assertIn("ends_at", response.json()["error"]["fields"])
+
+    def test_only_terminal_meetings_can_be_archived(self):
+        future = Meeting.objects.create(
+            project=self.project,
+            organiser=self.owner,
+            title="Still scheduled",
+            starts_at=timezone.now() + timedelta(days=1),
+            ends_at=timezone.now() + timedelta(days=1, hours=1),
+        )
+        ended = Meeting.objects.create(
+            project=self.project,
+            organiser=self.owner,
+            title="Already ended",
+            starts_at=timezone.now() - timedelta(hours=2),
+            ends_at=timezone.now() - timedelta(hours=1),
+        )
+        self.authenticate(self.owner)
+
+        rejected = self.client.delete(f"/api/v1/meetings/{future.id}/")
+        archived = self.client.delete(f"/api/v1/meetings/{ended.id}/")
+
+        self.assertEqual(rejected.status_code, 400)
+        self.assertEqual(archived.status_code, 204)
+        ended.refresh_from_db()
+        self.assertIsNotNone(ended.archived_at)
+
+    def test_meeting_scope_and_cancel_action_are_strict(self):
+        meeting = Meeting.objects.create(
+            project=self.project,
+            organiser=self.owner,
+            title="Strict lifecycle input",
+            starts_at=timezone.now() + timedelta(days=1),
+            ends_at=timezone.now() + timedelta(days=1, hours=1),
+        )
+        self.authenticate(self.owner)
+
+        invalid_scope = self.client.get(
+            f"/api/v1/meetings/?project={self.project.id}&scope=deleted"
+        )
+        unexpected_body = self.client.post(
+            f"/api/v1/meetings/{meeting.id}/cancel/",
+            {"cancelled_at": timezone.now().isoformat()},
+            format="json",
+        )
+
+        self.assertEqual(invalid_scope.status_code, 400)
+        self.assertEqual(unexpected_body.status_code, 400)
+        self.assertIn("cancelled_at", unexpected_body.json()["error"]["fields"])
 
     def test_meeting_put_requires_a_complete_replace_payload(self):
         meeting = Meeting.objects.create(

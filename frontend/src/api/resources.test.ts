@@ -39,4 +39,32 @@ describe("resource API paths", () => {
       availability_note: "Can join after 3 pm",
     });
   });
+
+  it("keeps meeting cancellation separate from soft archival and scopes lists", async () => {
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockImplementation(() =>
+      Promise.resolve(jsonResponse({ count: 0, next: null, previous: null, results: [] })),
+    );
+    await meetingApi.list("project-id", "archived");
+    await meetingApi.cancel("meeting-id");
+    await meetingApi.archive("meeting-id");
+
+    expect(fetchMock.mock.calls[0]?.[0]).toBe("/api/v1/meetings/?project=project-id&scope=archived");
+    expect(fetchMock.mock.calls[1]?.[0]).toBe("/api/v1/meetings/meeting-id/cancel/");
+    expect(fetchMock.mock.calls[1]?.[1]?.method).toBe("POST");
+    expect(fetchMock.mock.calls[2]?.[0]).toBe("/api/v1/meetings/meeting-id/");
+    expect(fetchMock.mock.calls[2]?.[1]?.method).toBe("DELETE");
+  });
+
+  it("uses recipient-free server-derived reminder actions", async () => {
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockImplementation(() =>
+      Promise.resolve(jsonResponse({ recipient_count: 1, sent_at: "2026-09-20T00:00:00Z" })),
+    );
+    await taskApi.sendReminder("task-id");
+    await meetingApi.sendReminder("meeting-id");
+
+    expect(fetchMock.mock.calls[0]?.[0]).toBe("/api/v1/tasks/task-id/send-reminder/");
+    expect(fetchMock.mock.calls[1]?.[0]).toBe("/api/v1/meetings/meeting-id/send-reminder/");
+    expect(JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body))).toEqual({});
+    expect(JSON.parse(String(fetchMock.mock.calls[1]?.[1]?.body))).toEqual({});
+  });
 });

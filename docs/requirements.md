@@ -8,7 +8,9 @@ project membership, task collaboration, meeting coordination, notifications,
 activity evidence and export. It does not grade students, infer contribution
 quality, replace the learning-management system or message people outside the
 application for general conversation. Transactional email is limited to
-security OTPs and project invitations.
+security OTPs, project invitations and explicit task or meeting reminders sent
+by a project owner or facilitator; reminder recipients are selected by the
+server rather than supplied by the sender.
 
 The requirements use the IEEE 830-1998 functional-requirement structure: each
 item identifies its trigger/input, required processing, observable output and
@@ -19,6 +21,9 @@ verifiable acceptance condition. "Shall" denotes a mandatory system behaviour.
 - **Visitor:** a person who is not authenticated.
 - **Member:** an authenticated user who belongs to a project.
 - **Project owner:** the single member permitted to administer a project.
+- **Project facilitator:** a current member permitted to coordinate meetings,
+  moderate project discussion and send project reminders, without owner-only
+  membership or ownership powers.
 - **Site moderator:** a narrowly privileged website user who may review flagged
   comments and suspend or restore accounts, without ordinary project access.
 - **System clock:** UTC timestamps stored by the server and rendered in the
@@ -27,7 +32,8 @@ verifiable acceptance condition. "Shall" denotes a mandatory system behaviour.
   to current members of that project.
 - **Archive rule:** an archived project is absent from active lists and permits
   retained members to read or export history, but ordinary collaboration writes
-  are rejected.
+  are rejected. Archived tasks and meetings are likewise retained as read-only
+  evidence and excluded from their default active lists.
 
 ## 3. Functional requirements
 
@@ -175,33 +181,45 @@ text comment of 1-2000 characters to a task and edit or delete their own comment
 - **Acceptance:** scripts render as text, not executable markup; a non-author
   without an owner or facilitator role cannot modify the comment.
 
-### FR-MEET-01 - Schedule a meeting
+### FR-MEET-01 - Manage a meeting lifecycle
 
 **Requirement.** The system shall allow a current project member to create a
 meeting with title, start time, end time, location/link and agenda. The organiser,
-a project facilitator or the project owner shall be able to update or cancel it.
+a project facilitator or the project owner shall be able to update or cancel a
+scheduled meeting and archive a cancelled or ended meeting.
 
 - **Input/trigger:** a member submits the create form, or an authorised meeting
-  manager submits an update or cancellation.
-- **Processing:** require the end after the start, store UTC, retain organiser,
-  enforce the organiser/facilitator/owner management boundary, and mark
-  cancellation rather than deleting attendance evidence.
-- **Success output:** show the meeting in the chronological project schedule view.
-- **Failure output:** identify invalid times or fields and preserve stored data.
+  manager submits an update, cancellation or archive action.
+- **Processing:** require the end after the start; accept neither instant later
+  than the inclusive ten-calendar-year horizon at validation time; store UTC;
+  retain the organiser and attendance evidence; enforce the
+  organiser/facilitator/owner management boundary; and apply the lifecycle
+  `scheduled -> cancelled or ended -> archived`. Ending is derived from the
+  clock, while cancellation and archival are explicit retained timestamps.
+- **Success output:** show non-archived meetings in chronological order by
+  default and expose `active`, `archived` and `all` record scopes. An archived
+  meeting remains readable as evidence but permits no further collaboration.
+- **Failure output:** identify invalid fields, an out-of-horizon instant, an
+  invalid lifecycle transition or insufficient permission and preserve stored
+  data.
 - **Acceptance:** the same UTC meeting renders correctly in two test time zones;
-  an end time equal to the start time is rejected; a regular member cannot edit
-  or cancel another organiser's meeting.
+  the exact ten-calendar-year boundary is accepted and one instant beyond it is
+  rejected, including leap-day contraction; a scheduled meeting cannot be
+  archived; a cancelled or ended meeting can be archived; an archived meeting
+  rejects update, cancellation and RSVP; and a regular member cannot manage
+  another organiser's meeting.
 
 ### FR-MEET-02 - Respond to a meeting
 
 **Requirement.** The system shall allow each current project member to set one
 response (`pending`, `accepted`, `declined`) and an optional availability note
-for a non-cancelled meeting.
+for a scheduled, non-archived meeting.
 
 - **Input/trigger:** member submits an RSVP.
 - **Processing:** upsert one response for the meeting/member pair and timestamp it.
 - **Success output:** update attendee counts and the member's displayed response.
-- **Failure output:** reject non-members and responses to cancelled meetings.
+- **Failure output:** reject non-members and responses to cancelled, ended or
+  archived meetings.
 - **Acceptance:** repeated changes update one row rather than creating duplicates;
   displayed counts equal the underlying response rows.
 
@@ -209,15 +227,21 @@ for a non-cancelled meeting.
 
 **Requirement.** The system shall append an immutable activity event when an
 authenticated member creates, updates or completes a task, comments, schedules a
-meeting, responds to a meeting or changes membership.
+meeting, responds to or archives a meeting, sends a task or meeting reminder, or
+changes membership.
 
 - **Input/trigger:** successful completion of an audited action.
 - **Processing:** record actor, project, event type, relevant entity reference and
-  UTC timestamp in the same transaction as the source action.
+  UTC timestamp in the same transaction as each source database change. For
+  externally delivered email reminders, record a success event only after the
+  mail backend confirms the complete batch, as specified by FR-NOTIF-01.
 - **Success output:** make the event available to the project activity feed.
-- **Failure output:** roll back the source action if its required event cannot be
-  recorded; never expose secret or deleted comment content in metadata.
-- **Acceptance:** each audited source action creates exactly one matching event;
+- **Failure output:** roll back a source database change if its required event
+  cannot be recorded; never expose secret or deleted comment content in metadata.
+  Email already accepted by an external mail system cannot be rolled back; an
+  unconfirmed reminder batch returns HTTP 503 without a success event.
+- **Acceptance:** each successful audited database change creates exactly one
+  matching event; each confirmed reminder batch creates one success event;
   application roles cannot update or delete event rows.
 
 ### FR-CONTR-02 - View contribution insights
@@ -227,27 +251,50 @@ member activity counts, completed tasks, comments and meeting participation for 
 selected project and date range of no more than 366 days.
 
 - **Input/trigger:** member selects date range and optional activity type.
-- **Processing:** aggregate immutable events and current task/attendance records;
-  do not calculate a grade or qualitative score.
-- **Success output:** render summary totals, an accessible table and drill-down
-  event list within 3 seconds under the seeded test dataset.
+- **Processing:** aggregate immutable events and current task/attendance records
+  into one factual response; derive summary cards and proportional activity bars
+  from that same response; and do not calculate a grade, rank or qualitative
+  score.
+- **Success output:** render factual summary cards, an accessible per-member bar
+  chart, the complete numerical table and a drill-down event list within 3
+  seconds under the seeded test dataset. The table remains the exact-value and
+  non-visual alternative to the chart.
 - **Failure output:** identify invalid ranges and return no data for non-members.
-- **Acceptance:** dashboard totals reconcile with independently asserted fixture
-  aggregates; zero-activity members remain visible with zero values.
+- **Acceptance:** dashboard cards, chart labels and table values reconcile with
+  independently asserted fixture aggregates; bar lengths are relative only to
+  the highest displayed action count; and zero-activity members remain visible
+  with explicit zero values.
 
-### FR-NOTIF-01 - Manage in-app notifications
+### FR-NOTIF-01 - Manage notifications and project reminders
 
 **Requirement.** The system shall notify an authenticated user in-app when they
 are invited, assigned a task, mentioned in a comment, or affected by a meeting
-change, and shall allow each notification to be marked read.
+change, shall allow each notification to be marked read, and shall allow a
+project owner or facilitator to send an explicit task or meeting email reminder.
 
-- **Input/trigger:** a qualifying source event or mark-read action.
-- **Processing:** create at most one notification per recipient/source event,
-  suppress self-notification, and set `read_at` for the recipient only.
-- **Success output:** update unread count and link to the authorised source view.
-- **Failure output:** omit links to resources the recipient can no longer access.
-- **Acceptance:** duplicate event handling creates one notification; one user
-  cannot mark another user's notification as read.
+- **Input/trigger:** a qualifying source event, mark-read action, or an explicit
+  reminder confirmation from a project owner or facilitator.
+- **Processing:** create at most one in-app notification per recipient/source
+  event, suppress self-notification, and set `read_at` for the recipient only.
+  For email reminders, derive recipients on the server: active verified
+  assignees other than the sender for a task, or active verified project members
+  other than the sender for a meeting. Send one plain-text message per recipient,
+  never expose a shared recipient header, enforce a 60-second per-resource
+  cooldown, and append the reminder audit event only after the mail backend
+  confirms the complete batch.
+- **Success output:** update the in-app unread count or, for a reminder, return
+  only the recipient count and send timestamp and make the audited send visible
+  in factual activity evidence.
+- **Failure output:** omit links to resources the recipient can no longer access;
+  reject unauthorised, recipient-empty, cooldown, archived, cancelled or ended
+  reminder actions as applicable; and return HTTP 503 without a success audit
+  event when the backend does not confirm the complete email batch.
+- **Acceptance:** duplicate event handling creates one in-app notification; one
+  user cannot mark another user's notification as read; neither a regular member
+  nor a site moderator without project membership can send reminders; a request
+  cannot supply arbitrary recipients; each eligible recipient gets a separate
+  message; an immediate repeat is rejected; and a delivery failure returns a
+  safe 503 response without recording a successful reminder event.
 
 ### FR-SEARCH-01 - Search and filter project work
 
@@ -315,6 +362,14 @@ The proposed MVP includes FR-AUTH-01/02, FR-PROF-01, FR-PROJ-01/02,
 FR-TASK-01/02/03, FR-COLL-01, FR-MEET-01/02, FR-CONTR-01/02, FR-NOTIF-01 and
 FR-SEC-01. Search/filter, export and the required site moderation panel were
 delivered after the original MVP quality gates passed.
+
+The delivered implementation extends the original FR-MEET-01, FR-CONTR-02 and
+FR-NOTIF-01 acceptance detail with retained meeting archival, a factual visual
+dashboard and manager-triggered reminders. These refinements extend existing
+requirements rather than creating overlapping ones. The delivered SRS contains
+19 unique functional requirements: the original 18-requirement set plus the
+assignment-required FR-MOD-01, with each requirement mapped exactly once in the
+traceability matrix.
 
 MVP acceptance means all included requirements pass their stated acceptance
 checks, protected routes pass the access-control matrix, seeded user journeys can

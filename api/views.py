@@ -39,6 +39,7 @@ from api.serializers import (
     CommentReportResultSerializer,
     CommentSerializer,
     CommentWriteSerializer,
+    EmptyActionSerializer,
     ExportJobSerializer,
     ExportRequestSerializer,
     HealthSerializer,
@@ -66,6 +67,7 @@ from api.serializers import (
     ProjectReplaceSerializer,
     ProjectSerializer,
     RSVPSerializer,
+    ReminderDeliverySerializer,
     TaskCreateSerializer,
     TaskListQuerySerializer,
     TaskReplaceSerializer,
@@ -76,7 +78,14 @@ from api.serializers import (
 )
 from meetings.models import Meeting
 from meetings.selectors import meeting_holiday_advisory, meetings_for_project
-from meetings.services import cancel_meeting, create_meeting, set_rsvp, update_meeting
+from meetings.services import (
+    archive_meeting,
+    cancel_meeting,
+    create_meeting,
+    set_rsvp,
+    update_meeting,
+)
+from meetings.workflows import send_meeting_reminder
 from projects.models import Project, ProjectInvitation, ProjectMembership
 from projects.policies import require_project_member, require_project_owner
 from projects.selectors import pending_invitations_for_user, projects_for_user
@@ -106,6 +115,7 @@ from tasks.services import (
     update_comment,
     update_task,
 )
+from tasks.workflows import send_task_reminder
 
 
 class UUIDLookupMixin:
@@ -355,6 +365,22 @@ class TaskViewSet(UUIDLookupMixin, viewsets.ModelViewSet):
         )
         return Response(TaskSerializer(task, context=self.get_serializer_context()).data)
 
+    @extend_schema(
+        request=EmptyActionSerializer,
+        responses=ReminderDeliverySerializer,
+        summary="Email a task reminder to current eligible assignees",
+    )
+    @action(detail=True, methods=["post"], url_path="send-reminder")
+    def send_reminder(self, request, pk=None):
+        serializer = EmptyActionSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        delivery = send_task_reminder(
+            task=self.get_object(),
+            actor=request.user,
+            site_url=request.build_absolute_uri("/"),
+        )
+        return Response(ReminderDeliverySerializer(delivery).data)
+
 
 @extend_schema_view(
     list=extend_schema(parameters=[CommentListQuerySerializer]),
@@ -435,6 +461,7 @@ class CommentViewSet(UUIDLookupMixin, viewsets.ModelViewSet):
     ),
     update=extend_schema(request=MeetingReplaceSerializer, responses=MeetingSerializer),
     partial_update=extend_schema(request=MeetingWriteSerializer, responses=MeetingSerializer),
+    destroy=extend_schema(summary="Soft-archive a cancelled or ended meeting"),
 )
 class MeetingViewSet(UUIDLookupMixin, viewsets.ModelViewSet):
     http_method_names = ["get", "post", "put", "patch", "delete", "head", "options"]
@@ -453,7 +480,11 @@ class MeetingViewSet(UUIDLookupMixin, viewsets.ModelViewSet):
             return Meeting.objects.none()
         query = _validated_query(self.request, MeetingListQuerySerializer)
         project = get_object_or_404(Project, pk=query["project"])
-        return meetings_for_project(project=project, user=self.request.user).prefetch_related("attendances")
+        return meetings_for_project(
+            project=project,
+            user=self.request.user,
+            scope=query["scope"],
+        ).prefetch_related("attendances")
 
     def get_object(self):
         meeting = get_object_or_404(
@@ -491,6 +522,17 @@ class MeetingViewSet(UUIDLookupMixin, viewsets.ModelViewSet):
         )
 
     def destroy(self, request, *args, **kwargs):
+        archive_meeting(meeting=self.get_object(), actor=request.user)
+        return Response(status=204)
+
+    @extend_schema(
+        request=EmptyActionSerializer,
+        responses={status.HTTP_204_NO_CONTENT: None},
+    )
+    @action(detail=True, methods=["post"])
+    def cancel(self, request, pk=None):
+        serializer = EmptyActionSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
         cancel_meeting(meeting=self.get_object(), actor=request.user)
         return Response(status=204)
 
@@ -509,6 +551,22 @@ class MeetingViewSet(UUIDLookupMixin, viewsets.ModelViewSet):
     @action(detail=True, methods=["get"])
     def holiday(self, request, pk=None):
         return Response(asdict(meeting_holiday_advisory(meeting=self.get_object())))
+
+    @extend_schema(
+        request=EmptyActionSerializer,
+        responses=ReminderDeliverySerializer,
+        summary="Email a meeting reminder to current project members",
+    )
+    @action(detail=True, methods=["post"], url_path="send-reminder")
+    def send_reminder(self, request, pk=None):
+        serializer = EmptyActionSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        delivery = send_meeting_reminder(
+            meeting=self.get_object(),
+            actor=request.user,
+            site_url=request.build_absolute_uri("/"),
+        )
+        return Response(ReminderDeliverySerializer(delivery).data)
 
 
 @extend_schema_view(list=extend_schema(parameters=[InvitationListQuerySerializer]))

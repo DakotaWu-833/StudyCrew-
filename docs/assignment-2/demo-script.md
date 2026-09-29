@@ -10,7 +10,8 @@ recording finishes within ten minutes.
    --reset-passwords`. Copy the generated passwords to a temporary local note;
    do not show or commit that note.
 2. Start Django at `http://127.0.0.1:8000/`. Keep `var/emails/` available for the
-   local one-time codes.
+   local one-time codes and reminder-delivery evidence, but do not open a file
+   containing a private recipient address during the recording.
 3. In a second browser profile, register a new invitee account and leave it
    signed in but not in the seeded project.
 4. Create a site moderator with `manage.py create_site_moderator`, using the
@@ -69,7 +70,11 @@ active owner.
 - Open **Tasks**. Show the seeded `todo`, `in progress`, `blocked` and `done`
   columns, then filter by text and priority and clear the filters.
 - Create one task with priority and due date; open it, assign two current
-  members (including the prepared invitee), and save.
+   members (including the prepared invitee), and save.
+- As owner, confirm **Email assignees** and show the recipient-count success
+  message. State that the request contains no addresses: Django derives active,
+  verified current assignees, excludes the sender, sends separate messages and
+  rate-limits the same task for 60 seconds.
 - Move it to **Blocked**, supply a meaningful blocker note, then move it to
   **Done** and show the completion state.
 - Add a plain-text comment, select the invitee as a mention, then edit it. Show
@@ -87,27 +92,36 @@ full-page reload.
   its title or agenda to demonstrate the update workflow. Change the owner's
   RSVP with an availability note. First submit an end time before the start,
   show the safe field/domain feedback, correct it, and show the totals updating.
+  Point out that both client and server enforce the inclusive ten-calendar-year
+  scheduling horizon, including leap-day contraction.
+- As owner or facilitator, send a meeting reminder and show only the returned
+  recipient count. Then cancel the meeting, archive it, switch the **Meeting
+  records** filter to **Archived**, and show that the retained meeting is
+  readable but no longer exposes edit, RSVP or reminder actions.
 - Select **Check public holiday** and show the Australian advisory plus its
   source (`live`, `cache`, `stale` or `unavailable`).
 - Explain that Nager.Date is called only by Django, cached by calendar year and
   never blocks meeting create/update/cancel if the provider is slow or down.
 
-**Marker sees:** meeting CRUD/RSVP and a meaningful, non-critical backend-only
-external integration with a visible fallback.
+**Marker sees:** the `scheduled -> cancelled/ended -> archived` lifecycle,
+read-only evidence, role-scoped reminders, meeting CRUD/RSVP and a meaningful,
+non-critical backend-only external integration with a visible fallback.
 
 ### S6 — 5:30–6:40: factual contribution evidence and export
 
 - Open **Contributions**. Change the date range and activity-type filter.
-- Show that every current member remains in the accessible table, including a
-  zero count when applicable, and that the timeline reconciles to stored
-  actions.
+- Reconcile one summary card and one proportional member bar against the exact
+  value in the retained accessible table. Show that every current member remains
+  visible, including a zero count when applicable, and that the timeline includes
+  the audited reminder and meeting-archive actions.
 - Create a CSV export and a PDF export; download one and briefly show the project,
   date range, member totals and event detail.
 
-**Say:** the figures are immutable factual counts, not a grade or qualitative
-score. Exports expire after 24 hours and remain membership-authorised.
+**Say:** cards, bars and the table are different presentations of the same
+factual response, not a grade, quality score or hidden ranking. Exports expire
+after 24 hours and remain membership-authorised.
 
-### S7 — 6:40–7:15: notifications
+### S7 — 6:40–7:15: notification boundaries
 
 - Switch to the invitee browser and open **Notifications**. Show the unread
   badge and invitation, assignment, mention or meeting notification generated
@@ -115,6 +129,8 @@ score. Exports expire after 24 hours and remain membership-authorised.
 - Mark one notification read and show the unread count update immediately.
 
 **Marker sees:** recipient-isolated state changes without navigation reload.
+Contrast these event-driven in-app notices with the explicit, audited email
+reminders shown in S4/S5; neither permits arbitrary recipient input.
 
 ### S8 — 7:15–8:15: custom site moderation
 
@@ -154,9 +170,10 @@ authentication and permissions.
 
 ### S11 — 9:40–10:00: reproducible quality result
 
-- Show a prepared, readable terminal excerpt with: 275 Django tests passed,
-  96.3% total branch coverage, 4 files / 18 frontend tests passed, OpenAPI validation
-  with zero warnings/errors, TypeScript passing and the Vite production build.
+- Show a prepared, readable terminal excerpt from the final commit with the
+  exact Django and frontend test counts, branch-coverage total/key-file minimum,
+  zero-warning OpenAPI validation, TypeScript passing and the Vite production
+  build. Do not reuse the older release-candidate counts after adding tests.
 - End on the dashboard and state that install, configuration, API and exact
   reproduction commands are in the root README.
 
@@ -169,5 +186,6 @@ authentication and permissions.
 - [ ] No password, secret key, cookie, private email content or persistent token
       appears in the video; retrieve the local single-use OTP off-camera.
 - [ ] Audio identifies the architectural reason for server-side security,
-      transaction services, cached external data and soft-retained evidence.
+      transaction services, server-derived private reminder recipients, cached
+      external data and soft-retained evidence.
 - [ ] Final Canvas upload plays correctly from start to finish.

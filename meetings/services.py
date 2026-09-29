@@ -28,6 +28,17 @@ def _require_writable_project(project) -> None:
         raise ValidationError("Archived projects are read-only.")
 
 
+def _require_writable_meeting(meeting: Meeting) -> None:
+    _require_writable_project(meeting.project)
+    if meeting.is_archived:
+        raise ValidationError("Archived meetings are read-only.")
+
+
+def _require_not_ended(meeting: Meeting, *, action: str) -> None:
+    if meeting.ends_at <= timezone.now():
+        raise ValidationError(f"Ended meetings cannot be {action}; archive the meeting instead.")
+
+
 def _record_meeting_event(*, meeting: Meeting, actor, event_type: str, metadata=None):
     # Local import prevents activity and meeting model loading from forming a cycle.
     from activity.services import record_event
@@ -122,9 +133,10 @@ def update_meeting(
         .get(pk=meeting.pk)
     )
     require_meeting_manager(user=actor, meeting=current)
-    _require_writable_project(current.project)
+    _require_writable_meeting(current)
     if current.is_cancelled:
         raise ValidationError("A cancelled meeting cannot be edited.")
+    _require_not_ended(current, action="edited")
 
     supplied = {
         "title": title,
@@ -168,9 +180,10 @@ def cancel_meeting(*, meeting: Meeting, actor) -> Meeting:
         .get(pk=meeting.pk)
     )
     require_meeting_manager(user=actor, meeting=current)
-    _require_writable_project(current.project)
+    _require_writable_meeting(current)
     if current.is_cancelled:
         raise ValidationError("Meeting is already cancelled.")
+    _require_not_ended(current, action="cancelled")
 
     current.cancelled_at = timezone.now()
     current.full_clean()
@@ -181,6 +194,35 @@ def cancel_meeting(*, meeting: Meeting, actor) -> Meeting:
         event_type="meeting_cancelled",
     )
     _notify_active_members(meeting=current, actor=actor, event=event)
+    return current
+
+
+@transaction.atomic
+def archive_meeting(*, meeting: Meeting, actor) -> Meeting:
+    """Archive a cancelled or ended meeting while retaining all evidence."""
+
+    current = (
+        Meeting.objects.select_for_update()
+        .select_related("project")
+        .get(pk=meeting.pk)
+    )
+    require_meeting_manager(user=actor, meeting=current)
+    _require_writable_project(current.project)
+    if current.is_archived:
+        return current
+
+    archived_at = timezone.now()
+    if not current.is_cancelled and current.ends_at > archived_at:
+        raise ValidationError("Only a cancelled or ended meeting can be archived.")
+
+    current.archived_at = archived_at
+    current.full_clean()
+    current.save(update_fields=["archived_at", "updated_at"])
+    _record_meeting_event(
+        meeting=current,
+        actor=actor,
+        event_type="meeting_archived",
+    )
     return current
 
 
@@ -200,9 +242,10 @@ def set_rsvp(
         .get(pk=meeting.pk)
     )
     require_active_member(user=actor, project=current.project)
-    _require_writable_project(current.project)
+    _require_writable_meeting(current)
     if current.is_cancelled:
         raise ValidationError("RSVPs are closed because this meeting is cancelled.")
+    _require_not_ended(current, action="changed")
     if response not in MeetingAttendance.Response.values:
         raise ValidationError({"response": "Select a valid RSVP response."})
 

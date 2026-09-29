@@ -11,6 +11,7 @@ from rest_framework.views import exception_handler
 
 from projects.exceptions import ProjectDomainError
 from projects.workflows import InvitationDeliveryError
+from integrations.reminder_email import ReminderDeliveryError
 
 
 logger = logging.getLogger(__name__)
@@ -30,6 +31,17 @@ def safe_exception_handler(exc, context):
                 "error": {
                     "code": "service_unavailable",
                     "message": "The invitation email could not be sent. Please try again.",
+                }
+            },
+            status=status.HTTP_503_SERVICE_UNAVAILABLE,
+        )
+    if isinstance(exc, ReminderDeliveryError):
+        logger.warning("Reminder delivery failed; no sent event was recorded.")
+        return Response(
+            {
+                "error": {
+                    "code": "service_unavailable",
+                    "message": "The reminder email could not be sent. Please try again.",
                 }
             },
             status=status.HTTP_503_SERVICE_UNAVAILABLE,

@@ -2,8 +2,8 @@
 
 Status key: `[x]` is supported by the current repository and verified local
 quality run; `[ ]` requires final team, GitHub, report, video or fresh-checkout
-evidence. Latest repository verification: 16 September 2026 — 275 Django tests,
-96.3% branch coverage, 4 files/18 frontend tests, zero-warning OpenAPI
+evidence. Latest repository verification: 29 September 2026 — 318 Django tests,
+96.3% branch coverage, 6 files/31 frontend tests, zero-warning OpenAPI
 validation, TypeScript check and production build all passed.
 
 ## Backend
@@ -57,8 +57,8 @@ validation, TypeScript check and production build all passed.
       non-member, member, facilitator, owner and site moderator.
 - [x] Backend branch coverage is 96.3% overall and every reported non-100% key
       file is at least 86%.
-- [x] `makemigrations --check`, Django checks, 275 backend tests, OpenAPI
-      validation, 18 frontend tests, typecheck and production build pass in the
+- [x] `makemigrations --check`, Django checks, 318 backend tests, OpenAPI
+      validation, 31 frontend tests, typecheck and production build pass in the
       current source tree.
 - [ ] The same gates pass in CI from the final course-organisation main-branch
       commit.

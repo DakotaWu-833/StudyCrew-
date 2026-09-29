@@ -436,6 +436,20 @@ paths:
           type: string
           format: uuid
         required: true
+      - in: query
+        name: scope
+        schema:
+          enum:
+          - active
+          - archived
+          - all
+          type: string
+          default: active
+          minLength: 1
+        description: |-
+          * `active` - active
+          * `archived` - archived
+          * `all` - all
       tags:
       - meetings
       security:
@@ -558,6 +572,24 @@ paths:
           description: ''
     delete:
       operationId: meetings_destroy
+      summary: Soft-archive a cancelled or ended meeting
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - meetings
+      security:
+      - mfaSession: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/meetings/{id}/cancel/:
+    post:
+      operationId: meetings_cancel_create
       parameters:
       - in: path
         name: id
@@ -625,6 +657,28 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Meeting'
+          description: ''
+  /api/v1/meetings/{id}/send-reminder/:
+    post:
+      operationId: meetings_send_reminder_create
+      summary: Email a meeting reminder to current project members
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - meetings
+      security:
+      - mfaSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReminderDelivery'
           description: ''
   /api/v1/memberships/:
     get:
@@ -1120,7 +1174,10 @@ paths:
           - meeting_created
           - meeting_updated
           - meeting_cancelled
+          - meeting_archived
           - meeting_rsvp
+          - task_reminder_sent
+          - meeting_reminder_sent
           - export_requested
           - export_ready
           - export_failed
@@ -1154,7 +1211,10 @@ paths:
           * `meeting_created` - Meeting created
           * `meeting_updated` - Meeting updated
           * `meeting_cancelled` - Meeting cancelled
+          * `meeting_archived` - Meeting archived
           * `meeting_rsvp` - Meeting RSVP changed
+          * `task_reminder_sent` - Task reminder sent
+          * `meeting_reminder_sent` - Meeting reminder sent
           * `export_requested` - Export requested
           * `export_ready` - Export ready
           * `export_failed` - Export failed
@@ -1437,6 +1497,28 @@ paths:
               schema:
                 $ref: '#/components/schemas/Task'
           description: ''
+  /api/v1/tasks/{id}/send-reminder/:
+    post:
+      operationId: tasks_send_reminder_create
+      summary: Email a task reminder to current eligible assignees
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - tasks
+      security:
+      - mfaSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReminderDelivery'
+          description: ''
   /api/v1/tasks/{id}/transition/:
     post:
       operationId: tasks_transition_create
@@ -1657,7 +1739,10 @@ components:
       - meeting_created
       - meeting_updated
       - meeting_cancelled
+      - meeting_archived
       - meeting_rsvp
+      - task_reminder_sent
+      - meeting_reminder_sent
       - export_requested
       - export_ready
       - export_failed
@@ -1689,7 +1774,10 @@ components:
         * `meeting_created` - Meeting created
         * `meeting_updated` - Meeting updated
         * `meeting_cancelled` - Meeting cancelled
+        * `meeting_archived` - Meeting archived
         * `meeting_rsvp` - Meeting RSVP changed
+        * `task_reminder_sent` - Task reminder sent
+        * `meeting_reminder_sent` - Meeting reminder sent
         * `export_requested` - Export requested
         * `export_ready` - Export ready
         * `export_failed` - Export failed
@@ -2047,6 +2135,14 @@ components:
           format: date-time
           readOnly: true
           nullable: true
+        archived_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        lifecycle_state:
+          type: string
+          readOnly: true
         created_at:
           type: string
           format: date-time
@@ -2068,11 +2164,13 @@ components:
           readOnly: true
       required:
       - agenda
+      - archived_at
       - attendance_counts
       - cancelled_at
       - created_at
       - ends_at
       - id
+      - lifecycle_state
       - location
       - my_availability_note
       - my_response
@@ -2865,6 +2963,20 @@ components:
         * `privacy` - Personal or private information
         * `spam` - Spam
         * `other` - Other
+    ReminderDelivery:
+      type: object
+      properties:
+        recipient_count:
+          type: integer
+          minimum: 1
+          readOnly: true
+        sent_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - recipient_count
+      - sent_at
     ResponseEnum:
       enum:
       - pending

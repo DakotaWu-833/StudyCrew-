@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from datetime import date
 from zoneinfo import ZoneInfo
 
+from django.core.exceptions import ValidationError
 from django.db.models import Count, QuerySet
 
 from .models import Meeting
@@ -25,9 +26,21 @@ class HolidayAdvisory:
     message: str
 
 
-def meetings_for_project(*, project, user, include_cancelled: bool = True) -> QuerySet[Meeting]:
+def meetings_for_project(
+    *,
+    project,
+    user,
+    scope: str = "active",
+    include_cancelled: bool = True,
+) -> QuerySet[Meeting]:
     require_active_member(user=user, project=project)
     meetings = Meeting.objects.filter(project=project).select_related("organiser")
+    if scope == "active":
+        meetings = meetings.filter(archived_at__isnull=True)
+    elif scope == "archived":
+        meetings = meetings.filter(archived_at__isnull=False)
+    elif scope != "all":
+        raise ValidationError({"scope": "Unknown meeting scope."})
     if not include_cancelled:
         meetings = meetings.filter(cancelled_at__isnull=True)
     return meetings

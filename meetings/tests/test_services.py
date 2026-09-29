@@ -9,7 +9,13 @@ from django.utils import timezone
 from accounts.models import User
 from activity.models import Notification
 from meetings.models import Meeting, MeetingAttendance
-from meetings.services import cancel_meeting, create_meeting, set_rsvp, update_meeting
+from meetings.services import (
+    archive_meeting,
+    cancel_meeting,
+    create_meeting,
+    set_rsvp,
+    update_meeting,
+)
 from projects.models import Project, ProjectMembership
 
 
@@ -52,6 +58,16 @@ class MeetingServiceTests(TestCase):
             organiser=self.organiser,
             title="Sprint planning",
             starts_at=start,
+            ends_at=end,
+        )
+
+    def ended_meeting(self, *, title="Completed retrospective"):
+        end = timezone.now() - timedelta(hours=1)
+        return Meeting.objects.create(
+            project=self.project,
+            organiser=self.organiser,
+            title=title,
+            starts_at=end - timedelta(hours=1),
             ends_at=end,
         )
 
@@ -112,6 +128,25 @@ class MeetingServiceTests(TestCase):
             )
 
         self.assertFalse(Meeting.objects.filter(title="Forbidden").exists())
+
+    @patch("meetings.services._record_meeting_event", return_value=Mock())
+    def test_create_rejects_times_beyond_the_ten_year_boundary(self, record_event):
+        reference = datetime(2028, 2, 29, 10, 0, tzinfo=UTC)
+        horizon = datetime(2038, 2, 28, 10, 0, tzinfo=UTC)
+
+        with patch("meetings.models.timezone.now", return_value=reference):
+            with self.assertRaises(ValidationError) as raised:
+                create_meeting(
+                    actor=self.organiser,
+                    project=self.project,
+                    title="Too distant",
+                    starts_at=horizon,
+                    ends_at=horizon + timedelta(seconds=1),
+                )
+
+        self.assertIn("ends_at", raised.exception.message_dict)
+        self.assertFalse(Meeting.objects.filter(title="Too distant").exists())
+        record_event.assert_not_called()
 
     @patch("meetings.services._notify_active_members")
     @patch("meetings.services._record_meeting_event", return_value=Mock())
@@ -195,6 +230,143 @@ class MeetingServiceTests(TestCase):
         self.assertIsNotNone(cancelled.cancelled_at)
         self.assertEqual(cancelled.attendances.count(), 1)
         self.assertTrue(Meeting.objects.filter(pk=meeting.pk).exists())
+
+    @patch("meetings.services._notify_active_members")
+    @patch("meetings.services._record_meeting_event", return_value=Mock())
+    def test_cancelled_meeting_can_be_archived_without_losing_attendance(
+        self,
+        record_event,
+        _notify,
+    ):
+        meeting = self.persisted_meeting()
+        attendance = MeetingAttendance.objects.create(
+            meeting=meeting,
+            user=self.member,
+            response=MeetingAttendance.Response.ACCEPTED,
+        )
+        cancelled = cancel_meeting(meeting=meeting, actor=self.organiser)
+        record_event.reset_mock()
+
+        archived = archive_meeting(meeting=cancelled, actor=self.organiser)
+
+        self.assertIsNotNone(archived.archived_at)
+        self.assertTrue(MeetingAttendance.objects.filter(pk=attendance.pk).exists())
+        record_event.assert_called_once_with(
+            meeting=archived,
+            actor=self.organiser,
+            event_type="meeting_archived",
+        )
+
+    @patch("meetings.services._record_meeting_event", return_value=Mock())
+    def test_ended_meeting_can_be_archived(self, record_event):
+        meeting = self.ended_meeting()
+
+        archived = archive_meeting(meeting=meeting, actor=self.owner)
+
+        self.assertIsNotNone(archived.archived_at)
+        self.assertEqual(archived.lifecycle_state, "archived")
+        record_event.assert_called_once_with(
+            meeting=archived,
+            actor=self.owner,
+            event_type="meeting_archived",
+        )
+
+    @patch("meetings.services._record_meeting_event", return_value=Mock())
+    def test_future_uncancelled_meeting_cannot_be_archived(self, record_event):
+        meeting = self.persisted_meeting()
+
+        with self.assertRaises(ValidationError):
+            archive_meeting(meeting=meeting, actor=self.owner)
+
+        meeting.refresh_from_db()
+        self.assertIsNone(meeting.archived_at)
+        record_event.assert_not_called()
+
+    @patch("meetings.services._record_meeting_event", return_value=Mock())
+    def test_archive_is_idempotent_and_records_one_event(self, record_event):
+        meeting = self.ended_meeting()
+
+        first = archive_meeting(meeting=meeting, actor=self.organiser)
+        second = archive_meeting(meeting=meeting, actor=self.organiser)
+
+        self.assertEqual(first.archived_at, second.archived_at)
+        record_event.assert_called_once_with(
+            meeting=first,
+            actor=self.organiser,
+            event_type="meeting_archived",
+        )
+
+    @patch("meetings.services._record_meeting_event", side_effect=RuntimeError("audit failed"))
+    def test_archive_rolls_back_when_audit_recording_fails(self, _record_event):
+        meeting = self.ended_meeting()
+
+        with self.assertRaises(RuntimeError):
+            archive_meeting(meeting=meeting, actor=self.organiser)
+
+        meeting.refresh_from_db()
+        self.assertIsNone(meeting.archived_at)
+
+    @patch("meetings.services._record_meeting_event", return_value=Mock())
+    def test_archive_permissions_match_meeting_manager_policy(self, record_event):
+        for index, actor in enumerate((self.organiser, self.facilitator, self.owner), start=1):
+            meeting = self.ended_meeting(title=f"Manager archive {index}")
+            with self.subTest(allowed_actor=actor.email):
+                self.assertIsNotNone(
+                    archive_meeting(meeting=meeting, actor=actor).archived_at
+                )
+
+        for index, actor in enumerate((self.member, self.outsider), start=1):
+            meeting = self.ended_meeting(title=f"Forbidden archive {index}")
+            with self.subTest(forbidden_actor=actor.email), self.assertRaises(PermissionDenied):
+                archive_meeting(meeting=meeting, actor=actor)
+            meeting.refresh_from_db()
+            self.assertIsNone(meeting.archived_at)
+
+        self.assertEqual(record_event.call_count, 3)
+
+    @patch("meetings.services._record_meeting_event", return_value=Mock())
+    def test_archived_meeting_rejects_all_writes(self, _record_event):
+        meeting = archive_meeting(
+            meeting=self.ended_meeting(),
+            actor=self.organiser,
+        )
+
+        with self.assertRaises(ValidationError):
+            update_meeting(meeting=meeting, actor=self.organiser, title="Rewritten history")
+        with self.assertRaises(ValidationError):
+            cancel_meeting(meeting=meeting, actor=self.owner)
+        with self.assertRaises(ValidationError):
+            set_rsvp(
+                meeting=meeting,
+                actor=self.member,
+                response=MeetingAttendance.Response.ACCEPTED,
+            )
+
+        meeting.refresh_from_db()
+        self.assertEqual(meeting.title, "Completed retrospective")
+        self.assertIsNone(meeting.cancelled_at)
+        self.assertFalse(MeetingAttendance.objects.filter(meeting=meeting).exists())
+
+    @patch("meetings.services._record_meeting_event", return_value=Mock())
+    def test_ended_meeting_rejects_edit_cancel_and_rsvp(self, record_event):
+        meeting = self.ended_meeting()
+
+        with self.assertRaises(ValidationError):
+            update_meeting(meeting=meeting, actor=self.organiser, title="Too late")
+        with self.assertRaises(ValidationError):
+            cancel_meeting(meeting=meeting, actor=self.owner)
+        with self.assertRaises(ValidationError):
+            set_rsvp(
+                meeting=meeting,
+                actor=self.member,
+                response=MeetingAttendance.Response.ACCEPTED,
+            )
+
+        meeting.refresh_from_db()
+        self.assertEqual(meeting.title, "Completed retrospective")
+        self.assertIsNone(meeting.cancelled_at)
+        self.assertFalse(MeetingAttendance.objects.filter(meeting=meeting).exists())
+        record_event.assert_not_called()
 
     @patch("meetings.services._record_meeting_event", return_value=Mock())
     def test_rsvp_upserts_single_row(self, record_event):
@@ -289,6 +461,8 @@ class MeetingServiceTests(TestCase):
         with self.assertRaises(ValidationError):
             cancel_meeting(meeting=meeting, actor=self.owner)
         with self.assertRaises(ValidationError):
+            archive_meeting(meeting=meeting, actor=self.owner)
+        with self.assertRaises(ValidationError):
             set_rsvp(
                 meeting=meeting,
                 actor=self.member,
@@ -298,6 +472,7 @@ class MeetingServiceTests(TestCase):
         meeting.refresh_from_db()
         self.assertEqual(meeting.title, "Sprint planning")
         self.assertIsNone(meeting.cancelled_at)
+        self.assertIsNone(meeting.archived_at)
         self.assertFalse(MeetingAttendance.objects.filter(meeting=meeting).exists())
         record_event.assert_not_called()
         notify.assert_not_called()
@@ -328,7 +503,11 @@ class MeetingServiceTests(TestCase):
     @patch("meetings.services._record_meeting_event", return_value=Mock())
     def test_aware_local_time_preserves_utc_instant(self, _record_event, _notify):
         sydney = ZoneInfo("Australia/Sydney")
-        local_start = datetime(2026, 10, 20, 9, 30, tzinfo=sydney)
+        local_start = (timezone.now() + timedelta(days=30)).astimezone(sydney).replace(
+            minute=30,
+            second=0,
+            microsecond=0,
+        )
 
         meeting = create_meeting(
             actor=self.organiser,

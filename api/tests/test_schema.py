@@ -26,6 +26,9 @@ class GeneratedContractTests(SimpleTestCase):
         self.assertFalse(any("{format}" in path for path in paths))
         self.assertIn("/api/v1/projects/", paths)
         self.assertIn("/api/v1/tasks/{id}/transition/", paths)
+        self.assertIn("/api/v1/tasks/{id}/send-reminder/", paths)
+        self.assertIn("/api/v1/meetings/{id}/cancel/", paths)
+        self.assertIn("/api/v1/meetings/{id}/send-reminder/", paths)
 
     def test_write_operations_document_their_actual_response_resources(self):
         paths = self.schema["paths"]
@@ -51,3 +54,11 @@ class GeneratedContractTests(SimpleTestCase):
         self.assertTrue(
             all(media["schema"] == {"type": "string", "format": "binary"} for media in content.values())
         )
+
+    def test_meeting_contract_distinguishes_cancel_archive_and_record_scope(self):
+        paths = self.schema["paths"]
+        self.assertIn("post", paths["/api/v1/meetings/{id}/cancel/"])
+        self.assertIn("delete", paths["/api/v1/meetings/{id}/"])
+        parameters = paths["/api/v1/meetings/"]["get"]["parameters"]
+        scope = next(parameter for parameter in parameters if parameter["name"] == "scope")
+        self.assertEqual(scope["schema"]["enum"], ["active", "archived", "all"])

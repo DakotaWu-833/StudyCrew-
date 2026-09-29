@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
+
 from rest_framework import serializers
 
 from accounts.models import Profile, User
@@ -24,6 +26,8 @@ class StrictFieldsMixin:
     """Reject undeclared and read-only input instead of silently discarding it."""
 
     def to_internal_value(self, data):
+        if not isinstance(data, Mapping):
+            return super().to_internal_value(data)
         writable_fields = {field.field_name for field in self._writable_fields}
         unexpected = set(data) - writable_fields
         if unexpected:
@@ -35,6 +39,15 @@ class StrictFieldsMixin:
 
 class StrictFieldsSerializer(StrictFieldsMixin, serializers.Serializer):
     pass
+
+
+class EmptyActionSerializer(StrictFieldsSerializer):
+    """Explicitly empty action body; unknown client fields are rejected."""
+
+
+class ReminderDeliverySerializer(serializers.Serializer):
+    recipient_count = serializers.IntegerField(min_value=1, read_only=True)
+    sent_at = serializers.DateTimeField(read_only=True)
 
 
 class UserSummarySerializer(serializers.ModelSerializer):
@@ -376,6 +389,8 @@ class MeetingSerializer(serializers.ModelSerializer):
             "location",
             "agenda",
             "cancelled_at",
+            "archived_at",
+            "lifecycle_state",
             "created_at",
             "updated_at",
             "attendance_counts",
@@ -439,6 +454,11 @@ class MeetingReplaceSerializer(MeetingWriteSerializer):
 
 class MeetingListQuerySerializer(serializers.Serializer):
     project = serializers.UUIDField()
+    scope = serializers.ChoiceField(
+        choices=("active", "archived", "all"),
+        required=False,
+        default="active",
+    )
 
 
 class RSVPSerializer(StrictFieldsSerializer):
