@@ -1,61 +1,131 @@
 {% extends "base.html" %}
 
-{% block title %}StudyCrew · Project teamwork with a clear record{% endblock %}
+{% block title %}StudyCrew · Clear teamwork, by design{% endblock %}
 {% block body_class %}marketing-page{% endblock %}
 
 {% block content %}
-<section class="hero">
-  <div class="hero__content">
-    <p class="eyebrow">A shared workspace for student teams</p>
-    <h1>Make the work visible.<br><span>Keep the record fair.</span></h1>
-    <p class="hero__lead">Plan tasks, coordinate meetings and review factual contribution activity in one private project space.</p>
+<section class="hero" aria-labelledby="hero-title">
+  <div class="hero__content" data-reveal="rise">
+    <p class="eyebrow hero__eyebrow"><span aria-hidden="true"></span> A calmer way to work together</p>
+    <h1 id="hero-title">Great work,<br><span>without the guesswork.</span></h1>
+    <p class="hero__lead">Bring project plans, meetings and team activity into one shared space—so everyone can see what’s next and how the work is moving.</p>
     <div class="hero__actions">
       {% if user.is_authenticated %}
-        <a class="button" href="{% url 'web:dashboard' %}">Open your workspace</a>
+        <a class="button" href="{% url 'web:dashboard' %}">Open your workspace <span aria-hidden="true">↗</span></a>
       {% else %}
-        <a class="button" href="{% url 'accounts:register' %}">Start a project</a>
+        <a class="button" href="{% url 'accounts:register' %}">Start a project <span aria-hidden="true">↗</span></a>
         <a class="button button--quiet" href="{% url 'accounts:login' %}">Sign in</a>
       {% endif %}
     </div>
-    <p class="hero__privacy">Private by default · Evidence, not grades · Built around team membership</p>
-  </div>
-  <div class="hero-board" aria-label="Illustration of a StudyCrew task board">
-    <div class="hero-board__top"><span></span><span></span><span></span><b>Design sprint</b></div>
-    <div class="hero-board__grid">
-      <div><small>TO DO</small><article><i class="priority priority--high"></i><b>Interview users</b><span>Due Thu</span></article><article><i></i><b>Map requirements</b><span>2 assignees</span></article></div>
-      <div><small>IN PROGRESS</small><article><i class="priority"></i><b>Prototype flow</b><span>Updated today</span></article></div>
-      <div><small>DONE</small><article class="hero-card--done"><i></i><b>Agree scope</b><span>Completed</span></article></div>
+    <div class="hero__assurance" aria-label="Product principles">
+      <span><i aria-hidden="true">✓</i> Private project spaces</span>
+      <span><i aria-hidden="true">✓</i> Activity you can trace</span>
+      <span><i aria-hidden="true">✓</i> No contribution scores</span>
     </div>
-    <div class="hero-board__activity"><span class="avatar-dot">AM</span><p><b>Alex</b> completed Agree scope</p><time>4m</time></div>
+  </div>
+
+  <div class="hero__stage" data-reveal="scale" aria-hidden="true">
+    <div class="hero-board">
+      <div class="hero-board__top">
+        <span class="hero-board__mark">S</span>
+        <span class="hero-board__identity"><b>Studio team</b><small>Project workspace</small></span>
+        <span class="hero-board__preview">PREVIEW</span>
+      </div>
+      <div class="hero-board__toolbar">
+        <span class="hero-board__tab hero-board__tab--active">Tasks</span>
+        <span class="hero-board__tab">Meetings</span>
+        <span class="hero-board__tab">Activity</span>
+        <span class="hero-board__toolbar-mark">•••</span>
+      </div>
+      <div class="hero-board__columns">
+        <div class="hero-board__column">
+          <div class="hero-board__column-title"><span><i class="task-dot task-dot--blue"></i>TO DO</span><small>01</small></div>
+          <article class="hero-task">
+            <span class="hero-task__tag">PLANNING</span>
+            <b>Shape the proposal</b>
+            <span class="hero-task__meta"><i></i><i></i><small>Due Thursday</small></span>
+          </article>
+        </div>
+        <div class="hero-board__column">
+          <div class="hero-board__column-title"><span><i class="task-dot task-dot--amber"></i>IN PROGRESS</span><small>01</small></div>
+          <article class="hero-task">
+            <span class="hero-task__tag hero-task__tag--mint">RESEARCH</span>
+            <b>Review the sources</b>
+            <span class="hero-task__meta"><i></i><i></i><small>Owner assigned</small></span>
+          </article>
+        </div>
+        <div class="hero-board__column hero-board__column--done">
+          <div class="hero-board__column-title"><span><i class="task-dot task-dot--mint"></i>DONE</span><small>01</small></div>
+          <article class="hero-task hero-task--done">
+            <span class="hero-task__tag">AGREED</span>
+            <b>Set the direction</b>
+            <span class="hero-task__meta"><i></i><small>Completed</small></span>
+          </article>
+        </div>
+      </div>
+      <div class="hero-board__foot">
+        <span class="hero-board__pulse"></span>
+        Tasks, meetings and updates—together.
+      </div>
+    </div>
+    <div class="hero-float hero-float--meeting">
+      <span class="hero-float__icon">↗</span>
+      <span><b>Meet with context</b><small>Agenda and RSVPs, in one place</small></span>
+    </div>
+    <div class="hero-float hero-float--record">
+      <span class="hero-float__avatars"><i>A</i><i>M</i><i>J</i></span>
+      <span><b>A shared team view</b><small>Clear, attributable activity</small></span>
+    </div>
+    <p class="hero__caption">A simple view of what’s moving.</p>
   </div>
 </section>
 
 <section class="value-section" aria-labelledby="value-title">
-  <div class="section-heading">
-    <p class="eyebrow">One source of truth</p>
-    <h2 id="value-title">Less status chasing. More useful teamwork.</h2>
-  </div>
-  <div class="feature-grid">
-    <article class="feature-card">
-      <span class="feature-card__number">01</span>
-      <h3>Plan work together</h3>
-      <p>Create, assign and move tasks through a simple board with clear due dates and blockers.</p>
-    </article>
-    <article class="feature-card">
-      <span class="feature-card__number">02</span>
-      <h3>Meet with context</h3>
-      <p>Schedule meetings, collect RSVPs and keep the agenda attached to the project.</p>
-    </article>
-    <article class="feature-card">
-      <span class="feature-card__number">03</span>
-      <h3>Review factual activity</h3>
-      <p>Use a traceable activity record to support conversations—without ranking or grading people.</p>
-    </article>
+  <div class="value-section__inner">
+    <div class="section-heading" data-reveal="rise">
+      <p class="eyebrow">One project. One clear rhythm.</p>
+      <h2 id="value-title">Less chasing.<br><span>More moving forward.</span></h2>
+      <p>Keep the practical parts of teamwork connected, without turning contribution into a score.</p>
+    </div>
+    <div class="feature-grid">
+      <article class="feature-card" data-reveal="rise">
+        <span class="feature-card__icon" aria-hidden="true">
+          <svg viewBox="0 0 32 32" fill="none"><rect x="5" y="6" width="22" height="20" rx="4"/><path d="M11 12h10M11 17h6M11 22h10"/></svg>
+        </span>
+        <span class="feature-card__number">01 / PLAN</span>
+        <h3>Make the next step clear.</h3>
+        <p>Give tasks an owner, a due date and a visible place in the project’s progress.</p>
+      </article>
+      <article class="feature-card" data-reveal="rise">
+        <span class="feature-card__icon" aria-hidden="true">
+          <svg viewBox="0 0 32 32" fill="none"><rect x="5" y="7" width="22" height="20" rx="4"/><path d="M10 5v5M22 5v5M5 13h22M11 18h4M11 22h8"/></svg>
+        </span>
+        <span class="feature-card__number">02 / MEET</span>
+        <h3>Keep conversations useful.</h3>
+        <p>Bring the meeting time, agenda and team responses back to the project they belong to.</p>
+      </article>
+      <article class="feature-card" data-reveal="rise">
+        <span class="feature-card__icon" aria-hidden="true">
+          <svg viewBox="0 0 32 32" fill="none"><circle cx="11" cy="11" r="4"/><circle cx="22" cy="12" r="3"/><path d="M4 26c.6-4.3 3-6.5 7-6.5s6.4 2.2 7 6.5M19 20c4.9-1 8.1 1 9 5"/></svg>
+        </span>
+        <span class="feature-card__number">03 / REFLECT</span>
+        <h3>See the work, fairly.</h3>
+        <p>Use an attributable activity record to support team conversations—never rankings or grades.</p>
+      </article>
+    </div>
   </div>
 </section>
 
-<section class="principle-section">
-  <blockquote>“Good contribution conversations start with a shared record, not a guess.”</blockquote>
-  <p>StudyCrew keeps actions attributable and project data visible only to current members.</p>
+<section class="principle-section" data-reveal="rise" aria-labelledby="principle-title">
+  <p class="eyebrow">Built around people, not points</p>
+  <h2 id="principle-title">Clarity is a team habit.</h2>
+  <p>When plans, meetings and activity are shared, it’s easier to ask good questions, make decisions and keep moving together.</p>
+  <div class="principle-section__actions">
+    {% if user.is_authenticated %}
+      <a class="button" href="{% url 'web:dashboard' %}">Go to your workspace <span aria-hidden="true">↗</span></a>
+    {% else %}
+      <a class="button" href="{% url 'accounts:register' %}">Bring your team together <span aria-hidden="true">↗</span></a>
+    {% endif %}
+  </div>
 </section>
 {% endblock %}

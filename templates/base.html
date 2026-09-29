@@ -8,7 +8,7 @@
   <meta name="theme-color" content="#14213d">
   <title>{% block title %}StudyCrew{% endblock %}</title>
   <link rel="icon" href="{% static 'img/favicon.svg' %}" type="image/svg+xml">
-  <link rel="stylesheet" href="{% static 'css/app.css' %}">
+  <link rel="stylesheet" href="{% static 'css/app.css' %}?v={{ site_css_version }}">
   {% block extra_head %}{% endblock %}
 </head>
 <body class="{% block body_class %}{% endblock %}">
@@ -60,7 +60,7 @@
     </div>
     <p class="site-footer__note">Built for university project teams.</p>
   </footer>
-  <script type="module" src="{% static 'js/site.js' %}"></script>
+  <script type="module" src="{% static 'js/site.js' %}?v={{ site_js_version }}"></script>
   {% block scripts %}{% endblock %}
 </body>
 </html>

@@ -169,6 +169,12 @@ class ControlCentreTests(TestCase):
         response = self.client.get("/")
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "StudyCrew")
+        self.assertContains(response, "without the guesswork")
+        self.assertContains(response, "Meet with context")
+        self.assertContains(response, "No contribution scores")
+        self.assertContains(response, 'data-reveal="rise"')
+        self.assertContains(response, "/static/css/app.css?v=")
+        self.assertContains(response, "/static/js/site.js?v=")
 
     def test_audit_payload_falls_back_to_email_for_legacy_user_without_profile(self):
         raw_user = get_user_model().objects.create(
