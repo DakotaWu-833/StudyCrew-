@@ -115,15 +115,19 @@ details.
 | `PATCH /api/v1/projects/{project_id}/` | Any of `name`, `description`, `due_at` | Project owner only; partial update. Archived projects reject writes. |
 | `DELETE /api/v1/projects/{project_id}/` | None | Project owner only; soft-archives the project and retains evidence. |
 | `GET /api/v1/projects/{project_id}/activity/` | `page` | Project members; paginated immutable activity events. |
-| `GET /api/v1/projects/{project_id}/insights/` | `range_start`, `range_end`, optional `event_type` | Project members; per-member factual totals and up to 200 drill-down events. Omitted dates default to the latest 30 days in the requesting user's profile time zone. |
+| `GET /api/v1/projects/{project_id}/insights/` | `range_start`, `range_end`, optional `event_type` | Project members; factual member totals and work charts. Omitted dates default to the latest 30 days in the requesting user's profile time zone. |
+| `GET /api/v1/projects/{project_id}/timeline/` | `range_start`, `range_end`, optional `event_type`, `search`, `member`, `page` | Project members; server-filtered activity, returned five events at a time. |
 
 An insight range cannot exceed 366 days. Zero-activity current members remain in
-the result. `events_truncated: true` tells the client that the 200-event display
-limit was reached. The React contribution cards, proportional member bars,
-exact-value table and timeline all consume this same response; there is no
-separate chart endpoint, contribution score, grade or ranking field. The
-activity-type filter changes `total_events` and the event drill-down, while the
-other factual member totals continue to represent the selected date range.
+the result. The timeline search matches member names, activity types and target
+types; `member` filters by actor. Its `events_total`, `events_page`,
+`events_pages` and `events_page_size` describe the filtered result. The
+activity-type filter changes the member `total_events` and timeline, while the
+timeline's search/member filters narrow only the timeline. Work-distribution
+charts and trend series are part of the insights response; there is no separate
+chart endpoint, contribution score, grade or ranking field. Evidence exports
+continue to include the complete matching event set and are not subject to the
+five-event display page size.
 
 Archived projects are omitted from the default active list and are available
 through `scope=archived` or `scope=all`. The workspace exposes them in an

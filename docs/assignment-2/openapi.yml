@@ -1245,6 +1245,128 @@ paths:
               schema:
                 $ref: '#/components/schemas/InsightsResponse'
           description: ''
+  /api/v1/projects/{id}/timeline/:
+    get:
+      operationId: projects_timeline_retrieve
+      parameters:
+      - in: query
+        name: event_type
+        schema:
+          enum:
+          - ''
+          - project_created
+          - project_updated
+          - project_archived
+          - invitation_created
+          - invitation_declined
+          - invitation_cancelled
+          - invitation_expired
+          - member_joined
+          - member_role_changed
+          - member_removed
+          - ownership_transferred
+          - task_created
+          - task_updated
+          - task_archived
+          - task_assignees_changed
+          - task_assigned
+          - task_unassigned
+          - task_status_changed
+          - comment_created
+          - comment_edited
+          - comment_deleted
+          - comment_moderated
+          - comment_reported
+          - meeting_created
+          - meeting_updated
+          - meeting_cancelled
+          - meeting_archived
+          - meeting_rsvp
+          - task_reminder_sent
+          - meeting_reminder_sent
+          - export_requested
+          - export_ready
+          - export_failed
+          type: string
+          default: ''
+        description: |-
+          * `` - All
+          * `project_created` - Project created
+          * `project_updated` - Project updated
+          * `project_archived` - Project archived
+          * `invitation_created` - Invitation created
+          * `invitation_declined` - Invitation declined
+          * `invitation_cancelled` - Invitation cancelled
+          * `invitation_expired` - Invitation expired
+          * `member_joined` - Member joined
+          * `member_role_changed` - Member role changed
+          * `member_removed` - Member removed
+          * `ownership_transferred` - Ownership transferred
+          * `task_created` - Task created
+          * `task_updated` - Task updated
+          * `task_archived` - Task archived
+          * `task_assignees_changed` - Task assignees changed
+          * `task_assigned` - Task assigned
+          * `task_unassigned` - Task unassigned
+          * `task_status_changed` - Task status changed
+          * `comment_created` - Comment created
+          * `comment_edited` - Comment edited
+          * `comment_deleted` - Comment deleted
+          * `comment_moderated` - Comment moderated
+          * `comment_reported` - Comment reported
+          * `meeting_created` - Meeting created
+          * `meeting_updated` - Meeting updated
+          * `meeting_cancelled` - Meeting cancelled
+          * `meeting_archived` - Meeting archived
+          * `meeting_rsvp` - Meeting RSVP changed
+          * `task_reminder_sent` - Task reminder sent
+          * `meeting_reminder_sent` - Meeting reminder sent
+          * `export_requested` - Export requested
+          * `export_ready` - Export ready
+          * `export_failed` - Export failed
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - in: query
+        name: member
+        schema:
+          type: string
+          format: uuid
+      - in: query
+        name: page
+        schema:
+          type: integer
+          minimum: 1
+          default: 1
+      - in: query
+        name: range_end
+        schema:
+          type: string
+          format: date
+      - in: query
+        name: range_start
+        schema:
+          type: string
+          format: date
+      - in: query
+        name: search
+        schema:
+          type: string
+          maxLength: 100
+      tags:
+      - projects
+      security:
+      - mfaSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ActivityTimelineResponse'
+          description: ''
   /api/v1/tasks/:
     get:
       operationId: tasks_list
@@ -1597,6 +1719,36 @@ components:
       - project
       - target_id
       - target_type
+    ActivityTimelineResponse:
+      type: object
+      properties:
+        events:
+          type: array
+          items:
+            $ref: '#/components/schemas/ActivityEvent'
+          readOnly: true
+        events_total:
+          type: integer
+          minimum: 0
+          readOnly: true
+        events_page:
+          type: integer
+          minimum: 1
+          readOnly: true
+        events_pages:
+          type: integer
+          minimum: 1
+          readOnly: true
+        events_page_size:
+          type: integer
+          minimum: 1
+          readOnly: true
+      required:
+      - events
+      - events_page
+      - events_page_size
+      - events_pages
+      - events_total
     AssigneeUpdate:
       type: object
       description: Reject undeclared and read-only input instead of silently discarding
@@ -1923,6 +2075,92 @@ components:
       - meeting_date
       - message
       - source
+    InsightDailyCount:
+      type: object
+      properties:
+        date:
+          type: string
+          format: date
+          readOnly: true
+        count:
+          type: integer
+          minimum: 0
+          readOnly: true
+      required:
+      - count
+      - date
+    InsightDailyCycle:
+      type: object
+      properties:
+        date:
+          type: string
+          format: date
+          readOnly: true
+        count:
+          type: integer
+          minimum: 0
+          readOnly: true
+        average_hours:
+          type: number
+          format: double
+          minimum: 0
+          readOnly: true
+          nullable: true
+      required:
+      - average_hours
+      - count
+      - date
+    InsightDistributionPoint:
+      type: object
+      properties:
+        key:
+          type: string
+          readOnly: true
+        label:
+          type: string
+          readOnly: true
+        count:
+          type: integer
+          minimum: 0
+          readOnly: true
+      required:
+      - count
+      - key
+      - label
+    InsightsCharts:
+      type: object
+      properties:
+        task_status:
+          type: array
+          items:
+            $ref: '#/components/schemas/InsightDistributionPoint'
+          readOnly: true
+        task_priority:
+          type: array
+          items:
+            $ref: '#/components/schemas/InsightDistributionPoint'
+          readOnly: true
+        task_assignees:
+          type: array
+          items:
+            $ref: '#/components/schemas/InsightDistributionPoint'
+          readOnly: true
+        tasks_created:
+          type: array
+          items:
+            $ref: '#/components/schemas/InsightDailyCount'
+          readOnly: true
+        completion_cycle:
+          type: array
+          items:
+            $ref: '#/components/schemas/InsightDailyCycle'
+          readOnly: true
+      required:
+      - completion_cycle
+      - task_assignees
+      - task_priority
+      - task_status
+      - tasks_created
     InsightsResponse:
       type: object
       properties:
@@ -1950,7 +2188,12 @@ components:
         events_truncated:
           type: boolean
           readOnly: true
+        charts:
+          allOf:
+          - $ref: '#/components/schemas/InsightsCharts'
+          readOnly: true
       required:
+      - charts
       - event_type
       - events
       - events_truncated

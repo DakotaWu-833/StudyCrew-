@@ -10,11 +10,12 @@ from django.test import TestCase, override_settings
 from django.utils import timezone
 
 from activity.exports import _render_pdf, export_file_for_user, request_export
-from activity.insights import contribution_insights
+from activity.insights import activity_timeline_page, contribution_insights
 from activity.models import ActivityEvent, ExportJob
 from activity.services import record_event
 from meetings.models import Meeting, MeetingAttendance
 from projects.models import Project, ProjectMembership
+from tasks.models import Task, TaskAssignment
 
 
 class InsightsAndExportTests(TestCase):
@@ -94,6 +95,129 @@ class InsightsAndExportTests(TestCase):
         self.assertEqual(by_id[self.owner.id]["comments"], 1)
         self.assertEqual(by_id[self.owner.id]["accepted_meetings"], 1)
         self.assertEqual(by_id[self.member.id]["total_events"], 0)
+
+    def test_insights_charts_use_complete_task_data_and_selected_local_dates(self):
+        local_start = datetime.combine(
+            self.today, datetime.min.time(), tzinfo=ZoneInfo(self.member.profile.time_zone)
+        )
+        created_at = (local_start + timedelta(hours=8)).astimezone(datetime_timezone.utc)
+        completed_at = created_at + timedelta(hours=2)
+        todo = Task.objects.create(
+            project=self.project,
+            created_by=self.owner,
+            title="Unassigned planning task",
+            priority=Task.Priority.LOW,
+        )
+        in_progress = Task.objects.create(
+            project=self.project,
+            created_by=self.owner,
+            title="Shared research task",
+            status=Task.Status.IN_PROGRESS,
+            priority=Task.Priority.HIGH,
+        )
+        done = Task.objects.create(
+            project=self.project,
+            created_by=self.owner,
+            title="Finished task",
+            status=Task.Status.DONE,
+            priority=Task.Priority.MEDIUM,
+            completed_at=completed_at,
+        )
+        archived = Task.objects.create(
+            project=self.project,
+            created_by=self.owner,
+            title="Archived blocked task",
+            status=Task.Status.BLOCKED,
+            priority=Task.Priority.URGENT,
+            blocker_note="Waiting on review",
+        )
+        Task.objects.filter(id__in=(todo.id, in_progress.id, done.id, archived.id)).update(
+            created_at=created_at
+        )
+        Task.objects.filter(pk=done.pk).update(completed_at=completed_at, created_at=created_at)
+        Task.objects.filter(pk=archived.pk).update(archived_at=created_at)
+        TaskAssignment.objects.create(task=in_progress, user=self.owner, assigned_by=self.owner)
+        TaskAssignment.objects.create(task=in_progress, user=self.member, assigned_by=self.owner)
+
+        result = contribution_insights(
+            user=self.member,
+            project=self.project,
+            range_start=self.today,
+            range_end=self.today,
+        )
+        charts = result["charts"]
+        self.assertEqual(
+            [(row["key"], row["count"]) for row in charts["task_status"]],
+            [("todo", 1), ("in_progress", 1), ("blocked", 0), ("done", 1)],
+        )
+        self.assertEqual(
+            {row["key"]: row["count"] for row in charts["task_priority"]},
+            {"low": 1, "medium": 1, "high": 1, "urgent": 0},
+        )
+        self.assertEqual(
+            [(row["label"], row["count"]) for row in charts["task_assignees"]],
+            [("Member", 1), ("Owner", 1), ("Unassigned", 1)],
+        )
+        self.assertEqual(charts["tasks_created"], [{"date": self.today.isoformat(), "count": 4}])
+        self.assertEqual(
+            charts["completion_cycle"],
+            [{"date": self.today.isoformat(), "count": 1, "average_hours": 2.0}],
+        )
+
+    def test_timeline_search_member_filter_and_page_apply_to_full_event_query(self):
+        local_start = datetime.combine(
+            self.today, datetime.min.time(), tzinfo=ZoneInfo(self.member.profile.time_zone)
+        )
+        for offset in range(12):
+            is_task = offset % 2 == 0
+            actor = self.member if offset % 3 == 0 else self.owner
+            ActivityEvent.objects.create(
+                project=self.project,
+                actor=actor,
+                event_type=(
+                    ActivityEvent.Type.TASK_CREATED
+                    if is_task
+                    else ActivityEvent.Type.COMMENT_CREATED
+                ),
+                target_type=(
+                    ActivityEvent.TargetType.TASK
+                    if is_task
+                    else ActivityEvent.TargetType.COMMENT
+                ),
+                target_id=self.project.id,
+                occurred_at=(local_start + timedelta(hours=10, seconds=offset)).astimezone(
+                    datetime_timezone.utc
+                ),
+            )
+
+        task_page = activity_timeline_page(
+            user=self.member,
+            project=self.project,
+            range_start=self.today,
+            range_end=self.today,
+            search="TASK",
+            page=2,
+        )
+        self.assertEqual(task_page["events_total"], 6)
+        self.assertEqual(task_page["events_pages"], 2)
+        self.assertEqual(task_page["events_page"], 2)
+        self.assertEqual(len(task_page["events"]), 1)
+        self.assertEqual(task_page["events"][0].event_type, ActivityEvent.Type.TASK_CREATED)
+
+        member_events = activity_timeline_page(
+            user=self.member,
+            project=self.project,
+            range_start=self.today,
+            range_end=self.today,
+            member_id=self.member.id,
+            search="member",
+            page=99,
+        )
+        self.assertEqual(member_events["events_total"], 4)
+        self.assertEqual(member_events["events_page"], 1)
+        self.assertEqual(member_events["events_pages"], 1)
+        self.assertEqual(len(member_events["events"]), 4)
+        self.assertTrue(all(event.actor_id == self.member.id for event in member_events["events"]))
 
     def test_insight_range_and_event_filter_are_validated(self):
         with self.assertRaises(ValidationError):

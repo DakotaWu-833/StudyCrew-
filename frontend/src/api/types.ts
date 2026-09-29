@@ -148,6 +148,29 @@ export interface MemberInsight {
   accepted_meetings: number;
 }
 
+export interface InsightDistributionPoint {
+  key: string;
+  label: string;
+  count: number;
+}
+
+export interface InsightDailyCount {
+  date: string;
+  count: number;
+}
+
+export interface InsightDailyCycle extends InsightDailyCount {
+  average_hours: number | null;
+}
+
+export interface InsightsCharts {
+  task_status: InsightDistributionPoint[];
+  task_priority: InsightDistributionPoint[];
+  task_assignees: InsightDistributionPoint[];
+  tasks_created: InsightDailyCount[];
+  completion_cycle: InsightDailyCycle[];
+}
+
 export interface Insights {
   range_start: string;
   range_end: string;
@@ -155,6 +178,15 @@ export interface Insights {
   members: MemberInsight[];
   events: ActivityEvent[];
   events_truncated: boolean;
+  charts: InsightsCharts;
+}
+
+export interface ActivityTimeline {
+  events: ActivityEvent[];
+  events_total: number;
+  events_page: number;
+  events_pages: number;
+  events_page_size: number;
 }
 
 export interface Notification {

@@ -1,6 +1,7 @@
 import { apiFetch, apiFetchAll, jsonBody } from "./client";
 import type {
   Comment,
+  ActivityTimeline,
   ExportJob,
   HolidayAdvisory,
   Insights,
@@ -44,6 +45,14 @@ export const projectApi = {
   archive: (id: UUID) => apiFetch<void>(`/api/v1/projects/${id}/`, { method: "DELETE" }),
   insights: (id: UUID, values: { range_start: string; range_end: string; event_type?: string }) =>
     apiFetch<Insights>(`/api/v1/projects/${id}/insights/${query(values)}`),
+  timeline: (id: UUID, values: {
+    range_start: string;
+    range_end: string;
+    event_type?: string;
+    search?: string;
+    member?: string;
+    page?: string;
+  }) => apiFetch<ActivityTimeline>(`/api/v1/projects/${id}/timeline/${query(values)}`),
 };
 
 export const membershipApi = {

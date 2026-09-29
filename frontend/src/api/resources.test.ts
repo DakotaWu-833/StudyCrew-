@@ -17,15 +17,18 @@ describe("resource API paths", () => {
     );
   });
 
-  it("uses a project-scoped insights endpoint and explicit date parameters", async () => {
+  it("sends timeline search, member, and page filters through its project-scoped endpoint", async () => {
     const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue(jsonResponse({}));
-    await projectApi.insights("project-id", {
+    await projectApi.timeline("project-id", {
       range_start: "2026-09-01",
       range_end: "2026-09-14",
       event_type: "task_created",
+      search: "Alex Morgan",
+      member: "member-id",
+      page: "2",
     });
     expect(fetchMock.mock.calls[0]?.[0]).toContain(
-      "/api/v1/projects/project-id/insights/?range_start=2026-09-01&range_end=2026-09-14&event_type=task_created",
+      "/api/v1/projects/project-id/timeline/?range_start=2026-09-01&range_end=2026-09-14&event_type=task_created&search=Alex+Morgan&member=member-id&page=2",
     );
   });
 

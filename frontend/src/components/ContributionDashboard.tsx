@@ -1,4 +1,11 @@
-import type { MemberInsight } from "../api/types";
+import type { ReactNode } from "react";
+import type {
+  InsightDailyCount,
+  InsightDailyCycle,
+  InsightDistributionPoint,
+  InsightsCharts,
+  MemberInsight,
+} from "../api/types";
 import { buildContributionDashboard } from "../app/contributionInsights";
 import { titleCase } from "../app/format";
 import { Panel, StatusBadge } from "./UI";
@@ -8,6 +15,7 @@ interface ContributionDashboardProps {
   rangeStart: string;
   rangeEnd: string;
   eventType: string;
+  charts: InsightsCharts;
 }
 
 const pluralise = (value: number, singular: string) =>
@@ -18,6 +26,7 @@ export default function ContributionDashboard({
   rangeStart,
   rangeEnd,
   eventType,
+  charts,
 }: ContributionDashboardProps) {
   const dashboard = buildContributionDashboard(members);
   const activityScope = eventType ? titleCase(eventType) : "All activity types";
@@ -60,6 +69,33 @@ export default function ContributionDashboard({
         Recorded actions and the timeline; the other totals remain stable facts for the selected dates.
       </p>
 
+      <section className="contribution-visuals" aria-labelledby="contribution-visuals-heading">
+        <div className="contribution-visuals__heading">
+          <div>
+            <h4 id="contribution-visuals-heading">Work at a glance</h4>
+            <p>Current, non-archived tasks are shown in the distribution charts. Trends use the selected dates.</p>
+          </div>
+        </div>
+        <div className="contribution-donut-grid">
+          <DonutChart title="Work items by status" points={charts.task_status} />
+          <DonutChart title="Work items by priority" points={charts.task_priority} />
+          <DonutChart
+            title="Open work by assignee"
+            points={charts.task_assignees}
+            totalLabel="assignments"
+            footnote="Counts are task assignments; a task assigned to multiple people appears for each assignee."
+          />
+        </div>
+        <div className="contribution-trend-grid">
+          <TrendChart title="Work item creation trend" subtitle="Tasks created per day" points={charts.tasks_created} />
+          <CycleChart points={charts.completion_cycle} />
+        </div>
+        <p className="contribution-visuals__note">
+          This project does not currently record a separate task type, so priority is shown instead. Creation history
+          includes tasks archived later. Completion time uses tasks still marked done; reopening clears the prior completion time.
+        </p>
+      </section>
+
       <figure className="member-activity-chart" aria-labelledby="member-activity-heading">
         <figcaption className="member-activity-chart__caption">
           <div>
@@ -100,5 +136,175 @@ export default function ContributionDashboard({
         )}
       </figure>
     </Panel>
+  );
+}
+
+const chartColours = ["#4f73df", "#80ad47", "#b463dc", "#ed913b", "#3155b2", "#27a38d"];
+const ringCircumference = 2 * Math.PI * 45;
+
+function DonutChart({
+  title,
+  points,
+  totalLabel = "tasks",
+  footnote,
+}: {
+  title: string;
+  points: InsightDistributionPoint[];
+  totalLabel?: string;
+  footnote?: string;
+}) {
+  const total = points.reduce((sum, point) => sum + point.count, 0);
+  let consumed = 0;
+
+  return (
+    <figure className="contribution-chart-card">
+      <figcaption><h5>{title}</h5></figcaption>
+      <div className="contribution-donut-layout">
+        <div className="contribution-donut" role="img" aria-label={`${title}: ${total} ${totalLabel}`}>
+          <svg viewBox="0 0 180 150" aria-hidden="true" focusable="false">
+            <circle className="contribution-donut__track" cx="90" cy="75" r="45" />
+            {total > 0 && points.map((point, index) => {
+              const length = (point.count / total) * ringCircumference;
+              const offset = consumed;
+              consumed += length;
+              if (point.count === 0) return null;
+              return (
+                <circle
+                  key={point.key}
+                  className="contribution-donut__segment"
+                  cx="90"
+                  cy="75"
+                  r="45"
+                  stroke={chartColours[index % chartColours.length]}
+                  strokeDasharray={`${length} ${ringCircumference - length}`}
+                  strokeDashoffset={-offset}
+                  transform="rotate(-90 90 75)"
+                />
+              );
+            })}
+            <text className="contribution-donut__total" x="90" y="73">{total}</text>
+            <text className="contribution-donut__label" x="90" y="91">{totalLabel}</text>
+          </svg>
+        </div>
+        <ul className="contribution-chart-legend">
+          {points.map((point, index) => (
+            <li key={point.key}>
+              <span className="contribution-chart-legend__label">
+                <i style={{ backgroundColor: chartColours[index % chartColours.length] }} aria-hidden="true" />
+                <span>{point.label}</span>
+              </span>
+              <strong>{point.count}</strong>
+            </li>
+          ))}
+        </ul>
+      </div>
+      {total === 0 && <p className="contribution-chart-card__empty">No work items in this distribution yet.</p>}
+      {footnote && <p className="contribution-chart-card__note">{footnote}</p>}
+    </figure>
+  );
+}
+
+const chartWidth = 640;
+const chartHeight = 220;
+const chartMargin = { top: 16, right: 12, bottom: 34, left: 42 };
+const plotWidth = chartWidth - chartMargin.left - chartMargin.right;
+const plotHeight = chartHeight - chartMargin.top - chartMargin.bottom;
+
+function TrendFrame({
+  title,
+  subtitle,
+  children,
+}: {
+  title: string;
+  subtitle: string;
+  children: ReactNode;
+}) {
+  return (
+    <figure className="contribution-chart-card contribution-trend-card">
+      <figcaption>
+        <h5>{title}</h5>
+        <p>{subtitle}</p>
+      </figcaption>
+      {children}
+    </figure>
+  );
+}
+
+function dateLabel(value: string) {
+  return value.slice(5);
+}
+
+function TrendChart({
+  title,
+  subtitle,
+  points,
+}: {
+  title: string;
+  subtitle: string;
+  points: InsightDailyCount[];
+}) {
+  const maximum = Math.max(0, ...points.map((point) => point.count));
+  const baseline = chartMargin.top + plotHeight;
+  const step = points.length > 0 ? plotWidth / points.length : plotWidth;
+  const barWidth = Math.max(1, Math.min(15, step * 0.76));
+  const tickIndexes = [...new Set([0, Math.floor((points.length - 1) / 2), points.length - 1])];
+
+  return (
+    <TrendFrame title={title} subtitle={subtitle}>
+      {maximum === 0 ? (
+        <p className="contribution-chart-card__empty">No tasks were created during this date range.</p>
+      ) : (
+        <svg className="contribution-trend" viewBox={`0 0 ${chartWidth} ${chartHeight}`} role="img" aria-label={`${title}, maximum ${maximum} tasks in one day`}>
+          {[0, maximum / 2, maximum].map((tick, index) => {
+            const y = chartMargin.top + plotHeight - (tick / maximum) * plotHeight;
+            return <g key={index}><line className="contribution-trend__grid" x1={chartMargin.left} x2={chartWidth - chartMargin.right} y1={y} y2={y} /><text className="contribution-trend__axis" x={chartMargin.left - 8} y={y + 4} textAnchor="end">{Math.round(tick)}</text></g>;
+          })}
+          <line className="contribution-trend__axis-line" x1={chartMargin.left} x2={chartWidth - chartMargin.right} y1={baseline} y2={baseline} />
+          {points.map((point, index) => {
+            if (point.count === 0) return null;
+            const height = (point.count / maximum) * plotHeight;
+            const x = chartMargin.left + index * step + (step - barWidth) / 2;
+            const taskLabel = point.count === 1 ? "task" : "tasks";
+            return <rect key={point.date} className="contribution-trend__bar" x={x} y={baseline - height} width={barWidth} height={height} rx="2"><title>{`${point.date}: ${point.count} ${taskLabel} created`}</title></rect>;
+          })}
+          {tickIndexes.map((index) => points[index] && <text key={points[index].date} className="contribution-trend__date" x={chartMargin.left + index * step + step / 2} y={chartHeight - 9} textAnchor="middle">{dateLabel(points[index].date)}</text>)}
+        </svg>
+      )}
+    </TrendFrame>
+  );
+}
+
+function CycleChart({ points }: { points: InsightDailyCycle[] }) {
+  const values = points.filter((point) => point.average_hours !== null);
+  const maximum = Math.max(0, ...values.map((point) => point.average_hours ?? 0));
+  const tickIndexes = [...new Set([0, Math.floor((points.length - 1) / 2), points.length - 1])];
+  const coordinates = values.map((point) => {
+    const index = points.indexOf(point);
+    const x = chartMargin.left + (points.length > 1 ? (index / (points.length - 1)) * plotWidth : plotWidth / 2);
+    const y = chartMargin.top + plotHeight - ((point.average_hours ?? 0) / (maximum || 1)) * plotHeight;
+    return { point, x, y };
+  });
+  const path = coordinates.map(({ x, y }, index) => `${index === 0 ? "M" : "L"}${x},${y}`).join(" ");
+
+  return (
+    <TrendFrame title="Work item cycle time" subtitle="Average time from creation to completion, by completion date (hours)">
+      {!values.length ? (
+        <p className="contribution-chart-card__empty">No currently completed tasks fall within this date range.</p>
+      ) : (
+        <svg className="contribution-trend" viewBox={`0 0 ${chartWidth} ${chartHeight}`} role="img" aria-label={`Average completion time trend, ${values.length} days with completions, maximum ${maximum.toFixed(1)} hours`}>
+          {[0, maximum / 2, maximum].map((tick, index) => {
+            const y = chartMargin.top + plotHeight - (tick / (maximum || 1)) * plotHeight;
+            return <g key={index}><line className="contribution-trend__grid" x1={chartMargin.left} x2={chartWidth - chartMargin.right} y1={y} y2={y} /><text className="contribution-trend__axis" x={chartMargin.left - 8} y={y + 4} textAnchor="end">{tick.toFixed(0)}h</text></g>;
+          })}
+          <line className="contribution-trend__axis-line" x1={chartMargin.left} x2={chartWidth - chartMargin.right} y1={chartMargin.top + plotHeight} y2={chartMargin.top + plotHeight} />
+          {path && <path className="contribution-trend__line" d={path} />}
+          {coordinates.map(({ point, x, y }) => {
+            const taskLabel = point.count === 1 ? "completed task" : "completed tasks";
+            return <circle key={point.date} className="contribution-trend__point" cx={x} cy={y} r="3.5"><title>{`${point.date}: ${point.average_hours?.toFixed(1)} hours across ${point.count} ${taskLabel}`}</title></circle>;
+          })}
+          {tickIndexes.map((index) => points[index] && <text key={points[index].date} className="contribution-trend__date" x={chartMargin.left + (points.length > 1 ? (index / (points.length - 1)) * plotWidth : plotWidth / 2)} y={chartHeight - 9} textAnchor="middle">{dateLabel(points[index].date)}</text>)}
+        </svg>
+      )}
+    </TrendFrame>
   );
 }

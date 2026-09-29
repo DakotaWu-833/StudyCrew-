@@ -11,6 +11,7 @@ if (showcase) {
   const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
   let activeIndex = Math.max(0, tabs.findIndex((tab) => tab.getAttribute("aria-selected") === "true"));
   let timer = 0;
+  let calloutTimer = 0;
   let pointerInside = false;
   let focusInside = false;
   let manuallyPaused = false;
@@ -32,10 +33,18 @@ if (showcase) {
     timer = window.setTimeout(() => {
       selectTab((activeIndex + 1) % tabs.length);
       scheduleAdvance();
-    }, 6500);
+    }, 5200);
+  };
+
+  const updateCallouts = (selectedTab) => {
+    showcase.querySelectorAll("[data-showcase-callout]").forEach((element) => {
+      const key = element.dataset.showcaseCallout;
+      element.textContent = selectedTab.getAttribute(`data-${key}`) || "";
+    });
   };
 
   const selectTab = (nextIndex) => {
+    const selectionChanged = nextIndex !== activeIndex;
     activeIndex = (nextIndex + tabs.length) % tabs.length;
     tabs.forEach((tab, index) => {
       const selected = index === activeIndex;
@@ -45,10 +54,19 @@ if (showcase) {
     });
 
     const selectedTab = tabs[activeIndex];
-    showcase.querySelectorAll("[data-showcase-callout]").forEach((element) => {
-      const key = element.dataset.showcaseCallout;
-      element.textContent = selectedTab.getAttribute(`data-${key}`) || "";
-    });
+    window.clearTimeout(calloutTimer);
+    if (selectionChanged && !reducedMotion.matches) {
+      showcase.classList.add("is-callout-changing");
+      calloutTimer = window.setTimeout(() => {
+        updateCallouts(tabs[activeIndex]);
+        showcase.classList.remove("is-callout-changing");
+        calloutTimer = 0;
+      }, 250);
+    } else {
+      calloutTimer = 0;
+      showcase.classList.remove("is-callout-changing");
+      updateCallouts(selectedTab);
+    }
     const summary = showcase.querySelector("[data-showcase-summary]");
     if (summary) summary.textContent = selectedTab.dataset.featureSummary || "";
     scheduleAdvance();
@@ -113,24 +131,36 @@ if (revealTargets.length && !prefersReducedMotion) {
   document.documentElement.classList.add("has-scroll-reveal");
 
   if ("IntersectionObserver" in window) {
-    const revealObserver = new IntersectionObserver((entries, observer) => {
+    const revealWhenInView = (entries, observer) => {
       entries.forEach((entry) => {
         if (entry.isIntersecting) {
           entry.target.classList.add("is-visible");
           observer.unobserve(entry.target);
         }
       });
-    }, { threshold: 0.14, rootMargin: "0px 0px -5% 0px" });
+    };
+    const revealObserver = new IntersectionObserver(revealWhenInView, {
+      threshold: 0.14,
+      rootMargin: "0px 0px -5% 0px",
+    });
+    const storyObserver = new IntersectionObserver(revealWhenInView, {
+      threshold: 0.35,
+    });
 
-    revealTargets.forEach((element) => revealObserver.observe(element));
+    revealTargets.forEach((element) => {
+      (element.classList.contains("feature-story") ? storyObserver : revealObserver).observe(element);
+    });
   } else {
     const pendingTargets = new Set(revealTargets);
     let framePending = false;
     const revealInView = () => {
       framePending = false;
-      const revealLine = window.innerHeight * 0.9;
       pendingTargets.forEach((element) => {
-        if (element.getBoundingClientRect().top < revealLine) {
+        const bounds = element.getBoundingClientRect();
+        const revealLine = element.classList.contains("feature-story")
+          ? window.innerHeight - Math.min(bounds.height * 0.35, window.innerHeight * 0.45)
+          : window.innerHeight * 0.9;
+        if (bounds.top < revealLine) {
           element.classList.add("is-visible");
           pendingTargets.delete(element);
         }

@@ -26,12 +26,14 @@ from rest_framework.views import APIView
 from accounts.models import Profile
 from accounts.policies import is_site_moderator
 from activity.exports import export_file_for_user, request_export
-from activity.insights import contribution_insights
+from activity.insights import activity_timeline_page, contribution_insights
 from activity.models import ExportJob
 from activity.selectors import events_for_project, notifications_for_user
 from activity.services import mark_notification_read
 from api.serializers import (
     ActivityEventSerializer,
+    ActivityTimelineQuerySerializer,
+    ActivityTimelineResponseSerializer,
     AssigneeUpdateSerializer,
     CommentCreateSerializer,
     CommentListQuerySerializer,
@@ -246,6 +248,35 @@ class ProjectViewSet(UUIDLookupMixin, viewsets.ModelViewSet):
         page = self.paginate_queryset(queryset)
         serializer = ActivityEventSerializer(page, many=True)
         return self.get_paginated_response(serializer.data)
+
+    @extend_schema(
+        parameters=[ActivityTimelineQuerySerializer],
+        responses=ActivityTimelineResponseSerializer,
+    )
+    @action(detail=True, methods=["get"])
+    def timeline(self, request, pk=None):
+        project = self.get_object()
+        local_today = timezone.localdate(
+            timezone.now(),
+            ZoneInfo(request.user.profile.time_zone),
+        )
+        defaults = {
+            "range_start": (local_today - timedelta(days=30)).isoformat(),
+            "range_end": local_today.isoformat(),
+        }
+        query = ActivityTimelineQuerySerializer(
+            data={**defaults, **request.query_params.dict()}
+        )
+        query.is_valid(raise_exception=True)
+        query_values = query.validated_data.copy()
+        member_id = query_values.pop("member", None)
+        result = activity_timeline_page(
+            user=request.user,
+            project=project,
+            **query_values,
+            member_id=member_id,
+        )
+        return Response(ActivityTimelineResponseSerializer(result).data)
 
     @extend_schema(
         parameters=[InsightsQuerySerializer],

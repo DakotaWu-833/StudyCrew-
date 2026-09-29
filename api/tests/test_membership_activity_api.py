@@ -1,7 +1,6 @@
 from datetime import datetime, timedelta, timezone as datetime_timezone
 from tempfile import TemporaryDirectory
 from unittest.mock import patch
-from uuid import uuid4
 from zoneinfo import ZoneInfo
 
 from django.contrib.auth import get_user_model
@@ -98,9 +97,26 @@ class MembershipActivityAPITests(APIDomainTestCase):
             f"/api/v1/projects/{self.project.id}/insights/?range_start={today}&range_end={today}"
         )
         self.assertEqual(response.status_code, 200, response.content)
-        by_name = {row["display_name"]: row for row in response.json()["members"]}
+        payload = response.json()
+        by_name = {row["display_name"]: row for row in payload["members"]}
         self.assertEqual(by_name["API Owner"]["total_events"], 1)
         self.assertEqual(by_name["API Member"]["total_events"], 0)
+        self.assertEqual(
+            payload["charts"]["tasks_created"],
+            [{"date": today, "count": 0}],
+        )
+        self.assertEqual(
+            [(row["key"], row["count"]) for row in payload["charts"]["task_status"]],
+            [("todo", 0), ("in_progress", 0), ("blocked", 0), ("done", 0)],
+        )
+        timeline = self.client.get(
+            f"/api/v1/projects/{self.project.id}/timeline/?range_start={today}&range_end={today}"
+            f"&search=comment&member={self.owner.id}&page=1"
+        )
+        self.assertEqual(timeline.status_code, 200, timeline.content)
+        self.assertEqual(timeline.json()["events_total"], 1)
+        self.assertEqual(timeline.json()["events_page_size"], 5)
+        self.assertEqual(len(timeline.json()["events"]), 1)
 
     def test_insight_default_range_uses_the_requesting_users_calendar_date(self):
         self.member.profile.time_zone = "Pacific/Kiritimati"
@@ -129,43 +145,35 @@ class MembershipActivityAPITests(APIDomainTestCase):
         self.assertEqual(captured["range_end"].isoformat(), "2026-01-02")
         self.assertEqual(captured["range_start"].isoformat(), "2025-12-03")
 
-    def test_insights_truncation_flag_uses_a_real_sentinel_event(self):
-        today = timezone.localdate()
+    def test_insights_timeline_pagination_metadata_uses_five_item_pages(self):
+        today = timezone.localdate(timezone.now(), ZoneInfo(self.member.profile.time_zone))
+        start = timezone.now()
+        for offset in range(6):
+            ActivityEvent.objects.create(
+                project=self.project,
+                actor=self.owner,
+                event_type=ActivityEvent.Type.PROJECT_UPDATED,
+                target_type=ActivityEvent.TargetType.PROJECT,
+                target_id=self.project.id,
+                occurred_at=start + timedelta(seconds=offset),
+            )
         self.authenticate(self.member)
+        base_url = (
+            f"/api/v1/projects/{self.project.id}/timeline/"
+            f"?range_start={today.isoformat()}&range_end={today.isoformat()}"
+        )
 
-        def event_rows(count):
-            return [
-                ActivityEvent(
-                    id=uuid4(),
-                    project=self.project,
-                    actor=self.owner,
-                    event_type=ActivityEvent.Type.PROJECT_UPDATED,
-                    target_type=ActivityEvent.TargetType.PROJECT,
-                    target_id=self.project.id,
-                    metadata={},
-                    occurred_at=timezone.now(),
-                )
-                for _ in range(count)
-            ]
-
-        for count, expected in ((200, False), (201, True)):
-            result = {
-                "range_start": today,
-                "range_end": today,
-                "event_type": "",
-                "members": [],
-                "events": event_rows(count),
-            }
-            with self.subTest(count=count), patch(
-                "api.views.contribution_insights", return_value=result
-            ):
-                response = self.client.get(
-                    f"/api/v1/projects/{self.project.id}/insights/"
-                    f"?range_start={today.isoformat()}&range_end={today.isoformat()}"
-                )
-                self.assertEqual(response.status_code, 200, response.content)
-                self.assertEqual(response.json()["events_truncated"], expected)
-                self.assertEqual(len(response.json()["events"]), min(count, 200))
+        first_page = self.client.get(base_url)
+        second_page = self.client.get(f"{base_url}&page=2")
+        self.assertEqual(first_page.status_code, 200, first_page.content)
+        self.assertEqual(second_page.status_code, 200, second_page.content)
+        self.assertEqual(first_page.json()["events_total"], 6)
+        self.assertEqual(first_page.json()["events_page"], 1)
+        self.assertEqual(first_page.json()["events_pages"], 2)
+        self.assertEqual(first_page.json()["events_page_size"], 5)
+        self.assertEqual(len(first_page.json()["events"]), 5)
+        self.assertEqual(second_page.json()["events_page"], 2)
+        self.assertEqual(len(second_page.json()["events"]), 1)
 
     def test_csv_export_create_list_and_download(self):
         self.authenticate(self.owner)

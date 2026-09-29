@@ -569,6 +569,20 @@ class InsightsQuerySerializer(serializers.Serializer):
     )
 
 
+class ActivityTimelineQuerySerializer(serializers.Serializer):
+    range_start = serializers.DateField(required=False)
+    range_end = serializers.DateField(required=False)
+    event_type = serializers.ChoiceField(
+        choices=[("", "All"), *ActivityEvent.Type.choices],
+        required=False,
+        allow_blank=True,
+        default="",
+    )
+    search = serializers.CharField(required=False, allow_blank=True, max_length=100)
+    member = serializers.UUIDField(required=False)
+    page = serializers.IntegerField(required=False, min_value=1, default=1)
+
+
 class MemberInsightSerializer(serializers.Serializer):
     user_id = serializers.UUIDField(read_only=True)
     display_name = serializers.CharField(read_only=True)
@@ -579,6 +593,29 @@ class MemberInsightSerializer(serializers.Serializer):
     accepted_meetings = serializers.IntegerField(min_value=0, read_only=True)
 
 
+class InsightDistributionPointSerializer(serializers.Serializer):
+    key = serializers.CharField(read_only=True)
+    label = serializers.CharField(read_only=True)
+    count = serializers.IntegerField(min_value=0, read_only=True)
+
+
+class InsightDailyCountSerializer(serializers.Serializer):
+    date = serializers.DateField(read_only=True)
+    count = serializers.IntegerField(min_value=0, read_only=True)
+
+
+class InsightDailyCycleSerializer(InsightDailyCountSerializer):
+    average_hours = serializers.FloatField(min_value=0, allow_null=True, read_only=True)
+
+
+class InsightsChartsSerializer(serializers.Serializer):
+    task_status = InsightDistributionPointSerializer(many=True, read_only=True)
+    task_priority = InsightDistributionPointSerializer(many=True, read_only=True)
+    task_assignees = InsightDistributionPointSerializer(many=True, read_only=True)
+    tasks_created = InsightDailyCountSerializer(many=True, read_only=True)
+    completion_cycle = InsightDailyCycleSerializer(many=True, read_only=True)
+
+
 class InsightsResponseSerializer(serializers.Serializer):
     range_start = serializers.DateField(read_only=True)
     range_end = serializers.DateField(read_only=True)
@@ -586,6 +623,15 @@ class InsightsResponseSerializer(serializers.Serializer):
     members = MemberInsightSerializer(many=True, read_only=True)
     events = ActivityEventSerializer(many=True, read_only=True)
     events_truncated = serializers.BooleanField(read_only=True)
+    charts = InsightsChartsSerializer(read_only=True)
+
+
+class ActivityTimelineResponseSerializer(serializers.Serializer):
+    events = ActivityEventSerializer(many=True, read_only=True)
+    events_total = serializers.IntegerField(min_value=0, read_only=True)
+    events_page = serializers.IntegerField(min_value=1, read_only=True)
+    events_pages = serializers.IntegerField(min_value=1, read_only=True)
+    events_page_size = serializers.IntegerField(min_value=1, read_only=True)
 
 
 class OwnershipTransferSerializer(StrictFieldsSerializer):
