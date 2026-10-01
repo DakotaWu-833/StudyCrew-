@@ -8,8 +8,8 @@ server is running and is also checked into the repository as
 ## Conventions
 
 - Base path: `/api/v1/`
-- Media type: `application/json`, except an export download, which returns CSV or
-  PDF bytes.
+- Media type: `application/json`, except an export download (CSV or PDF), avatar
+  upload (`multipart/form-data`) or avatar image response (`image/jpeg`).
 - Identifiers: UUID strings.
 - Date-times: timezone-aware ISO 8601/RFC 3339 strings.
 - Dates: `YYYY-MM-DD`.
@@ -102,7 +102,20 @@ details.
 | `GET /api/v1/profile/` | None | Read the current user's profile. |
 | `PUT /api/v1/profile/` | Full profile body | Replace writable profile fields for the current user. |
 | `PATCH /api/v1/profile/` | Any of `display_name`, `course_code`, `time_zone`, `biography`, `avatar_url` | Partially update only the current user's profile. Email and `updated_at` are read-only. |
+| `POST /api/v1/profile/avatar/` | Multipart `avatar` (JPG, PNG or WebP, at most 2 MB) | Re-encodes the current user's photo to a bounded square JPEG and returns the updated profile. |
+| `GET /api/v1/users/{user_id}/avatar/` | None | Current user or a current teammate in a shared active project; serves the photo privately. |
+| `GET /api/v1/time-zones/` | None | Global IANA time-zone list as `{count, results: [{value, label, offset}]}`; labels include current GMT offsets. |
+| `POST /api/v1/account/email-change/request/` | `new_email`, `current_password` | Verifies the current password and emails a short-lived six-digit code to the new address. Returns `request_id` and `new_email`, never the code. |
+| `POST /api/v1/account/email-change/confirm/` | `request_id`, `code` | Consumes a valid one-time code, switches the current user's sign-in address and notifies the old address. |
 | `GET /api/schema/` | None | Public generated OpenAPI 3 document; this route is outside the versioned API. |
+
+The current profile form intentionally omits the legacy `course_code` and
+`avatar_url` fields, but the existing JSON profile contract retains them for
+older clients. Email is never changed through profile `PUT` or `PATCH`; it uses
+the password-and-new-address-verification flow above. The configured local
+email backend writes verification messages under `var/emails/`; production
+requires SMTP delivery. Avatar images are accessed through the authenticated
+API route, not a public `/media/` URL.
 
 ### Projects and contribution evidence
 
@@ -193,13 +206,14 @@ not by this project API.
 
 | Method and path | Input or filters | Access and result |
 | --- | --- | --- |
-| `GET /api/v1/meetings/?project={project_id}` | Required `project`; optional `scope=active|archived|all`, `page`; default `active` | Project members. `active` means every non-archived meeting, including retained cancelled/ended records; `archived` and `all` make historical evidence explicit. |
+| `GET /api/v1/meetings/?project={project_id}` | Required `project`; optional `scope=active|archived|all`, `search` (up to 120 characters), `state=all|scheduled|ended|cancelled|archived`, `page`, `page_size` (1–50, default 5) | Project members. Filtering occurs before server pagination, ordered by `starts_at` then `id`. `active` means every non-archived meeting, including retained cancelled/ended records; `archived` and `all` make historical evidence explicit. |
 | `POST /api/v1/meetings/` | `project`, `title`, timezone-aware `starts_at`, `ends_at`; optional `location`, `agenda` | Any active project member. End must be after start and neither instant may exceed the inclusive ten-calendar-year horizon at validation time. |
 | `GET /api/v1/meetings/{meeting_id}/` | None | Project members; includes `cancelled_at`, `archived_at` and derived `lifecycle_state`. |
 | `PUT /api/v1/meetings/{meeting_id}/` | All of `title`, `starts_at`, `ends_at`, `location`, `agenda` | Organiser, project facilitator, or project owner; complete replacement of a scheduled meeting in a non-archived project. |
 | `PATCH /api/v1/meetings/{meeting_id}/` | Any meeting fields except `project` | Organiser, project facilitator, or project owner; partial update of a scheduled meeting in a non-archived project. |
 | `POST /api/v1/meetings/{meeting_id}/cancel/` | Empty JSON object | Organiser, project facilitator, or project owner; explicitly soft-cancels a scheduled meeting and retains attendance. |
 | `DELETE /api/v1/meetings/{meeting_id}/` | None | Organiser, project facilitator, or project owner; archives only a cancelled or ended meeting. Repeating an archive is idempotent. |
+| `POST /api/v1/meetings/{meeting_id}/restore/` | Empty JSON object | Organiser, project facilitator, or project owner; returns an archived record to the non-archived list in an active project. It retains its original cancelled/ended state and attendance. |
 | `PUT /api/v1/meetings/{meeting_id}/rsvp/` | `response`, optional `availability_note` | Any active project member; upserts one RSVP only while the meeting is scheduled. |
 | `GET /api/v1/meetings/{meeting_id}/holiday/` | None | Project members; returns a non-blocking Australian public-holiday advisory. |
 | `POST /api/v1/meetings/{meeting_id}/send-reminder/` | Empty JSON object | Project owner or facilitator only; emails each eligible current project member other than the sender and returns `recipient_count` plus `sent_at`. |
@@ -210,6 +224,12 @@ retained timestamps. Cancelled/ended meetings remain in the default non-archived
 scope until explicitly archived, while archived meetings are read-only. The
 ten-year limit uses calendar-year replacement rather than 3,650 days and safely
 contracts 29 February to 28 February when the target year is not a leap year.
+
+The workspace requests five records per page. Invalid page/page-size bounds,
+unknown states and overlong search terms return `400`; a well-formed page beyond
+the filtered result set returns `404`. Dashboard clients request batches of 50
+and still follow `next` to collect every page. Restoring an archived record does not reopen an ended
+session or undo its cancellation.
 
 RSVP values are `pending`, `accepted`, and `declined`. A cancelled, ended or
 archived meeting rejects RSVP changes. The holiday endpoint is the only path

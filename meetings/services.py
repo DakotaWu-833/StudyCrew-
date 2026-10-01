@@ -39,6 +39,18 @@ def _require_not_ended(meeting: Meeting, *, action: str) -> None:
         raise ValidationError(f"Ended meetings cannot be {action}; archive the meeting instead.")
 
 
+def _require_dates_not_before_today(**values) -> None:
+    errors = {
+        field_name: "Meeting dates cannot be earlier than today."
+        for field_name, value in values.items()
+        if value is not None
+        and timezone.is_aware(value)
+        and timezone.localdate(value) < timezone.localdate()
+    }
+    if errors:
+        raise ValidationError(errors)
+
+
 def _record_meeting_event(*, meeting: Meeting, actor, event_type: str, metadata=None):
     # Local import prevents activity and meeting model loading from forming a cycle.
     from activity.services import record_event
@@ -102,6 +114,7 @@ def create_meeting(
         location=location.strip(),
         agenda=agenda.strip(),
     )
+    _require_dates_not_before_today(starts_at=starts_at, ends_at=ends_at)
     meeting.full_clean()
     meeting.save()
     event = _record_meeting_event(
@@ -157,6 +170,14 @@ def update_meeting(
 
     if not changed:
         return current
+
+    changed_dates = {
+        field_name: getattr(current, field_name)
+        for field_name in changed
+        if field_name in {"starts_at", "ends_at"}
+    }
+    if changed_dates:
+        _require_dates_not_before_today(**changed_dates)
 
     current.full_clean()
     current.save(update_fields=changed + ["updated_at"])
@@ -223,6 +244,31 @@ def archive_meeting(*, meeting: Meeting, actor) -> Meeting:
         actor=actor,
         event_type="meeting_archived",
     )
+    return current
+
+
+@transaction.atomic
+def restore_meeting(*, meeting: Meeting, actor) -> Meeting:
+    """Restore a previously archived record to the current meeting list."""
+
+    current = (
+        Meeting.objects.select_for_update()
+        .select_related("project")
+        .get(pk=meeting.pk)
+    )
+    require_meeting_manager(user=actor, meeting=current)
+    _require_writable_project(current.project)
+    if not current.is_archived:
+        return current
+
+    current.archived_at = None
+    current.save(update_fields=["archived_at", "updated_at"])
+    event = _record_meeting_event(
+        meeting=current,
+        actor=actor,
+        event_type="meeting_restored",
+    )
+    _notify_active_members(meeting=current, actor=actor, event=event)
     return current
 
 

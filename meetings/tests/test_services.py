@@ -13,6 +13,7 @@ from meetings.services import (
     archive_meeting,
     cancel_meeting,
     create_meeting,
+    restore_meeting,
     set_rsvp,
     update_meeting,
 )
@@ -295,6 +296,55 @@ class MeetingServiceTests(TestCase):
             actor=self.organiser,
             event_type="meeting_archived",
         )
+
+    @patch("meetings.services._notify_active_members")
+    @patch("meetings.services._record_meeting_event", return_value=Mock())
+    def test_archived_meeting_can_be_restored_without_rewriting_terminal_state(
+        self,
+        record_event,
+        notify,
+    ):
+        archived = archive_meeting(meeting=self.ended_meeting(), actor=self.organiser)
+
+        restored = restore_meeting(meeting=archived, actor=self.owner)
+
+        restored.refresh_from_db()
+        self.assertIsNone(restored.archived_at)
+        self.assertIsNone(restored.cancelled_at)
+        self.assertEqual(restored.lifecycle_state, "ended")
+        self.assertEqual(record_event.call_args.kwargs["event_type"], "meeting_restored")
+        notify.assert_called_once_with(
+            meeting=restored,
+            actor=self.owner,
+            event=record_event.return_value,
+        )
+
+    @patch("meetings.services._record_meeting_event", return_value=Mock())
+    def test_non_manager_cannot_restore_an_archived_meeting(self, _record_event):
+        archived = archive_meeting(meeting=self.ended_meeting(), actor=self.organiser)
+
+        with self.assertRaises(PermissionDenied):
+            restore_meeting(meeting=archived, actor=self.member)
+
+        archived.refresh_from_db()
+        self.assertIsNotNone(archived.archived_at)
+
+    @patch("meetings.services._notify_active_members")
+    @patch("meetings.services._record_meeting_event", return_value=Mock())
+    def test_meeting_creation_rejects_dates_before_today(self, _record_event, _notify):
+        start = timezone.now() - timedelta(days=1)
+
+        with self.assertRaises(ValidationError) as error:
+            create_meeting(
+                actor=self.organiser,
+                project=self.project,
+                title="Past meeting entry",
+                starts_at=start,
+                ends_at=start + timedelta(hours=1),
+            )
+
+        self.assertIn("starts_at", error.exception.message_dict)
+        self.assertFalse(Meeting.objects.filter(title="Past meeting entry").exists())
 
     @patch("meetings.services._record_meeting_event", side_effect=RuntimeError("audit failed"))
     def test_archive_rolls_back_when_audit_recording_fails(self, _record_event):

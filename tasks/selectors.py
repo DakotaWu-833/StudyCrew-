@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from django.core.exceptions import ValidationError
-from django.db.models import Q, QuerySet
+from django.db.models import Count, Q, QuerySet
 from django.utils import timezone
 
 from tasks.models import Task, TaskComment
@@ -12,8 +12,10 @@ from tasks.policies import active_membership
 
 def task_for_member(*, task_id, user, include_archived: bool = False) -> Task:
     try:
-        task = Task.objects.select_related("project", "created_by").prefetch_related(
-            "assignments__user"
+        task = Task.objects.select_related("project", "created_by__profile").prefetch_related(
+            "assignees__profile"
+        ).annotate(
+            visible_comment_count=Count("comments", filter=Q(comments__deleted_at__isnull=True), distinct=True)
         ).get(pk=task_id)
     except Task.DoesNotExist:
         raise
@@ -43,8 +45,10 @@ def tasks_for_project(
     due: str = "",
 ) -> QuerySet[Task]:
     active_membership(project=project, user=user)
-    queryset = Task.objects.filter(project=project).select_related("created_by").prefetch_related(
-        "assignments__user"
+    queryset = Task.objects.filter(project=project).select_related("created_by__profile").prefetch_related(
+        "assignees__profile"
+    ).annotate(
+        visible_comment_count=Count("comments", filter=Q(comments__deleted_at__isnull=True), distinct=True)
     )
     if not include_archived:
         queryset = queryset.filter(archived_at__isnull=True)
@@ -69,4 +73,6 @@ def tasks_for_project(
         queryset = queryset.filter(due_at__isnull=True)
     elif due:
         raise ValidationError({"due": "Unknown due-date filter."})
-    return queryset.distinct()
+    # Aggregation can suppress model default ordering; retain the board order
+    # explicitly and break timestamp ties deterministically across pages.
+    return queryset.order_by("status", "due_at", "created_at", "id").distinct()

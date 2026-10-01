@@ -16,7 +16,19 @@ export interface Profile {
   time_zone: string;
   biography: string;
   avatar_url: string;
+  avatar_image_url: string;
   updated_at: string;
+}
+
+export interface TimeZoneOption {
+  value: string;
+  label: string;
+  offset: string;
+}
+
+export interface TimeZoneList {
+  count: number;
+  results: TimeZoneOption[];
 }
 
 export interface Me {
@@ -111,6 +123,13 @@ export interface Meeting {
   attendance_counts: Record<RSVP, number>;
   my_response: RSVP;
   my_availability_note: string;
+}
+
+export interface MeetingListFilters {
+  scope?: "active" | "archived" | "all";
+  state?: "all" | Meeting["lifecycle_state"];
+  search?: string;
+  page?: number;
 }
 
 export interface ReminderDelivery {

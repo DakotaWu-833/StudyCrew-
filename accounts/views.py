@@ -17,13 +17,23 @@ from django.views.decorators.debug import sensitive_post_parameters
 from django.views.decorators.http import require_POST
 
 from accounts.forms import (
+    AvatarUploadForm,
+    EmailChangeConfirmForm,
+    EmailChangeStartForm,
     LoginForm,
     OTPVerificationForm,
     PasswordChangeForm,
     ProfileForm,
     RegistrationForm,
 )
-from accounts.models import EmailOTPChallenge, Profile
+from accounts.models import EmailOTPChallenge, PendingEmailChange, Profile
+from accounts.profile_services import (
+    AvatarUploadUnavailable,
+    EmailChangeUnavailable,
+    confirm_email_change,
+    save_profile_avatar,
+    start_email_change,
+)
 from accounts.session_security import mark_mfa_verified
 from accounts.services import (
     OTPUnavailable,
@@ -40,6 +50,7 @@ from accounts.services import (
 OTP_CHALLENGE_SESSION_KEY = "accounts.otp_challenge_id"
 OTP_PURPOSE_SESSION_KEY = "accounts.otp_purpose"
 LOGIN_NEXT_SESSION_KEY = "accounts.login_next"
+EMAIL_CHANGE_SESSION_KEY = "accounts.email_change_id"
 
 GENERIC_SIGN_IN_ERROR = (
     "The email or password is incorrect, or sign-in is temporarily unavailable."
@@ -251,7 +262,69 @@ def profile_view(request: HttpRequest) -> HttpResponse:
         form.save()
         messages.success(request, "Your profile was updated.")
         return redirect("accounts:profile")
-    return render(request, "accounts/profile.html", {"form": form})
+    return render(request, "accounts/profile.html", {"form": form, "avatar_form": AvatarUploadForm(), "profile": profile})
+
+
+@require_POST
+@login_required
+def profile_avatar_view(request: HttpRequest) -> HttpResponse:
+    avatar_form = AvatarUploadForm(request.POST, request.FILES)
+    if avatar_form.is_valid():
+        try:
+            save_profile_avatar(request.user.profile, avatar_form.cleaned_data["avatar"])
+        except AvatarUploadUnavailable as exc:
+            avatar_form.add_error("avatar", str(exc))
+        else:
+            messages.success(request, "Your photo was updated.")
+            return redirect("accounts:profile")
+    return render(request, "accounts/profile.html", {
+        "form": ProfileForm(instance=request.user.profile),
+        "avatar_form": avatar_form,
+        "profile": request.user.profile,
+    }, status=400)
+
+
+@never_cache
+@sensitive_post_parameters("current_password")
+@login_required
+def email_change_view(request: HttpRequest) -> HttpResponse:
+    form = EmailChangeStartForm(request.POST or None)
+    if request.method == "POST" and form.is_valid():
+        try:
+            change = start_email_change(user=request.user, **form.cleaned_data)
+        except EmailChangeUnavailable as exc:
+            form.add_error(None, str(exc))
+        else:
+            request.session[EMAIL_CHANGE_SESSION_KEY] = str(change.id)
+            return redirect("accounts:email_change_confirm")
+    return render(request, "accounts/email_change.html", {"form": form})
+
+
+@never_cache
+@sensitive_post_parameters("code")
+@login_required
+def email_change_confirm_view(request: HttpRequest) -> HttpResponse:
+    change_id = request.session.get(EMAIL_CHANGE_SESSION_KEY)
+    try:
+        change = PendingEmailChange.objects.filter(pk=change_id, user=request.user).first()
+    except (TypeError, ValueError, ValidationError):
+        change = None
+    if change is None:
+        return redirect("accounts:email_change")
+    form = EmailChangeConfirmForm(request.POST or None)
+    if request.method == "POST" and form.is_valid():
+        try:
+            confirm_email_change(user=request.user, change_id=change_id, code=form.cleaned_data["code"])
+        except EmailChangeUnavailable as exc:
+            form.add_error(None, str(exc))
+        else:
+            request.session.pop(EMAIL_CHANGE_SESSION_KEY, None)
+            messages.success(request, "Your sign-in email was changed.")
+            return redirect("accounts:profile")
+    return render(request, "accounts/email_change_confirm.html", {
+        "form": form,
+        "new_email": change.new_email,
+    })
 
 
 @never_cache

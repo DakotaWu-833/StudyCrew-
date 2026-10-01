@@ -4,7 +4,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { invitationApi, projectApi } from "../api/resources";
 import { errorMessage } from "../api/client";
 import { formatDate, parseOptionalDateTime } from "../app/format";
-import { Button, EmptyState, ErrorState, Field, Loading, Panel, StatusBadge } from "../components/UI";
+import { Button, EmptyState, ErrorState, Field, FloatingPanel, Loading, StatusBadge } from "../components/UI";
 
 export default function DashboardPage() {
   const queryClient = useQueryClient();
@@ -44,20 +44,19 @@ export default function DashboardPage() {
     <div className="page-stack">
       <div className="page-heading">
         <div><p className="eyebrow">Overview</p><h2>Keep the group moving</h2><p>Projects, invitations and the next pieces of work in one place.</p></div>
-        <Button onClick={() => setShowCreate((open) => !open)} aria-expanded={showCreate}>{showCreate ? "Close form" : "New project"}</Button>
+        <Button onClick={() => setShowCreate(true)} aria-expanded={showCreate}>New project</Button>
       </div>
 
       {showCreate && (
-        <Panel labelledBy="new-project-heading">
-          <h3 id="new-project-heading">Create a project</h3>
+        <FloatingPanel title="Create a project" onDismiss={() => setShowCreate(false)}>
           <form className="form-grid" onSubmit={submit}>
             <Field label="Project name"><input name="name" minLength={3} maxLength={100} required autoFocus /></Field>
             <Field label="Due date and time" hint="Optional; shown in your local time."><input name="due_at" type="datetime-local" /></Field>
             <Field label="Description"><textarea name="description" maxLength={2000} rows={3} /></Field>
             {formError && <p className="form-error" role="alert">{formError}</p>}
-            <div className="form-actions"><Button type="submit" disabled={createProject.isPending}>{createProject.isPending ? "Creating…" : "Create project"}</Button></div>
+            <div className="form-actions"><Button type="submit" disabled={createProject.isPending}>{createProject.isPending ? "Creating…" : "Create project"}</Button><Button type="button" variant="quiet" disabled={createProject.isPending} onClick={() => setShowCreate(false)}>Cancel</Button></div>
           </form>
-        </Panel>
+        </FloatingPanel>
       )}
 
       <section aria-labelledby="projects-heading">

@@ -1,14 +1,30 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useParams } from "react-router-dom";
-import { errorMessage } from "../api/client";
+import { APIError, errorMessage, fieldErrors } from "../api/client";
 import { accountApi, meetingApi, projectApi } from "../api/resources";
 import type { Meeting, RSVP } from "../api/types";
-import { formatDate, meetingDateTimeLimit, parseOptionalDateTime, toDateTimeLocal } from "../app/format";
-import { Button, ConfirmAction, EmptyState, ErrorState, Field, Loading, Panel, StatusBadge } from "../components/UI";
+import { earliestMeetingDateTime, formatDate, meetingDateTimeLimit, parseOptionalDateTime, toDateTimeLocal } from "../app/format";
+import { Button, ConfirmAction, EmptyState, ErrorState, Field, FloatingPanel, Loading, Panel, StatusBadge } from "../components/UI";
 
 type MeetingWrite = Pick<Meeting, "title" | "starts_at" | "ends_at" | "location" | "agenda">;
 type MeetingScope = "active" | "archived" | "all";
+type MeetingStateFilter = "all" | Meeting["lifecycle_state"];
+
+function meetingLifecycle(meeting: Meeting, nowMs: number): Meeting["lifecycle_state"] {
+  if (meeting.archived_at) return "archived";
+  if (meeting.cancelled_at) return "cancelled";
+  const endsAt = Date.parse(meeting.ends_at);
+  if (!Number.isFinite(endsAt)) return meeting.lifecycle_state;
+  return endsAt <= nowMs ? "ended" : "scheduled";
+}
+
+function meetingDateRange(meeting: Meeting): string {
+  const start = Date.parse(meeting.starts_at);
+  const end = Date.parse(meeting.ends_at);
+  if (!Number.isFinite(start) || !Number.isFinite(end) || end <= start) return "Meeting date unavailable";
+  return `${formatDate(meeting.starts_at)} – ${formatDate(meeting.ends_at)}`;
+}
 
 const holidaySourceLabels = {
   live: "live provider",
@@ -23,11 +39,22 @@ const emptyStates: Record<MeetingScope, { title: string; detail: string }> = {
   all: { title: "No meetings recorded", detail: "Schedule a session for the next group check-in." },
 };
 
-function meetingFields(form: HTMLFormElement): MeetingWrite | null {
+function meetingFields(form: HTMLFormElement, earliest: string, latest: string): MeetingWrite | null {
   const data = new FormData(form);
-  const starts = parseOptionalDateTime(String(data.get("starts_at")));
-  const ends = parseOptionalDateTime(String(data.get("ends_at")));
-  if (!starts || !ends) return null;
+  const startsValue = String(data.get("starts_at"));
+  const endsValue = String(data.get("ends_at"));
+  const starts = parseOptionalDateTime(startsValue);
+  const ends = parseOptionalDateTime(endsValue);
+  const earliestInstant = parseOptionalDateTime(earliest);
+  const latestInstant = parseOptionalDateTime(latest);
+  if (!starts || !ends || !earliestInstant || !latestInstant) return null;
+  if (
+    Date.parse(starts) < Date.parse(earliestInstant)
+    || Date.parse(ends) < Date.parse(earliestInstant)
+    || Date.parse(starts) > Date.parse(latestInstant)
+    || Date.parse(ends) > Date.parse(latestInstant)
+    || Date.parse(ends) <= Date.parse(starts)
+  ) return null;
   return {
     title: String(data.get("title")),
     starts_at: starts,
@@ -37,23 +64,56 @@ function meetingFields(form: HTMLFormElement): MeetingWrite | null {
   };
 }
 
+function formHasChanges(form: HTMLFormElement): boolean {
+  return Array.from(form.elements).some((control) =>
+    (control instanceof HTMLInputElement || control instanceof HTMLTextAreaElement)
+    && control.value !== control.defaultValue,
+  );
+}
+
 export default function MeetingsPage() {
   const { projectId = "" } = useParams();
   const client = useQueryClient();
   const [scope, setScope] = useState<MeetingScope>("active");
+  const [stateFilter, setStateFilter] = useState<MeetingStateFilter>("all");
+  const [search, setSearch] = useState("");
+  const [settledSearch, setSettledSearch] = useState("");
+  const [page, setPage] = useState(1);
   const [showCreate, setShowCreate] = useState(false);
+  const [createDirty, setCreateDirty] = useState(false);
+  const [editDirty, setEditDirty] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [nowMs, setNowMs] = useState(() => Date.now());
+  const earliestMeetingTime = earliestMeetingDateTime();
   const maximumMeetingTime = meetingDateTimeLimit();
+  const dateRangeHint = `Choose a date from ${earliestMeetingTime.slice(0, 10)} through ${maximumMeetingTime.slice(0, 10)}.`;
   const meetings = useQuery({
-    queryKey: ["meetings", projectId, scope],
-    queryFn: () => meetingApi.list(projectId, scope),
+    queryKey: ["meetings", projectId, scope, stateFilter, settledSearch, page],
+    queryFn: () => meetingApi.listPage(projectId, { scope, state: stateFilter, search: settledSearch, page }),
     enabled: Boolean(projectId),
+    placeholderData: (previousData, previousQuery) => previousQuery?.queryKey[1] === projectId ? previousData : undefined,
   });
   const me = useQuery({ queryKey: ["me"], queryFn: accountApi.me, staleTime: 60_000 });
   const project = useQuery({ queryKey: ["project", projectId], queryFn: () => projectApi.get(projectId), enabled: Boolean(projectId) });
+  const matchingCount = meetings.data?.count ?? 0;
+  const pageCount = Math.max(1, Math.ceil(matchingCount / 5));
+  const visibleMeetings = meetings.data?.results ?? [];
+  const isUpdating = meetings.isFetching || search.trim() !== settledSearch;
+  useEffect(() => {
+    const timer = window.setTimeout(() => setSettledSearch(search.trim()), 300);
+    return () => window.clearTimeout(timer);
+  }, [search]);
+  useEffect(() => {
+    setScope("active"); setStateFilter("all"); setSearch(""); setSettledSearch(""); setPage(1);
+    setEditingId(null); setShowCreate(false); setError(""); setMessage("");
+  }, [projectId]);
+  useEffect(() => {
+    // A deleted/archived last record can invalidate its page; recover without
+    // leaving the user on an error-only screen. Project errors remain visible.
+    if (page > 1 && meetings.error instanceof APIError && meetings.error.status === 404) setPage(1);
+  }, [meetings.error, page]);
   useEffect(() => {
     const nextEnd = Math.min(
       ...(meetings.data?.results
@@ -63,9 +123,12 @@ export default function MeetingsPage() {
     );
     if (!Number.isFinite(nextEnd)) return;
     const delay = Math.min(2_147_483_647, Math.max(0, nextEnd - Date.now() + 100));
-    const timer = window.setTimeout(() => setNowMs(Date.now()), delay);
+    const timer = window.setTimeout(() => {
+      setNowMs(Date.now());
+      void client.invalidateQueries({ queryKey: ["meetings", projectId] });
+    }, delay);
     return () => window.clearTimeout(timer);
-  }, [meetings.data?.results, nowMs]);
+  }, [client, meetings.data?.results, nowMs, projectId]);
   const refresh = () => client.invalidateQueries({ queryKey: ["meetings", projectId] });
   const fail = (value: unknown) => { setMessage(""); setError(errorMessage(value)); };
   const create = useMutation({
@@ -74,6 +137,10 @@ export default function MeetingsPage() {
       await refresh();
       setShowCreate(false);
       setScope("active");
+      setStateFilter("all");
+      setSearch("");
+      setSettledSearch("");
+      setPage(1);
       setError("");
       setMessage("Meeting scheduled.");
     },
@@ -118,6 +185,21 @@ export default function MeetingsPage() {
     },
     onError: fail,
   });
+  const restore = useMutation({
+    mutationFn: meetingApi.restore,
+    onSuccess: async () => {
+      await refresh();
+      setEditingId(null);
+      setScope("active");
+      setStateFilter("all");
+      setSearch("");
+      setSettledSearch("");
+      setPage(1);
+      setError("");
+      setMessage("Meeting restored to current records.");
+    },
+    onError: fail,
+  });
   const reminder = useMutation({
     mutationFn: meetingApi.sendReminder,
     onSuccess: (delivery) => {
@@ -128,19 +210,16 @@ export default function MeetingsPage() {
   });
   const holiday = useMutation({
     mutationFn: meetingApi.holiday,
-    onSuccess: (advice) => {
-      setError("");
-      setMessage(`${advice.message} Source: ${holidaySourceLabels[advice.source]}.`);
-    },
-    onError: fail,
   });
+  const createErrors = error ? fieldErrors(create.error) : {};
+  const editErrors = error ? fieldErrors(update.error) : {};
 
   const submitCreate = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setError("");
     setMessage("");
-    const values = meetingFields(event.currentTarget);
-    if (!values) { setError("Choose a valid start and end time."); return; }
+    const values = meetingFields(event.currentTarget, earliestMeetingTime, maximumMeetingTime);
+    if (!values) { setError(`Choose dates from today through ${maximumMeetingTime.slice(0, 10)} and make the end later than the start.`); return; }
     create.mutate({ project: projectId, ...values });
   };
 
@@ -148,8 +227,8 @@ export default function MeetingsPage() {
     event.preventDefault();
     setError("");
     setMessage("");
-    const values = meetingFields(event.currentTarget);
-    if (!values) { setError("Choose a valid start and end time."); return; }
+    const values = meetingFields(event.currentTarget, earliestMeetingTime, maximumMeetingTime);
+    if (!values) { setError(`Choose dates from today through ${maximumMeetingTime.slice(0, 10)} and make the end later than the start.`); return; }
     update.mutate({ id: meetingId, data: values });
   };
 
@@ -165,9 +244,9 @@ export default function MeetingsPage() {
     });
   };
 
-  if (meetings.isLoading || me.isLoading || project.isLoading) return <Loading label="Loading meetings…" />;
-  if (meetings.error || me.error || project.error) {
-    return <ErrorState error={meetings.error ?? me.error ?? project.error} retry={() => { void meetings.refetch(); void me.refetch(); void project.refetch(); }} />;
+  if (me.isLoading || project.isLoading) return <Loading label="Loading meetings…" />;
+  if (me.error || project.error) {
+    return <ErrorState error={me.error ?? project.error} retry={() => { void me.refetch(); void project.refetch(); }} />;
   }
   const isProjectArchived = Boolean(project.data?.archived_at);
   const currentRole = project.data?.current_user_role ?? "";
@@ -176,56 +255,81 @@ export default function MeetingsPage() {
   return <div className="page-stack">
     <div className="page-heading">
       <div><p className="eyebrow">Coordination</p><h2>Meetings</h2><p>Schedule sessions, collect attendance and retain completed records as evidence.</p></div>
-      {!isProjectArchived && <Button onClick={() => { setShowCreate((value) => !value); setEditingId(null); }}>{showCreate ? "Close form" : "Schedule meeting"}</Button>}
+      {!isProjectArchived && <Button type="button" aria-expanded={showCreate} onClick={() => { setError(""); setCreateDirty(false); create.reset(); setShowCreate(true); setEditingId(null); }}>Schedule meeting</Button>}
     </div>
     {(message || error) && <p className={error ? "notice notice--error" : "notice"} role={error ? "alert" : "status"}>{error || message}</p>}
     {isProjectArchived && <p className="notice" role="status">This project is archived. Meeting and RSVP evidence are read-only.</p>}
     <Panel labelledBy="meeting-records-heading">
       <div className="section-heading"><div><h3 id="meeting-records-heading">Meeting records</h3><p className="muted">Archived meetings remain available without cluttering current coordination.</p></div></div>
       <div className="meeting-scope" role="group" aria-label="Meeting record scope">
-        {(["active", "archived", "all"] as const).map((value) => <Button key={value} variant={scope === value ? "secondary" : "quiet"} onClick={() => { setScope(value); setEditingId(null); setShowCreate(false); }} aria-pressed={scope === value}>{value === "active" ? "Current" : value === "archived" ? "Archived" : "All records"}</Button>)}
+        {(["active", "archived", "all"] as const).map((value) => <Button key={value} variant={scope === value ? "secondary" : "quiet"} onClick={() => { setScope(value); setPage(1); setEditingId(null); setShowCreate(false); }} aria-pressed={scope === value}>{value === "active" ? "Current" : value === "archived" ? "Archived" : "All records"}</Button>)}
+      </div>
+      <div className="meeting-filters">
+        <Field label="Search meetings"><input type="search" maxLength={120} value={search} onChange={(event) => { setSearch(event.target.value); setPage(1); }} placeholder="Title, agenda, location, organiser" /></Field>
+        <Field label="Meeting status"><select value={stateFilter} onChange={(event) => { setStateFilter(event.target.value as MeetingStateFilter); setPage(1); }}>
+          <option value="all">All statuses</option><option value="scheduled">Scheduled</option><option value="ended">Ended</option><option value="cancelled">Cancelled</option><option value="archived">Archived</option>
+        </select></Field>
+        {(search || stateFilter !== "all") && <Button type="button" variant="quiet" onClick={() => { setSearch(""); setSettledSearch(""); setStateFilter("all"); setPage(1); }}>Clear filters</Button>}
+        <p className="meeting-filters__count" aria-live="polite">{isUpdating ? "Updating meetings…" : `${matchingCount} matching meeting${matchingCount === 1 ? "" : "s"}`}</p>
       </div>
     </Panel>
-    {showCreate && !isProjectArchived && <Panel labelledBy="schedule-heading">
-      <h3 id="schedule-heading">Schedule meeting</h3>
-      <form className="form-grid" onSubmit={submitCreate}>
-        <Field label="Meeting title"><input name="title" required minLength={3} maxLength={120} autoFocus /></Field>
-        <Field label="Location or call link"><input name="location" maxLength={2048} /></Field>
-        <Field label="Starts" hint="Meetings can be scheduled up to ten years ahead."><input name="starts_at" type="datetime-local" required max={maximumMeetingTime} /></Field>
-        <Field label="Ends"><input name="ends_at" type="datetime-local" required max={maximumMeetingTime} /></Field>
-        <Field label="Agenda"><textarea name="agenda" rows={4} maxLength={4000} /></Field>
+    {showCreate && !isProjectArchived && <FloatingPanel title="Schedule meeting" onDismiss={() => setShowCreate(false)} busy={create.isPending} dirty={createDirty}>
+      <form className="form-grid" onSubmit={submitCreate} onChange={(event) => setCreateDirty(formHasChanges(event.currentTarget))}>
+        <Field label="Meeting title" error={createErrors.title}><input name="title" required minLength={3} maxLength={120} autoFocus /></Field>
+        <Field label="Location or call link" error={createErrors.location}><input name="location" maxLength={2048} /></Field>
+        <Field label="Starts" hint={dateRangeHint} error={createErrors.starts_at}><input name="starts_at" type="datetime-local" required min={earliestMeetingTime} max={maximumMeetingTime} /></Field>
+        <Field label="Ends" hint={dateRangeHint} error={createErrors.ends_at}><input name="ends_at" type="datetime-local" required min={earliestMeetingTime} max={maximumMeetingTime} /></Field>
+        <Field label="Agenda" error={createErrors.agenda}><textarea name="agenda" rows={4} maxLength={4000} /></Field>
+        {error && <p className="form-error" role="alert">{error}</p>}
         <div className="form-actions"><Button type="submit" disabled={create.isPending}>{create.isPending ? "Scheduling…" : "Schedule meeting"}</Button></div>
       </form>
-    </Panel>}
-    {!meetings.data?.count ? <EmptyState title={emptyStates[scope].title}>{emptyStates[scope].detail}</EmptyState> : <div className="meeting-list">
-      {meetings.data.results.map((meeting) => {
+    </FloatingPanel>}
+    {meetings.isPending ? <Loading label="Loading meeting records…" /> : meetings.error ? <ErrorState error={meetings.error} retry={() => { void meetings.refetch(); }} /> : !visibleMeetings.length ? <EmptyState title={settledSearch || stateFilter !== "all" ? "No matching meetings" : emptyStates[scope].title}>{settledSearch || stateFilter !== "all" ? "Try another search or clear the filters." : emptyStates[scope].detail}</EmptyState> : <>
+    <div className="meeting-list" aria-busy={isUpdating}>
+      {visibleMeetings.map((meeting) => {
         const canManage = !isProjectArchived && !meeting.archived_at && (meeting.organiser.id === me.data?.user.id || isProjectManager);
-        const lifecycleState = meeting.lifecycle_state === "scheduled" && Date.parse(meeting.ends_at) <= nowMs ? "ended" : meeting.lifecycle_state;
+        const canRestore = !isProjectArchived && Boolean(meeting.archived_at) && (meeting.organiser.id === me.data?.user.id || isProjectManager);
+        const lifecycleState = meetingLifecycle(meeting, nowMs);
         const canSendReminder = !isProjectArchived && isProjectManager && (project.data?.member_count ?? 0) > 1 && lifecycleState === "scheduled";
         const canArchive = canManage && ["cancelled", "ended"].includes(lifecycleState);
         const isEditing = editingId === meeting.id;
         const isScheduled = lifecycleState === "scheduled";
+        const canEditDates = toDateTimeLocal(meeting.starts_at) >= earliestMeetingTime;
+        const holidayResultClass = holiday.data?.available && holiday.data.is_public_holiday === true
+          ? "meeting__holiday-result--holiday"
+          : holiday.data?.available && holiday.data.is_public_holiday === false
+            ? "meeting__holiday-result--available"
+            : "meeting__holiday-result--unknown";
         return <Panel key={meeting.id} className={["meeting", meeting.cancelled_at ? "meeting--cancelled" : "", meeting.archived_at ? "meeting--archived" : ""].filter(Boolean).join(" ")}>
           <div className="meeting__heading">
             <div>
               <div className="heading-badges"><StatusBadge value={lifecycleState} /><span>Organised by {meeting.organiser.display_name}</span></div>
               <h3>{meeting.title}</h3>
-              <p>{formatDate(meeting.starts_at)} – {formatDate(meeting.ends_at)}</p>
+              <p>{meetingDateRange(meeting)}</p>
             </div>
-            <span className="row-actions">
-              <Button variant="quiet" onClick={() => holiday.mutate(meeting.id)} disabled={holiday.isPending}>Check public holiday</Button>
-              {canManage && isScheduled && <Button variant="secondary" onClick={() => { setEditingId(isEditing ? null : meeting.id); setShowCreate(false); }}>{isEditing ? "Close edit" : "Edit meeting"}</Button>}
-            </span>
+            <div className="meeting__heading-actions">
+              <div className="meeting__holiday-check">
+                <Button type="button" variant="quiet" onClick={() => holiday.mutate(meeting.id)} disabled={holiday.isPending}>{holiday.isPending && holiday.variables === meeting.id ? "Checking…" : "Check public holiday"}</Button>
+                {holiday.variables === meeting.id && holiday.isPending && <small className="meeting__holiday-result" role="status">Checking public-holiday information…</small>}
+                {holiday.variables === meeting.id && !holiday.isPending && holiday.data && <small className={`meeting__holiday-result ${holidayResultClass}`} role="status">{holiday.data.message} Source: {holidaySourceLabels[holiday.data.source]}.</small>}
+                {holiday.variables === meeting.id && !holiday.isPending && holiday.error && <small className="meeting__holiday-result meeting__holiday-result--error" role="alert">{errorMessage(holiday.error)}</small>}
+              </div>
+              {canManage && isScheduled && canEditDates && <Button variant="secondary" onClick={() => { setError(""); setEditDirty(false); update.reset(); setEditingId(isEditing ? null : meeting.id); setShowCreate(false); }}>{isEditing ? "Close edit" : "Edit meeting"}</Button>}
+            </div>
           </div>
           {meeting.archived_at && <p className="meeting__read-only" role="note">Archived {formatDate(meeting.archived_at)} · retained as read-only meeting and RSVP evidence.</p>}
-          {isEditing ? <form className="form-grid meeting__edit" onSubmit={(event) => submitEdit(meeting.id, event)}>
-            <Field label="Meeting title"><input name="title" required minLength={3} maxLength={120} defaultValue={meeting.title} autoFocus /></Field>
-            <Field label="Location or call link"><input name="location" maxLength={2048} defaultValue={meeting.location} /></Field>
-            <Field label="Starts" hint="Meetings can be scheduled up to ten years ahead."><input name="starts_at" type="datetime-local" required max={maximumMeetingTime} defaultValue={toDateTimeLocal(meeting.starts_at)} /></Field>
-            <Field label="Ends"><input name="ends_at" type="datetime-local" required max={maximumMeetingTime} defaultValue={toDateTimeLocal(meeting.ends_at)} /></Field>
-            <Field label="Agenda"><textarea name="agenda" rows={4} maxLength={4000} defaultValue={meeting.agenda} /></Field>
-            <div className="form-actions"><Button type="submit" disabled={update.isPending}>{update.isPending ? "Saving…" : "Save meeting"}</Button><Button type="button" variant="quiet" onClick={() => setEditingId(null)}>Cancel edit</Button></div>
-          </form> : <div className="meeting__details"><p><strong>Location:</strong> {meeting.location || "To be confirmed"}</p><p>{meeting.agenda || "No agenda supplied."}</p></div>}
+          <div className="meeting__details"><p><strong>Location:</strong> {meeting.location || "To be confirmed"}</p><p>{meeting.agenda || "No agenda supplied."}</p></div>
+          {isEditing && <FloatingPanel title="Edit meeting" onDismiss={() => setEditingId(null)} busy={update.isPending} dirty={editDirty}>
+            <form className="form-grid" onSubmit={(event) => submitEdit(meeting.id, event)} onChange={(event) => setEditDirty(formHasChanges(event.currentTarget))}>
+            <Field label="Meeting title" error={editErrors.title}><input name="title" required minLength={3} maxLength={120} defaultValue={meeting.title} autoFocus /></Field>
+            <Field label="Location or call link" error={editErrors.location}><input name="location" maxLength={2048} defaultValue={meeting.location} /></Field>
+            <Field label="Starts" hint={dateRangeHint} error={editErrors.starts_at}><input name="starts_at" type="datetime-local" required min={earliestMeetingTime} max={maximumMeetingTime} defaultValue={toDateTimeLocal(meeting.starts_at)} /></Field>
+            <Field label="Ends" hint={dateRangeHint} error={editErrors.ends_at}><input name="ends_at" type="datetime-local" required min={earliestMeetingTime} max={maximumMeetingTime} defaultValue={toDateTimeLocal(meeting.ends_at)} /></Field>
+            <Field label="Agenda" error={editErrors.agenda}><textarea name="agenda" rows={4} maxLength={4000} defaultValue={meeting.agenda} /></Field>
+            {error && <p className="form-error" role="alert">{error}</p>}
+            <div className="form-actions"><Button type="submit" disabled={update.isPending}>{update.isPending ? "Saving…" : "Save meeting"}</Button></div>
+            </form>
+          </FloatingPanel>}
           {isScheduled && !isProjectArchived && <form className="rsvp-form" onSubmit={(event) => submitRsvp(meeting.id, event)}>
             <label className="field field--compact"><span className="field__label">Your RSVP</span><select name="response" defaultValue={meeting.my_response}><option value="pending">Pending</option><option value="accepted">Attending</option><option value="declined">Not attending</option></select></label>
             <label className="field field--compact rsvp-form__note"><span className="field__label">Availability note</span><input name="availability_note" maxLength={500} defaultValue={meeting.my_availability_note} placeholder="Optional note" /></label>
@@ -237,10 +341,17 @@ export default function MeetingsPage() {
               {canSendReminder && <ConfirmAction triggerLabel="Email reminder" triggerVariant="quiet" confirmLabel="Send reminder" message="Send one reminder email to each current project member except yourself?" busy={reminder.isPending} onConfirm={() => reminder.mutate(meeting.id)} />}
               {canManage && isScheduled && <ConfirmAction triggerLabel="Cancel meeting" confirmLabel="Cancel meeting" message={`Cancel ${meeting.title}? Attendance history will be retained and the meeting can then be archived.`} busy={cancel.isPending} onConfirm={() => cancel.mutate(meeting.id)} />}
               {canArchive && <ConfirmAction triggerLabel="Archive meeting" confirmLabel="Archive meeting" message={`Archive ${meeting.title}? It will move out of Current and remain available as read-only evidence.`} busy={archive.isPending} onConfirm={() => archive.mutate(meeting.id)} />}
+              {canRestore && <ConfirmAction triggerLabel="Restore to current" triggerVariant="secondary" confirmLabel="Restore meeting" message={`Restore ${meeting.title} to Current? Its cancelled or ended state and attendance evidence will be preserved.`} busy={restore.isPending} onConfirm={() => restore.mutate(meeting.id)} />}
             </div>
           </div>
         </Panel>;
       })}
-    </div>}
+    </div>
+    {matchingCount > 5 && <nav className="meeting-pagination" aria-label="Meeting record pages">
+      <Button type="button" variant="secondary" disabled={page <= 1 || isUpdating} onClick={() => setPage((current) => Math.max(1, current - 1))}>Previous</Button>
+      <p aria-live="polite">{meetings.isPlaceholderData ? "Updating page…" : `Showing ${(page - 1) * 5 + 1}–${Math.min(page * 5, matchingCount)} of ${matchingCount} · Page ${page} of ${pageCount}`}</p>
+      <Button type="button" variant="secondary" disabled={page >= pageCount || isUpdating} onClick={() => setPage((current) => Math.min(pageCount, current + 1))}>Next</Button>
+    </nav>}
+    </>}
   </div>;
 }

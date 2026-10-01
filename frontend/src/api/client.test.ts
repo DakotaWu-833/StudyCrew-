@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { APIError, apiFetch, apiFetchAll, cookie, errorMessage } from "./client";
+import { APIError, apiFetch, apiFetchAll, cookie, errorMessage, fieldErrors } from "./client";
 
 describe("API client", () => {
   afterEach(() => vi.restoreAllMocks());
@@ -59,5 +59,15 @@ describe("API client", () => {
     expect(errorMessage(error)).toBe(
       "Please correct these fields. Time zone: Enter a valid IANA time zone.",
     );
+  });
+
+  it("retains named validation messages for inline field feedback", () => {
+    const error = new APIError(400, { error: { fields: {
+      display_name: ["Required.", "Use at least two characters."],
+      time_zone: "Choose a valid zone.",
+    } } });
+    expect(fieldErrors(error)).toEqual({ display_name: "Required. Use at least two characters.", time_zone: "Choose a valid zone." });
+    expect(fieldErrors(new Error("Offline"))).toEqual({});
+    expect(fieldErrors(undefined)).toEqual({});
   });
 });

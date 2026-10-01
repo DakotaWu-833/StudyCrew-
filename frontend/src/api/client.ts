@@ -84,6 +84,13 @@ export function jsonBody(value: unknown): Pick<RequestInit, "body"> {
   return { body: JSON.stringify(value) };
 }
 
+export function fieldErrors(error: unknown): Record<string, string> {
+  if (!(error instanceof APIError)) return {};
+  return Object.fromEntries(Object.entries(error.fields).map(([field, messages]) => [
+    field, Array.isArray(messages) ? messages.join(" ") : messages,
+  ]));
+}
+
 export function errorMessage(error: unknown): string {
   if (error instanceof APIError) {
     const details = Object.entries(error.fields).map(([field, messages]) => {

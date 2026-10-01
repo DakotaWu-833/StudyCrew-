@@ -50,12 +50,16 @@ describe("resource API paths", () => {
     await meetingApi.list("project-id", "archived");
     await meetingApi.cancel("meeting-id");
     await meetingApi.archive("meeting-id");
+    await meetingApi.restore("meeting-id");
 
-    expect(fetchMock.mock.calls[0]?.[0]).toBe("/api/v1/meetings/?project=project-id&scope=archived");
+    expect(fetchMock.mock.calls[0]?.[0]).toBe("/api/v1/meetings/?project=project-id&scope=archived&page_size=50");
     expect(fetchMock.mock.calls[1]?.[0]).toBe("/api/v1/meetings/meeting-id/cancel/");
     expect(fetchMock.mock.calls[1]?.[1]?.method).toBe("POST");
     expect(fetchMock.mock.calls[2]?.[0]).toBe("/api/v1/meetings/meeting-id/");
     expect(fetchMock.mock.calls[2]?.[1]?.method).toBe("DELETE");
+    expect(fetchMock.mock.calls[3]?.[0]).toBe("/api/v1/meetings/meeting-id/restore/");
+    expect(fetchMock.mock.calls[3]?.[1]?.method).toBe("POST");
+    expect(JSON.parse(String(fetchMock.mock.calls[3]?.[1]?.body))).toEqual({});
   });
 
   it("uses recipient-free server-derived reminder actions", async () => {

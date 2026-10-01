@@ -4,6 +4,58 @@ info:
   version: 1.0.0
   description: Versioned API for project, task, meeting and collaboration workflows.
 paths:
+  /api/v1/account/email-change/confirm/:
+    post:
+      operationId: account_email_change_confirm_create
+      tags:
+      - account
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EmailChangeConfirm'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/EmailChangeConfirm'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/EmailChangeConfirm'
+        required: true
+      security:
+      - mfaSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmailChangeResult'
+          description: ''
+  /api/v1/account/email-change/request/:
+    post:
+      operationId: account_email_change_request_create
+      tags:
+      - account
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EmailChangeStart'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/EmailChangeStart'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/EmailChangeStart'
+        required: true
+      security:
+      - mfaSession: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmailChangeStarted'
+          description: ''
   /api/v1/comments/:
     get:
       operationId: comments_list
@@ -424,12 +476,20 @@ paths:
     get:
       operationId: meetings_list
       parameters:
-      - name: page
-        required: false
-        in: query
-        description: A page number within the paginated result set.
+      - in: query
+        name: page
         schema:
           type: integer
+          maximum: 1000000
+          minimum: 1
+          default: 1
+      - in: query
+        name: page_size
+        schema:
+          type: integer
+          maximum: 50
+          minimum: 1
+          default: 5
       - in: query
         name: project
         schema:
@@ -450,6 +510,30 @@ paths:
           * `active` - active
           * `archived` - archived
           * `all` - all
+      - in: query
+        name: search
+        schema:
+          type: string
+          default: ''
+          maxLength: 120
+      - in: query
+        name: state
+        schema:
+          enum:
+          - all
+          - scheduled
+          - ended
+          - cancelled
+          - archived
+          type: string
+          default: all
+          minLength: 1
+        description: |-
+          * `all` - all
+          * `scheduled` - scheduled
+          * `ended` - ended
+          * `cancelled` - cancelled
+          * `archived` - archived
       tags:
       - meetings
       security:
@@ -625,6 +709,24 @@ paths:
               schema:
                 $ref: '#/components/schemas/HolidayAdvisory'
           description: ''
+  /api/v1/meetings/{id}/restore/:
+    post:
+      operationId: meetings_restore_create
+      summary: Restore an archived meeting to the current record list
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - meetings
+      security:
+      - mfaSession: []
+      responses:
+        '204':
+          description: No response body
   /api/v1/meetings/{id}/rsvp/:
     put:
       operationId: meetings_rsvp_update
@@ -949,6 +1051,26 @@ paths:
               schema:
                 $ref: '#/components/schemas/Profile'
           description: ''
+  /api/v1/profile/avatar/:
+    post:
+      operationId: profile_avatar_create
+      tags:
+      - profile
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ProfileAvatarUpload'
+        required: true
+      security:
+      - mfaSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Profile'
+          description: ''
   /api/v1/projects/:
     get:
       operationId: projects_list
@@ -1175,6 +1297,7 @@ paths:
           - meeting_updated
           - meeting_cancelled
           - meeting_archived
+          - meeting_restored
           - meeting_rsvp
           - task_reminder_sent
           - meeting_reminder_sent
@@ -1212,6 +1335,7 @@ paths:
           * `meeting_updated` - Meeting updated
           * `meeting_cancelled` - Meeting cancelled
           * `meeting_archived` - Meeting archived
+          * `meeting_restored` - Meeting restored
           * `meeting_rsvp` - Meeting RSVP changed
           * `task_reminder_sent` - Task reminder sent
           * `meeting_reminder_sent` - Meeting reminder sent
@@ -1281,6 +1405,7 @@ paths:
           - meeting_updated
           - meeting_cancelled
           - meeting_archived
+          - meeting_restored
           - meeting_rsvp
           - task_reminder_sent
           - meeting_reminder_sent
@@ -1318,6 +1443,7 @@ paths:
           * `meeting_updated` - Meeting updated
           * `meeting_cancelled` - Meeting cancelled
           * `meeting_archived` - Meeting archived
+          * `meeting_restored` - Meeting restored
           * `meeting_rsvp` - Meeting RSVP changed
           * `task_reminder_sent` - Task reminder sent
           * `meeting_reminder_sent` - Meeting reminder sent
@@ -1674,6 +1800,42 @@ paths:
               schema:
                 $ref: '#/components/schemas/Task'
           description: ''
+  /api/v1/time-zones/:
+    get:
+      operationId: time_zones_retrieve
+      tags:
+      - time-zones
+      security:
+      - mfaSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TimeZoneList'
+          description: ''
+  /api/v1/users/{user_id}/avatar/:
+    get:
+      operationId: users_avatar_retrieve
+      parameters:
+      - in: path
+        name: user_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - users
+      security:
+      - mfaSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: string
+                format: binary
+          description: ''
 components:
   schemas:
     ActivityEvent:
@@ -1863,6 +2025,58 @@ components:
           minLength: 1
       required:
       - body
+    EmailChangeConfirm:
+      type: object
+      description: Reject undeclared and read-only input instead of silently discarding
+        it.
+      properties:
+        request_id:
+          type: string
+          format: uuid
+        code:
+          type: string
+          writeOnly: true
+          pattern: ^\d{6}$
+      required:
+      - code
+      - request_id
+    EmailChangeResult:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+          readOnly: true
+      required:
+      - email
+    EmailChangeStart:
+      type: object
+      description: Reject undeclared and read-only input instead of silently discarding
+        it.
+      properties:
+        new_email:
+          type: string
+          format: email
+        current_password:
+          type: string
+          writeOnly: true
+      required:
+      - current_password
+      - new_email
+    EmailChangeStarted:
+      type: object
+      properties:
+        request_id:
+          type: string
+          format: uuid
+          readOnly: true
+        new_email:
+          type: string
+          format: email
+          readOnly: true
+      required:
+      - new_email
+      - request_id
     EventTypeEnum:
       enum:
       - project_created
@@ -1892,6 +2106,7 @@ components:
       - meeting_updated
       - meeting_cancelled
       - meeting_archived
+      - meeting_restored
       - meeting_rsvp
       - task_reminder_sent
       - meeting_reminder_sent
@@ -1927,6 +2142,7 @@ components:
         * `meeting_updated` - Meeting updated
         * `meeting_cancelled` - Meeting cancelled
         * `meeting_archived` - Meeting archived
+        * `meeting_restored` - Meeting restored
         * `meeting_rsvp` - Meeting RSVP changed
         * `task_reminder_sent` - Task reminder sent
         * `meeting_reminder_sent` - Meeting reminder sent
@@ -2911,6 +3127,9 @@ components:
             maxLength: 2048
           - type: string
             maxLength: 0
+        avatar_image_url:
+          type: string
+          readOnly: true
         updated_at:
           type: string
           format: date-time
@@ -3026,14 +3245,29 @@ components:
             maxLength: 2048
           - type: string
             maxLength: 0
+        avatar_image_url:
+          type: string
+          readOnly: true
         updated_at:
           type: string
           format: date-time
           readOnly: true
       required:
+      - avatar_image_url
       - display_name
       - email
       - updated_at
+    ProfileAvatarUpload:
+      type: object
+      description: Reject undeclared and read-only input instead of silently discarding
+        it.
+      properties:
+        avatar:
+          type: string
+          format: uri
+          writeOnly: true
+      required:
+      - avatar
     ProfileReplace:
       type: object
       description: A PUT contract that requires every writable profile field.
@@ -3062,11 +3296,15 @@ components:
             maxLength: 2048
           - type: string
             maxLength: 0
+        avatar_image_url:
+          type: string
+          readOnly: true
         updated_at:
           type: string
           format: date-time
           readOnly: true
       required:
+      - avatar_image_url
       - avatar_url
       - biography
       - course_code
@@ -3413,6 +3651,36 @@ components:
           maxLength: 500
       required:
       - status
+    TimeZoneList:
+      type: object
+      properties:
+        count:
+          type: integer
+          readOnly: true
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/TimeZoneOption'
+          readOnly: true
+      required:
+      - count
+      - results
+    TimeZoneOption:
+      type: object
+      properties:
+        value:
+          type: string
+          readOnly: true
+        label:
+          type: string
+          readOnly: true
+        offset:
+          type: string
+          readOnly: true
+      required:
+      - label
+      - offset
+      - value
     UserSummary:
       type: object
       properties:

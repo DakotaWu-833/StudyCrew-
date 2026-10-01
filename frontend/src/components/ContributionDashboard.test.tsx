@@ -95,4 +95,30 @@ describe("ContributionDashboard", () => {
     expect(markup).toContain("No current members are available for this snapshot.");
     expect(markup).not.toContain("No recorded actions match the selected activity scope");
   });
+
+  it("offers keyboard-accessible data tables and collapsed explanations without inventing values", () => {
+    const markup = renderDashboard([member]);
+    expect(markup).toContain("<summary>How these statistics work</summary>");
+    expect(markup).toContain("<summary>View creation data</summary>");
+    expect(markup).toContain("<summary>View completion data</summary>");
+    expect(markup).toContain("<caption>Daily task creation</caption>");
+    expect(markup).toContain("<caption>Daily completion cycle time</caption>");
+    expect(markup).toContain("No completions");
+    expect(markup).not.toContain("<details open");
+  });
+
+  it("uses a phone-readable chart viewBox with reserved space for edge date labels", () => {
+    const markup = renderDashboard([member]);
+    const document = new DOMParser().parseFromString(markup, "text/html");
+    const trends = [...document.querySelectorAll(".contribution-trend")];
+    expect(trends).toHaveLength(2);
+    for (const trend of trends) {
+      expect(trend.getAttribute("viewBox")).toBe("0 0 480 220");
+      for (const label of trend.querySelectorAll(".contribution-trend__date")) {
+        const centre = Number(label.getAttribute("x"));
+        expect(centre).toBeGreaterThanOrEqual(64);
+        expect(centre).toBeLessThanOrEqual(440);
+      }
+    }
+  });
 });

@@ -37,6 +37,7 @@ const eventTypes = [
   "meeting_updated",
   "meeting_cancelled",
   "meeting_archived",
+  "meeting_restored",
   "meeting_rsvp",
   "task_reminder_sent",
   "meeting_reminder_sent",
@@ -64,6 +65,7 @@ export default function ContributionsPage() {
     queryKey: ["insights", projectId, range],
     queryFn: () => projectApi.insights(projectId, range),
     enabled: Boolean(projectId),
+    placeholderData: (previous, query) => query?.queryKey[1] === projectId ? previous : undefined,
   });
   const timeline = useQuery({
     queryKey: ["project-timeline", projectId, range, timelineSearchQuery, timelineMember, timelinePage],
@@ -74,6 +76,7 @@ export default function ContributionsPage() {
       page: String(timelinePage),
     }),
     enabled: Boolean(projectId),
+    placeholderData: (previous, query) => query?.queryKey[1] === projectId ? previous : undefined,
   });
   const exports = useQuery({ queryKey: ["exports"], queryFn: exportApi.list });
   const createExport = useMutation({
@@ -102,7 +105,7 @@ export default function ContributionsPage() {
       { id: "contribution-dashboard-heading", label: "Overview" },
       { id: "summary-heading", label: "Members" },
     ] : []),
-    ...(timeline.data ? [{ id: "timeline-heading", label: "Activity" }] : []),
+    { id: "timeline-heading", label: "Activity" },
     ...(relevantExports.length ? [{ id: "exports-heading", label: "Exports" }] : []),
   ];
   const sectionSignature = sectionItems.map(({ id }) => id).join("|");
@@ -141,11 +144,11 @@ export default function ContributionsPage() {
     {insights.isLoading ? <Loading label="Calculating contribution evidence…" /> : insights.error ? <ErrorState error={insights.error} retry={() => void insights.refetch()} /> : insights.data && <>
       <ContributionDashboard members={insights.data.members} rangeStart={insights.data.range_start} rangeEnd={insights.data.range_end} eventType={insights.data.event_type} charts={insights.data.charts} />
       <Panel labelledBy="summary-heading"><div className="section-heading"><h3 id="summary-heading">Member summary</h3><span>{insights.data.range_start} to {insights.data.range_end}</span></div><div className="table-wrap"><table><thead><tr><th scope="col">Member</th><th scope="col">Role</th><th scope="col">Recorded actions</th><th scope="col">Tasks completed</th><th scope="col">Comments</th><th scope="col">Meetings accepted</th></tr></thead><tbody>{insights.data.members.map((member) => <tr key={member.user_id}><th scope="row">{member.display_name}</th><td><StatusBadge value={member.role} /></td><td>{member.total_events}</td><td>{member.completed_tasks}</td><td>{member.comments}</td><td>{member.accepted_meetings}</td></tr>)}</tbody></table></div></Panel>
-      {timeline.isLoading ? <Loading label="Loading activity timeline…" /> : timeline.error ? <ErrorState error={timeline.error} retry={() => void timeline.refetch()} /> : timeline.data && (
-        <Panel labelledBy="timeline-heading">
+    </>}
+        <Panel labelledBy="timeline-heading" className="activity-timeline-panel">
           <div className="section-heading">
             <h3 id="timeline-heading">Activity timeline</h3>
-            <span>{timeline.data.events_total} matching actions</span>
+            <span>{timeline.data ? `${timeline.data.events_total} matching actions` : "Five actions per page"}</span>
           </div>
           <div className="timeline-controls">
             <Field label="Search timeline">
@@ -160,12 +163,14 @@ export default function ContributionsPage() {
             <Field label="Member">
               <select value={timelineMember} onChange={(event) => { setTimelineMember(event.target.value); setTimelinePage(1); }}>
                 <option value="">All members</option>
-                {insights.data.members.map((member) => <option key={member.user_id} value={member.user_id}>{member.display_name}</option>)}
+                {insights.data?.members.map((member) => <option key={member.user_id} value={member.user_id}>{member.display_name}</option>)}
               </select>
             </Field>
             <p className="timeline-controls__hint">The date and activity type filters above also apply. Search checks member names, activity types, and target type.</p>
           </div>
-          {!timeline.data.events.length ? (
+          <p className="timeline-update-status muted" role="status" aria-live="polite">{timeline.isFetching && timeline.data ? "Updating activity…" : ""}</p>
+          <div className="timeline-results" aria-busy={timeline.isFetching}>
+          {timeline.isLoading ? <Loading label="Loading activity timeline…" /> : timeline.error ? <ErrorState error={timeline.error} retry={() => void timeline.refetch()} /> : !timeline.data?.events.length ? (
             <EmptyState title={timelineSearch || timelineMember || range.event_type ? "No matching activity" : "No activity in this range"}>
               {timelineSearch || timelineMember || range.event_type ? "Try another search or clear a filter." : "Change the date range to review other activity."}
             </EmptyState>
@@ -180,15 +185,14 @@ export default function ContributionsPage() {
                 ))}
               </ol>
               <nav className="timeline-pagination" aria-label="Activity timeline pages">
-                <Button variant="secondary" disabled={timeline.data.events_page <= 1} onClick={() => setTimelinePage(Math.max(1, timeline.data!.events_page - 1))}>Previous</Button>
+                <Button variant="secondary" disabled={timeline.isFetching || timeline.data.events_page <= 1} onClick={() => setTimelinePage(Math.max(1, timeline.data!.events_page - 1))}>Previous</Button>
                 <p aria-live="polite">Showing {timelineStart}–{timelineEnd} of {timeline.data.events_total} · Page {timeline.data.events_page} of {timeline.data.events_pages}</p>
-                <Button variant="secondary" disabled={timeline.data.events_page >= timeline.data.events_pages} onClick={() => setTimelinePage(timeline.data!.events_page + 1)}>Next</Button>
+                <Button variant="secondary" disabled={timeline.isFetching || timeline.data.events_page >= timeline.data.events_pages} onClick={() => setTimelinePage(timeline.data!.events_page + 1)}>Next</Button>
               </nav>
             </>
           )}
+          </div>
         </Panel>
-      )}
-    </>}
     {exports.error && <ErrorState error={exports.error} retry={() => void exports.refetch()} />}
     {exports.isLoading && <Loading label="Loading recent exports…" />}
     {relevantExports.length > 0 && <Panel labelledBy="exports-heading"><h3 id="exports-heading">Recent exports</h3><div className="compact-list">{relevantExports.map((job) => <div className="compact-row" key={job.id}><span><strong>{job.format.toUpperCase()} evidence</strong><small>{job.range_start} to {job.range_end} · {formatDate(job.created_at)}{job.status === "failed" && ` · ${job.error_message || "Generation failed."}`}</small></span><span className="row-actions"><StatusBadge value={job.status} />{job.status === "failed" && <Button variant="quiet" disabled={createExport.isPending} onClick={() => createExport.mutate({ format: job.format, range_start: job.range_start, range_end: job.range_end })}>Retry</Button>}{job.download_url && <a className="button button--quiet" href={job.download_url}>Download</a>}</span></div>)}</div></Panel>}

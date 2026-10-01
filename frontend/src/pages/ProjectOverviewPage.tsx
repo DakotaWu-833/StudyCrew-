@@ -5,7 +5,7 @@ import { errorMessage } from "../api/client";
 import { invitationApi, membershipApi, projectApi } from "../api/resources";
 import type { MemberRole } from "../api/types";
 import { formatDate, parseOptionalDateTime, toDateTimeLocal } from "../app/format";
-import { Button, ConfirmAction, EmptyState, ErrorState, Field, Loading, Panel, StatusBadge } from "../components/UI";
+import { Button, ConfirmAction, EmptyState, ErrorState, Field, FloatingPanel, Loading, Panel, StatusBadge } from "../components/UI";
 
 export default function ProjectOverviewPage() {
   const { projectId = "" } = useParams();
@@ -14,6 +14,7 @@ export default function ProjectOverviewPage() {
   const [notice, setNotice] = useState("");
   const [error, setError] = useState("");
   const [editing, setEditing] = useState(false);
+  const [editDirty, setEditDirty] = useState(false);
   const project = useQuery({ queryKey: ["project", projectId], queryFn: () => projectApi.get(projectId), enabled: Boolean(projectId) });
   const memberships = useQuery({ queryKey: ["memberships", projectId], queryFn: () => membershipApi.list(projectId), enabled: Boolean(projectId) });
   const invites = useQuery({ queryKey: ["invitations", projectId], queryFn: () => invitationApi.listForProject(projectId), enabled: project.data?.current_user_role === "owner" && !project.data.archived_at });
@@ -57,16 +58,17 @@ export default function ProjectOverviewPage() {
       </div>
 
       <Panel labelledBy="project-details-heading">
-        <div className="section-heading"><div><h2 id="project-details-heading">Project details</h2><p>{project.data.description || "No description yet."}</p></div>{isOwner && !isArchived && <Button variant="secondary" onClick={() => setEditing((value) => !value)}>{editing ? "Cancel" : "Edit"}</Button>}</div>
-        {editing && (
-          <form className="form-grid" onSubmit={submitEdit}>
-            <Field label="Project name"><input name="name" required minLength={3} maxLength={100} defaultValue={project.data.name} /></Field>
-            <Field label="Due date and time"><input name="due_at" type="datetime-local" defaultValue={toDateTimeLocal(project.data.due_at)} /></Field>
-            <Field label="Description"><textarea name="description" maxLength={2000} rows={4} defaultValue={project.data.description} /></Field>
-            <div className="form-actions"><Button type="submit" disabled={update.isPending}>{update.isPending ? "Saving…" : "Save details"}</Button></div>
-          </form>
-        )}
+        <div className="section-heading"><div><h2 id="project-details-heading">Project details</h2><p>{project.data.description || "No description yet."}</p></div>{isOwner && !isArchived && <Button variant="secondary" onClick={() => { setEditDirty(false); setError(""); setEditing(true); }}>Edit</Button>}</div>
       </Panel>
+      {editing && <FloatingPanel title="Edit project details" busy={update.isPending} dirty={editDirty} onDismiss={() => setEditing(false)}>
+        <form className="form-grid" onSubmit={submitEdit} onChange={() => setEditDirty(true)}>
+          <Field label="Project name"><input name="name" required minLength={3} maxLength={100} defaultValue={project.data.name} autoFocus /></Field>
+          <Field label="Due date and time"><input name="due_at" type="datetime-local" defaultValue={toDateTimeLocal(project.data.due_at)} /></Field>
+          <Field label="Description"><textarea name="description" maxLength={2000} rows={4} defaultValue={project.data.description} /></Field>
+          {error && <p className="form-error" role="alert">{error}</p>}
+          <div className="form-actions"><Button type="submit" disabled={update.isPending}>{update.isPending ? "Saving…" : "Save details"}</Button></div>
+        </form>
+      </FloatingPanel>}
 
       <Panel labelledBy="members-heading">
         <div className="section-heading"><h2 id="members-heading">Team</h2><span>{memberships.data?.count} active</span></div>

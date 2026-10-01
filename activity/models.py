@@ -101,6 +101,7 @@ class ActivityEvent(ImmutableModelMixin, UUIDPrimaryKeyModel):
         MEETING_UPDATED = "meeting_updated", "Meeting updated"
         MEETING_CANCELLED = "meeting_cancelled", "Meeting cancelled"
         MEETING_ARCHIVED = "meeting_archived", "Meeting archived"
+        MEETING_RESTORED = "meeting_restored", "Meeting restored"
         MEETING_RSVP = "meeting_rsvp", "Meeting RSVP changed"
         TASK_REMINDER_SENT = "task_reminder_sent", "Task reminder sent"
         MEETING_REMINDER_SENT = "meeting_reminder_sent", "Meeting reminder sent"

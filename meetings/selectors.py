@@ -7,7 +7,8 @@ from datetime import date
 from zoneinfo import ZoneInfo
 
 from django.core.exceptions import ValidationError
-from django.db.models import Count, QuerySet
+from django.db.models import Count, Q, QuerySet
+from django.utils import timezone
 
 from .models import Meeting
 from .policies import require_active_member
@@ -32,9 +33,11 @@ def meetings_for_project(
     user,
     scope: str = "active",
     include_cancelled: bool = True,
+    search: str = "",
+    state: str = "all",
 ) -> QuerySet[Meeting]:
     require_active_member(user=user, project=project)
-    meetings = Meeting.objects.filter(project=project).select_related("organiser")
+    meetings = Meeting.objects.filter(project=project).select_related("organiser__profile")
     if scope == "active":
         meetings = meetings.filter(archived_at__isnull=True)
     elif scope == "archived":
@@ -43,7 +46,27 @@ def meetings_for_project(
         raise ValidationError({"scope": "Unknown meeting scope."})
     if not include_cancelled:
         meetings = meetings.filter(cancelled_at__isnull=True)
-    return meetings
+    if state == "archived":
+        meetings = meetings.filter(archived_at__isnull=False)
+    elif state == "cancelled":
+        meetings = meetings.filter(archived_at__isnull=True, cancelled_at__isnull=False)
+    elif state in ("scheduled", "ended"):
+        meetings = meetings.filter(archived_at__isnull=True, cancelled_at__isnull=True)
+        meetings = (
+            meetings.filter(ends_at__gt=timezone.now())
+            if state == "scheduled"
+            else meetings.filter(ends_at__lte=timezone.now())
+        )
+    elif state != "all":
+        raise ValidationError({"state": "Unknown meeting status."})
+    if needle := search.strip():
+        meetings = meetings.filter(
+            Q(title__icontains=needle)
+            | Q(location__icontains=needle)
+            | Q(agenda__icontains=needle)
+            | Q(organiser__profile__display_name__icontains=needle)
+        )
+    return meetings.order_by("starts_at", "id")
 
 
 def meeting_for_member(*, meeting_id, user) -> Meeting:

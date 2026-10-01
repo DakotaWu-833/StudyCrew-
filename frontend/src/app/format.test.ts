@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { formatDate, meetingDateTimeLimit, parseOptionalDateTime, titleCase, toDateTimeLocal, today } from "./format";
+import { earliestMeetingDateTime, formatDate, meetingDateTimeLimit, parseOptionalDateTime, titleCase, toDateTimeLocal, today } from "./format";
 
 describe("workspace formatting", () => {
   afterEach(() => {
@@ -56,6 +56,14 @@ describe("workspace formatting", () => {
     document.documentElement.dataset.timeZone = "Pacific/Kiritimati";
 
     expect(today()).toBe("2026-01-02");
+  });
+
+  it("sets the earliest meeting input to the beginning of today in the profile timezone", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-01-01T11:30:00Z"));
+    document.documentElement.dataset.timeZone = "Pacific/Kiritimati";
+
+    expect(earliestMeetingDateTime()).toBe("2026-01-02T00:00");
   });
 
   it("uses an inclusive ten-calendar-year meeting limit and contracts leap day", () => {

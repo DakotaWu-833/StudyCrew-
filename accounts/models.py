@@ -128,6 +128,7 @@ class Profile(models.Model):
     )
     biography = models.CharField(max_length=500, blank=True)
     avatar_url = models.URLField(max_length=2048, blank=True)
+    avatar = models.ImageField(upload_to="avatars/", blank=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
@@ -135,6 +136,23 @@ class Profile(models.Model):
 
     def __str__(self) -> str:
         return self.display_name
+
+
+class PendingEmailChange(models.Model):
+    """One short-lived verification request for a new sign-in address."""
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="pending_email_change")
+    new_email = models.EmailField(max_length=254)
+    code_hash = models.CharField(max_length=64)
+    expires_at = models.DateTimeField()
+    attempt_count = models.PositiveSmallIntegerField(default=0)
+    max_attempts = models.PositiveSmallIntegerField(default=5)
+    last_sent_at = models.DateTimeField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self) -> str:
+        return f"Pending email change for {self.user_id}"
 
 
 class LoginThrottle(models.Model):

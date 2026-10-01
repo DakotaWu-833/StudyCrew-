@@ -14,6 +14,9 @@ GRANT SELECT, INSERT, UPDATE ON ALL TABLES IN SCHEMA public TO studycrew_app;
 REVOKE DELETE ON ALL TABLES IN SCHEMA public FROM studycrew_app;
 GRANT DELETE ON TABLE public.django_session TO studycrew_app;
 GRANT DELETE ON TABLE public.tasks_taskassignment TO studycrew_app;
+-- Verification requests are consumed or removed on expiry/delivery failure.
+-- This does not permit deletion of users, projects or other domain records.
+GRANT DELETE ON TABLE public.accounts_pendingemailchange TO studycrew_app;
 GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO studycrew_app;
 ALTER DEFAULT PRIVILEGES FOR ROLE studycrew_migrator IN SCHEMA public
     GRANT SELECT, INSERT, UPDATE ON TABLES TO studycrew_app;

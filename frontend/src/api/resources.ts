@@ -8,6 +8,8 @@ import type {
   Invitation,
   Me,
   Meeting,
+  MeetingListFilters,
+  Page,
   ReminderDelivery,
   Membership,
   Notification,
@@ -17,6 +19,7 @@ import type {
   Task,
   TaskPriority,
   TaskStatus,
+  TimeZoneList,
   UUID,
 } from "./types";
 
@@ -31,6 +34,20 @@ export const accountApi = {
   me: () => apiFetch<Me>("/api/v1/me/"),
   updateProfile: (data: Partial<Profile>) =>
     apiFetch<Profile>("/api/v1/profile/", { method: "PATCH", ...jsonBody(data) }),
+  timeZones: () => apiFetch<TimeZoneList>("/api/v1/time-zones/"),
+  uploadAvatar: (avatar: File) => {
+    const body = new FormData();
+    body.append("avatar", avatar);
+    return apiFetch<Profile>("/api/v1/profile/avatar/", { method: "POST", body });
+  },
+  requestEmailChange: (data: { new_email: string; current_password: string }) =>
+    apiFetch<{ request_id: UUID; new_email: string }>("/api/v1/account/email-change/request/", {
+      method: "POST", ...jsonBody(data),
+    }),
+  confirmEmailChange: (data: { request_id: UUID; code: string }) =>
+    apiFetch<{ email: string }>("/api/v1/account/email-change/confirm/", {
+      method: "POST", ...jsonBody(data),
+    }),
 };
 
 export const projectApi = {
@@ -140,7 +157,16 @@ export const commentApi = {
 
 export const meetingApi = {
   list: (project: UUID, scope: "active" | "archived" | "all" = "active") =>
-    apiFetchAll<Meeting>(`/api/v1/meetings/${query({ project, scope })}`),
+    apiFetchAll<Meeting>(`/api/v1/meetings/${query({ project, scope, page_size: "50" })}`),
+  listPage: (project: UUID, filters: MeetingListFilters = {}) =>
+    apiFetch<Page<Meeting>>(`/api/v1/meetings/${query({
+      project,
+      scope: filters.scope ?? "active",
+      state: filters.state ?? "all",
+      search: filters.search?.trim(),
+      page: String(filters.page ?? 1),
+      page_size: "5",
+    })}`),
   create: (data: {
     project: UUID;
     title: string;
@@ -156,6 +182,10 @@ export const meetingApi = {
     ...jsonBody({}),
   }),
   archive: (id: UUID) => apiFetch<void>(`/api/v1/meetings/${id}/`, { method: "DELETE" }),
+  restore: (id: UUID) => apiFetch<void>(`/api/v1/meetings/${id}/restore/`, {
+    method: "POST",
+    ...jsonBody({}),
+  }),
   rsvp: (id: UUID, response: RSVP, availability_note = "") =>
     apiFetch<Meeting>(`/api/v1/meetings/${id}/rsvp/`, {
       method: "PUT",

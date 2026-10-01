@@ -19,7 +19,8 @@ does **not** claim that the production host has already been configured.
       at boot and restricts filesystem, device and kernel access.
 - [x] PostgreSQL setup uses separate migration and runtime roles. The runtime
       grant script denies schema creation and all hard deletes except session
-      invalidation and task-assignment replacement; both audit tables are
+      invalidation, task-assignment replacement and pending email-verification
+      consumption/cleanup; both audit tables are
       append-only by grants and triggers.
 - [x] Passwords use Argon2 plus a 12-character complexity policy for ordinary
       users and site moderators. Login lockout, email OTP MFA, idle timeout and
@@ -54,6 +55,10 @@ does **not** claim that the production host has already been configured.
 - [ ] Use `psql` as `studycrew_app` to show the schema and prove that CREATE,
       ALTER, DROP, broad DELETE and audit UPDATE/DELETE are denied while normal
       application writes still succeed.
+- [ ] Run `verify_runtime_permissions.sql` as `studycrew_app`; confirm email
+      changes can be consumed exactly once and normal upload-size boundaries
+      work through Nginx. Prove avatars load only for their owner/active project
+      teammates and direct internal-media requests are denied.
 - [ ] Prove effective SSH settings disable password, keyboard-interactive and
       root login; prove a second key-only SSH session before closing the first.
 - [ ] Search `/home`, `/root` and `/srv` for private-key file patterns and retain

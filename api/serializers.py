@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 
+from django.urls import reverse
 from rest_framework import serializers
 
 from accounts.models import Profile, User
@@ -69,6 +70,10 @@ class PermissionSummarySerializer(serializers.Serializer):
 
 class ProfileSerializer(StrictFieldsMixin, serializers.ModelSerializer):
     email = serializers.EmailField(source="user.email", read_only=True)
+    avatar_image_url = serializers.SerializerMethodField()
+
+    def get_avatar_image_url(self, profile: Profile) -> str:
+        return reverse("api:user-avatar", kwargs={"user_id": profile.user_id}) if profile.avatar else ""
 
     class Meta:
         model = Profile
@@ -79,6 +84,7 @@ class ProfileSerializer(StrictFieldsMixin, serializers.ModelSerializer):
             "time_zone",
             "biography",
             "avatar_url",
+            "avatar_image_url",
             "updated_at",
         )
         read_only_fields = ("updated_at",)
@@ -102,6 +108,40 @@ class MeSerializer(serializers.Serializer):
     email = serializers.EmailField(read_only=True)
     profile = ProfileSerializer(read_only=True)
     permissions = PermissionSummarySerializer(read_only=True)
+
+
+class ProfileAvatarUploadSerializer(StrictFieldsSerializer):
+    avatar = serializers.ImageField(write_only=True)
+
+
+class TimeZoneOptionSerializer(serializers.Serializer):
+    value = serializers.CharField(read_only=True)
+    label = serializers.CharField(read_only=True)
+    offset = serializers.CharField(read_only=True)
+
+
+class TimeZoneListSerializer(serializers.Serializer):
+    count = serializers.IntegerField(read_only=True)
+    results = TimeZoneOptionSerializer(many=True, read_only=True)
+
+
+class EmailChangeStartSerializer(StrictFieldsSerializer):
+    new_email = serializers.EmailField()
+    current_password = serializers.CharField(write_only=True, trim_whitespace=False)
+
+
+class EmailChangeStartedSerializer(serializers.Serializer):
+    request_id = serializers.UUIDField(read_only=True)
+    new_email = serializers.EmailField(read_only=True)
+
+
+class EmailChangeConfirmSerializer(StrictFieldsSerializer):
+    request_id = serializers.UUIDField()
+    code = serializers.RegexField(r"^\d{6}$", write_only=True)
+
+
+class EmailChangeResultSerializer(serializers.Serializer):
+    email = serializers.EmailField(read_only=True)
 
 
 class ProjectSerializer(StrictFieldsMixin, serializers.ModelSerializer):
@@ -260,6 +300,8 @@ class TaskSerializer(serializers.ModelSerializer):
         read_only_fields = fields
 
     def get_comment_count(self, obj: Task) -> int:
+        if hasattr(obj, "visible_comment_count"):
+            return obj.visible_comment_count
         return obj.comments.filter(deleted_at__isnull=True).count()
 
 
@@ -459,6 +501,14 @@ class MeetingListQuerySerializer(serializers.Serializer):
         required=False,
         default="active",
     )
+    search = serializers.CharField(max_length=120, allow_blank=True, required=False, default="")
+    state = serializers.ChoiceField(
+        choices=("all", "scheduled", "ended", "cancelled", "archived"),
+        required=False,
+        default="all",
+    )
+    page = serializers.IntegerField(min_value=1, max_value=1_000_000, required=False, default=1)
+    page_size = serializers.IntegerField(min_value=1, max_value=50, required=False, default=5)
 
 
 class RSVPSerializer(StrictFieldsSerializer):

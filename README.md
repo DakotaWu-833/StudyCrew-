@@ -14,7 +14,8 @@ artifacts remain under `design/`, `database/` and `deliverables/`.
 - Email registration and login with 12-character password rules, Argon2 hashes,
   persistent account/IP lockout, expiring single-use email OTP and idle session
   expiry.
-- Personal profile and IANA time-zone preference.
+- Personal profile with private photo upload, worldwide IANA time-zone search
+  and password-plus-email-code verification when changing the sign-in address.
 - Project creation, expiring email invitations, member/facilitator roles,
   removal and explicit ownership transfer.
 - Task CRUD, filters, multi-member assignment, guarded status transitions and
@@ -136,7 +137,7 @@ Important variables:
 | `OTP_TTL_SECONDS`, `OTP_MAX_ATTEMPTS` | OTP expiry and attempt bound |
 | `EXTERNAL_API_TIMEOUT_SECONDS` | Nager.Date request timeout, default 3 seconds |
 | `NAGER_DATE_CACHE_TTL_SECONDS` | holiday cache lifetime, default 86400 seconds |
-| `USE_X_ACCEL_REDIRECT` | protected Nginx hand-off for production exports |
+| `USE_X_ACCEL_REDIRECT` | protected Nginx hand-off for production avatars and exports |
 
 Production refuses to start with debug mode, SQLite, weak/default secrets,
 wildcard hosts, missing HTTPS CSRF origins, non-SMTP mail or public media export
@@ -196,12 +197,18 @@ tests and framework bootstrap files rather than inflating results with generated
 code. See `docs/assignment-2/test-plan.md` for the access matrix and evidence
 plan.
 
-Verified on 29 September 2026: 318 Django tests, 96.3% branch coverage (86.0%
-minimum among reported key files), 6 files/31 Vitest cases, zero-warning OpenAPI
+Verified locally on 1 October 2026: 374 Django tests, 96.2% combined statement/branch
+coverage (86.7% minimum among reported files), 15 files/91 Vitest cases, zero-warning OpenAPI
 validation, TypeScript checking and a production build all passed. An executable
 architecture test also prevents domain-to-HTTP imports,
 external HTTP outside `integrations/` and direct frontend API calls outside the
 shared client.
+
+Task serialization stays at four database queries, including membership checks,
+for 1, 5 and 10 records with identical output. The Meetings screen uses filtered
+server pages of five records; dashboard full-list callers retain their existing
+contract and request larger batches. Browser-rendered visual acceptance and live
+production deployment remain separate checks, not implied by these local gates.
 
 ## Production deployment
 

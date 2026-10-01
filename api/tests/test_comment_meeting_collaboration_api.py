@@ -170,6 +170,41 @@ class CommentMeetingAPITests(APIDomainTestCase):
             400,
         )
 
+        restored = self.client.post(f"/api/v1/meetings/{meeting_id}/restore/", {}, format="json")
+        self.assertEqual(restored.status_code, 204, restored.content)
+        meeting = Meeting.objects.get(id=meeting_id)
+        self.assertIsNone(meeting.archived_at)
+        self.assertIsNotNone(meeting.cancelled_at)
+        self.assertEqual(meeting.lifecycle_state, "cancelled")
+        self.assertEqual(
+            self.client.get(f"/api/v1/meetings/?project={self.project.id}").json()["count"],
+            1,
+        )
+        self.assertEqual(
+            self.client.get(
+                f"/api/v1/meetings/?project={self.project.id}&scope=archived"
+            ).json()["count"],
+            0,
+        )
+
+    def test_meeting_restore_is_not_available_to_regular_members(self):
+        ends = timezone.now() - timedelta(hours=1)
+        meeting = Meeting.objects.create(
+            project=self.project,
+            organiser=self.owner,
+            title="Archived meeting",
+            starts_at=ends - timedelta(hours=1),
+            ends_at=ends,
+            archived_at=timezone.now(),
+        )
+        self.authenticate(self.member)
+
+        response = self.client.post(f"/api/v1/meetings/{meeting.id}/restore/", {}, format="json")
+
+        self.assertEqual(response.status_code, 403)
+        meeting.refresh_from_db()
+        self.assertIsNotNone(meeting.archived_at)
+
     def test_invalid_meeting_time_returns_field_error(self):
         self.authenticate(self.owner)
         starts = timezone.now() + timedelta(days=1)

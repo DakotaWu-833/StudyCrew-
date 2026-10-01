@@ -18,13 +18,23 @@ from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import OpenApiResponse, extend_schema, extend_schema_view
 from rest_framework import mixins, status, viewsets
 from rest_framework.decorators import action, api_view
-from rest_framework.exceptions import ValidationError
+from rest_framework.exceptions import PermissionDenied, ValidationError
+from rest_framework.parsers import MultiPartParser
+from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from accounts.models import Profile
 from accounts.policies import is_site_moderator
+from accounts.profile_services import (
+    AvatarUploadUnavailable,
+    EmailChangeUnavailable,
+    confirm_email_change,
+    save_profile_avatar,
+    start_email_change,
+)
+from accounts.timezones import time_zone_options
 from activity.exports import export_file_for_user, request_export
 from activity.insights import activity_timeline_page, contribution_insights
 from activity.models import ExportJob
@@ -42,6 +52,10 @@ from api.serializers import (
     CommentSerializer,
     CommentWriteSerializer,
     EmptyActionSerializer,
+    EmailChangeConfirmSerializer,
+    EmailChangeResultSerializer,
+    EmailChangeStartedSerializer,
+    EmailChangeStartSerializer,
     ExportJobSerializer,
     ExportRequestSerializer,
     HealthSerializer,
@@ -64,6 +78,7 @@ from api.serializers import (
     NotificationSerializer,
     OwnershipTransferSerializer,
     ProfileReplaceSerializer,
+    ProfileAvatarUploadSerializer,
     ProfileSerializer,
     ProjectListQuerySerializer,
     ProjectReplaceSerializer,
@@ -76,6 +91,7 @@ from api.serializers import (
     TaskSerializer,
     TaskTransitionSerializer,
     TaskWriteSerializer,
+    TimeZoneListSerializer,
     UserSummarySerializer,
 )
 from meetings.models import Meeting
@@ -84,6 +100,7 @@ from meetings.services import (
     archive_meeting,
     cancel_meeting,
     create_meeting,
+    restore_meeting,
     set_rsvp,
     update_meeting,
 )
@@ -178,6 +195,80 @@ class ProfileView(APIView):
         serializer.is_valid(raise_exception=True)
         profile = serializer.save()
         return Response(ProfileSerializer(profile).data)
+
+
+class ProfileAvatarView(APIView):
+    parser_classes = [MultiPartParser]
+
+    @extend_schema(request=ProfileAvatarUploadSerializer, responses=ProfileSerializer)
+    def post(self, request):
+        serializer = ProfileAvatarUploadSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        try:
+            profile = save_profile_avatar(request.user.profile, serializer.validated_data["avatar"])
+        except AvatarUploadUnavailable as exc:
+            raise ValidationError({"avatar": str(exc)}) from exc
+        return Response(ProfileSerializer(profile).data)
+
+
+class UserAvatarView(APIView):
+    @extend_schema(responses={200: OpenApiTypes.BINARY})
+    def get(self, request, user_id):
+        profile = get_object_or_404(Profile, user_id=user_id)
+        if profile.user_id != request.user.pk:
+            shared_project_ids = ProjectMembership.objects.active().filter(user=request.user).values("project_id")
+            if not ProjectMembership.objects.active().filter(
+                user_id=user_id, project_id__in=shared_project_ids
+            ).exists():
+                raise PermissionDenied("This avatar is not available to you.")
+        if not profile.avatar:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+        if settings.USE_X_ACCEL_REDIRECT:
+            # Keep the file private: Nginx serves bytes only via its internal
+            # location after the MFA and project-membership checks above.
+            response = HttpResponse(content_type="image/jpeg")
+            response["X-Accel-Redirect"] = f"/protected-media/{quote(profile.avatar.name, safe='/')}"
+        else:
+            response = FileResponse(profile.avatar.open("rb"), content_type="image/jpeg")
+        response["Cache-Control"] = "private, no-store"
+        return response
+
+
+class TimeZonesView(APIView):
+    @extend_schema(responses=TimeZoneListSerializer)
+    def get(self, request):
+        options = time_zone_options()
+        return Response({"count": len(options), "results": options})
+
+
+class EmailChangeStartView(APIView):
+    @extend_schema(request=EmailChangeStartSerializer, responses={201: EmailChangeStartedSerializer})
+    def post(self, request):
+        serializer = EmailChangeStartSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        try:
+            change = start_email_change(user=request.user, **serializer.validated_data)
+        except EmailChangeUnavailable as exc:
+            raise ValidationError({"new_email": str(exc)}) from exc
+        return Response(
+            {"request_id": change.id, "new_email": change.new_email},
+            status=status.HTTP_201_CREATED,
+        )
+
+
+class EmailChangeConfirmView(APIView):
+    @extend_schema(request=EmailChangeConfirmSerializer, responses=EmailChangeResultSerializer)
+    def post(self, request):
+        serializer = EmailChangeConfirmSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        try:
+            email = confirm_email_change(user=request.user, **{
+                "change_id": serializer.validated_data["request_id"],
+                "code": serializer.validated_data["code"],
+            })
+        except EmailChangeUnavailable as exc:
+            raise ValidationError({"code": str(exc)}) from exc
+        return Response({"email": email})
 
 
 @extend_schema_view(
@@ -484,6 +575,14 @@ class CommentViewSet(UUIDLookupMixin, viewsets.ModelViewSet):
         return Response({"id": str(report.id), "status": report.status}, status=201)
 
 
+class MeetingPagination(PageNumberPagination):
+    """Bounded meeting pages; query validation runs before pagination."""
+
+    page_size = 5
+    page_size_query_param = "page_size"
+    max_page_size = 50
+
+
 @extend_schema_view(
     list=extend_schema(parameters=[MeetingListQuerySerializer]),
     create=extend_schema(
@@ -496,6 +595,7 @@ class CommentViewSet(UUIDLookupMixin, viewsets.ModelViewSet):
 )
 class MeetingViewSet(UUIDLookupMixin, viewsets.ModelViewSet):
     http_method_names = ["get", "post", "put", "patch", "delete", "head", "options"]
+    pagination_class = MeetingPagination
 
     def get_serializer_class(self):
         if self.action == "create":
@@ -515,6 +615,8 @@ class MeetingViewSet(UUIDLookupMixin, viewsets.ModelViewSet):
             project=project,
             user=self.request.user,
             scope=query["scope"],
+            search=query["search"],
+            state=query["state"],
         ).prefetch_related("attendances")
 
     def get_object(self):
@@ -554,6 +656,18 @@ class MeetingViewSet(UUIDLookupMixin, viewsets.ModelViewSet):
 
     def destroy(self, request, *args, **kwargs):
         archive_meeting(meeting=self.get_object(), actor=request.user)
+        return Response(status=204)
+
+    @extend_schema(
+        request=EmptyActionSerializer,
+        responses={status.HTTP_204_NO_CONTENT: None},
+        summary="Restore an archived meeting to the current record list",
+    )
+    @action(detail=True, methods=["post"])
+    def restore(self, request, pk=None):
+        serializer = EmptyActionSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        restore_meeting(meeting=self.get_object(), actor=request.user)
         return Response(status=204)
 
     @extend_schema(

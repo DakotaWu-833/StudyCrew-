@@ -131,7 +131,8 @@ sudo find /srv/studycrew/app/var -type f -exec chmod 0640 {} +
 ```
 
 The SQL grants `SELECT`, `INSERT` and `UPDATE` to application tables, grants hard
-`DELETE` only for session rotation and task-assignment replacement, denies
+`DELETE` only for session rotation, task-assignment replacement and consumption
+or cleanup of pending email-change verification requests, denies
 database/schema/temporary-object creation, removes update/delete rights from
 both audit tables, and adds triggers that reject audit-row mutation even if
 grants are accidentally widened later.
@@ -196,10 +197,16 @@ sudo certbot renew --dry-run
 ```
 
 Nginx redirects HTTP, terminates TLS, sends dynamic requests through the Unix
-socket, serves collected static files, and serves private exports only through
-an internal `X-Accel-Redirect` after Django authorisation. Source, environment,
+socket, serves collected static files, and serves private avatars and exports
+only through an internal `X-Accel-Redirect` after Django authorisation. Source, environment,
 key, database, backup and dotfile paths return 404. The renewal hook first tests
 the Nginx configuration and reloads it only after Certbot renews successfully.
+
+The HTTP request-body cap is 3 MiB so a valid 2 MiB avatar plus multipart
+boundaries and form fields is not rejected by Nginx. This does not increase the
+avatar-file limit: Django separately rejects files larger than 2 MiB and decodes
+and re-encodes accepted images. Do not expose `/media/` or remove `internal` from
+`/protected-media/`; avatar URLs must go through the authenticated API.
 
 ## 9. Apply host and SSH firewall controls
 
@@ -296,15 +303,33 @@ SELECT has_database_privilege(current_user, current_database(), 'TEMP') AS can_c
 SELECT has_schema_privilege(current_user, 'public', 'CREATE') AS can_create_in_public;
 SELECT has_table_privilege(current_user, 'projects_project', 'DELETE') AS can_hard_delete_projects;
 SELECT has_table_privilege(current_user, 'django_session', 'DELETE') AS can_rotate_sessions;
+SELECT has_table_privilege(current_user, 'accounts_pendingemailchange', 'DELETE') AS can_consume_email_change;
 SELECT has_table_privilege(current_user, 'activity_activityevent', 'UPDATE,DELETE') AS can_mutate_activity_audit;
 BEGIN;
 ALTER TABLE projects_project ADD COLUMN forbidden_test integer;
 ROLLBACK;
 ```
 
-The first four capability results and both domain/audit mutation checks must be
-false; only session deletion is true. `ALTER TABLE` must be denied. Also perform
-the required five-person live exercise: have five accounts sign in, open project
+Database `CREATE`/`TEMP`, schema `CREATE`, project `DELETE` and audit
+`UPDATE`/`DELETE` capability results must be false; the session and pending-email
+deletion checks are true. `ALTER TABLE`
+must be denied. Run the supplied read-only catalogue check as the runtime role
+as well (its password is requested by `psql`, not included in the command):
+
+```bash
+psql -X -W -h 127.0.0.1 -U studycrew_app -d studycrew -v ON_ERROR_STOP=1 \
+  -f /srv/studycrew/app/deploy/postgresql/verify_runtime_permissions.sql
+```
+
+For profile acceptance, use an account with a mailbox you control: change the
+email and consume the code once; confirm a replay is rejected. Upload a valid
+image at or just below 2 MiB and confirm that it loads through the avatar API.
+An image over 2 MiB must be rejected without replacing the saved image. A
+project teammate may view the avatar; an unrelated account and direct
+`/protected-media/avatars/...` requests must not receive it. Record these checks
+against the real HTTPS/Nginx/PostgreSQL deployment, not just the local server.
+
+Also perform the required five-person live exercise: have five accounts sign in, open project
 pages and simultaneously change distinct tasks/RSVPs while watching the Nginx
 and StudyCrew logs for errors. The automated verifier is supporting evidence,
 not a substitute for this functional check.
@@ -319,6 +344,9 @@ sudo bash /srv/studycrew/app/deploy/scripts/migrate-production.sh
 sudo -u postgres psql -d studycrew -v ON_ERROR_STOP=1 \
   -f /srv/studycrew/app/deploy/postgresql/permissions.sql
 sudo systemctl restart studycrew
+sed 's/__DOMAIN__/<DOMAIN>/g' \
+  /srv/studycrew/app/deploy/nginx/studycrew.conf | \
+  sudo tee /etc/nginx/sites-available/studycrew >/dev/null
 sudo nginx -t
 sudo systemctl reload nginx
 python3 /srv/studycrew/app/deploy/scripts/verify_deployment.py \
@@ -328,6 +356,12 @@ python3 /srv/studycrew/app/deploy/scripts/verify_deployment.py \
 If verification fails, keep the database intact, inspect the service journal,
 and return the application checkout to the previously reviewed release commit.
 Never use a destructive database reset as rollback.
+
+Updating this profile release requires all three parts: apply migrations before
+the permission script (it references `accounts_pendingemailchange`), restart the
+application, and install/test/reload the updated Nginx configuration. Reloading
+an old configuration alone will not change its upload cap. Re-run the read-only
+runtime permission check and the profile acceptance checks after the update.
 
 ## 12. Report only observed production facts
 

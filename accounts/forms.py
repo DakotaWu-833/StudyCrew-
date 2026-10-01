@@ -2,14 +2,13 @@
 
 from __future__ import annotations
 
-from zoneinfo import available_timezones
-
 from django import forms
 from django.contrib.auth.forms import PasswordChangeForm as DjangoPasswordChangeForm
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
 
 from accounts.models import Profile, User
+from accounts.timezones import time_zone_options
 
 
 class RegistrationForm(forms.Form):
@@ -95,19 +94,46 @@ class OTPVerificationForm(forms.Form):
 
 class ProfileForm(forms.ModelForm):
     time_zone = forms.ChoiceField(
-        choices=((zone, zone) for zone in sorted(available_timezones())),
+        choices=(),
         help_text="Meeting times will be displayed in this IANA time zone.",
     )
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["time_zone"].choices = [
+            (option["value"], option["label"]) for option in time_zone_options()
+        ]
+
     class Meta:
         model = Profile
-        fields = ("display_name", "course_code", "time_zone", "biography", "avatar_url")
+        fields = ("display_name", "time_zone", "biography")
         widgets = {
             "display_name": forms.TextInput(attrs={"autocomplete": "name"}),
-            "course_code": forms.TextInput(attrs={"autocomplete": "off"}),
             "biography": forms.Textarea(attrs={"rows": 5}),
-            "avatar_url": forms.URLInput(attrs={"autocomplete": "url"}),
         }
+
+
+class AvatarUploadForm(forms.Form):
+    avatar = forms.ImageField(
+        widget=forms.ClearableFileInput(attrs={"accept": "image/jpeg,image/png,image/webp"}),
+    )
+
+
+class EmailChangeStartForm(forms.Form):
+    new_email = forms.EmailField(max_length=254, widget=forms.EmailInput(attrs={"autocomplete": "email"}))
+    current_password = forms.CharField(
+        strip=False,
+        widget=forms.PasswordInput(attrs={"autocomplete": "current-password"}),
+    )
+
+
+class EmailChangeConfirmForm(forms.Form):
+    code = forms.RegexField(
+        regex=r"^\d{6}$",
+        max_length=6,
+        widget=forms.TextInput(attrs={"inputmode": "numeric", "autocomplete": "one-time-code", "pattern": "[0-9]{6}"}),
+        error_messages={"invalid": "Enter the six-digit code sent to your new address."},
+    )
 
 
 class PasswordChangeForm(DjangoPasswordChangeForm):

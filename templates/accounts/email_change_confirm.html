@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+
+{% block title %}Confirm email change · StudyCrew{% endblock %}
+{% block body_class %}account-page{% endblock %}
+
+{% block content %}
+<div class="auth-shell account-flow">
+  <section class="auth-card" aria-labelledby="email-confirm-heading">
+    <a class="account-back" href="{% url 'accounts:profile' %}">← Back to profile</a>
+    <p class="eyebrow">One last step</p>
+    <h1 id="email-confirm-heading">Confirm your new email</h1>
+    <p>Enter the six-digit code sent to <strong>{{ new_email }}</strong>. The code expires, so request a new one if it no longer works.</p>
+    <form method="post" action="{% url 'accounts:email_change_confirm' %}" novalidate>
+      {% csrf_token %}
+      {% include "accounts/_form_fields.html" with form=form %}
+      <button class="button" type="submit">Confirm email change</button>
+    </form>
+    <p class="auth-switch">Need another code? <a href="{% url 'accounts:email_change' %}">Start again</a>.</p>
+  </section>
+</div>
+{% endblock %}

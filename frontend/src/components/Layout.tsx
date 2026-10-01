@@ -47,7 +47,11 @@ export default function Layout() {
           {!activeProjects.length && <span className="sidebar__empty">No active projects</span>}
         </div>
         <div className="sidebar__account">
-          <span className="avatar" aria-hidden="true">{me.data?.user.display_name.slice(0, 1).toUpperCase()}</span>
+          <span className="avatar" aria-hidden="true">{me.data?.profile.avatar_image_url || me.data?.profile.avatar_url
+            ? <img src={me.data.profile.avatar_image_url
+              ? `${me.data.profile.avatar_image_url}?v=${encodeURIComponent(me.data.profile.updated_at)}`
+              : me.data.profile.avatar_url} alt="" />
+            : me.data?.user.display_name.slice(0, 1).toUpperCase()}</span>
           <span><strong>{me.data?.user.display_name}</strong><small>{me.data?.email}</small></span>
         </div>
       </aside>

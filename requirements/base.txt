@@ -3,5 +3,6 @@ argon2-cffi==25.1.0
 djangorestframework==3.18.1
 drf-spectacular==0.30.0
 httpx==0.28.1
+Pillow==12.1.1
 psycopg[binary]==3.3.5
 reportlab==5.0.1

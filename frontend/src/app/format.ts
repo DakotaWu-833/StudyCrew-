@@ -115,6 +115,12 @@ export function today(offsetDays = 0): string {
     .slice(0, 10);
 }
 
+/** Earliest selectable meeting wall time: the start of today in the user's zone. */
+export function earliestMeetingDateTime(reference = new Date()): string {
+  const local = partsInZone(reference, preferredTimeZone());
+  return `${local.year}-${twoDigits(local.month)}-${twoDigits(local.day)}T00:00`;
+}
+
 /** Inclusive ten-calendar-year limit for meeting datetime controls. */
 export function meetingDateTimeLimit(reference = new Date()): string {
   // The server adds ten years to the UTC instant, then validates UTC instants.

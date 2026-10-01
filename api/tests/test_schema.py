@@ -58,6 +58,7 @@ class GeneratedContractTests(SimpleTestCase):
     def test_meeting_contract_distinguishes_cancel_archive_and_record_scope(self):
         paths = self.schema["paths"]
         self.assertIn("post", paths["/api/v1/meetings/{id}/cancel/"])
+        self.assertIn("post", paths["/api/v1/meetings/{id}/restore/"])
         self.assertIn("delete", paths["/api/v1/meetings/{id}/"])
         parameters = paths["/api/v1/meetings/"]["get"]["parameters"]
         scope = next(parameter for parameter in parameters if parameter["name"] == "scope")
