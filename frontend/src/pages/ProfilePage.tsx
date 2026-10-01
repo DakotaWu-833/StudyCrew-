@@ -173,13 +173,22 @@ function ProfileContent({ me }: { me: Me }) {
     mutationFn: accountApi.updateProfile,
     onSuccess: async (profile) => {
       document.documentElement.dataset.timeZone = profile.time_zone;
-      await client.invalidateQueries({ queryKey: ["me"] });
+      await Promise.all([
+        client.invalidateQueries({ queryKey: ["me"] }),
+        client.invalidateQueries({ queryKey: ["memberships"] }),
+      ]);
       setProfileMessage("Profile saved.");
     },
   });
   const upload = useMutation({
     mutationFn: accountApi.uploadAvatar,
-    onSuccess: async () => { await client.invalidateQueries({ queryKey: ["me"] }); setAvatarMessage("Photo updated."); },
+    onSuccess: async () => {
+      await Promise.all([
+        client.invalidateQueries({ queryKey: ["me"] }),
+        client.invalidateQueries({ queryKey: ["memberships"] }),
+      ]);
+      setAvatarMessage("Photo updated.");
+    },
   });
   const requestChange = useMutation({
     mutationFn: accountApi.requestEmailChange,

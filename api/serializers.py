@@ -59,6 +59,20 @@ class UserSummarySerializer(serializers.ModelSerializer):
         fields = ("id", "display_name")
 
 
+class TeamMemberSerializer(UserSummarySerializer):
+    """Team-only identity data; uploaded images retain the private avatar endpoint."""
+
+    avatar_image_url = serializers.SerializerMethodField()
+    avatar_url = serializers.CharField(source="profile.avatar_url", read_only=True)
+    avatar_version = serializers.DateTimeField(source="profile.updated_at", read_only=True)
+
+    def get_avatar_image_url(self, user: User) -> str:
+        return reverse("api:user-avatar", kwargs={"user_id": user.pk}) if user.profile.avatar else ""
+
+    class Meta(UserSummarySerializer.Meta):
+        fields = UserSummarySerializer.Meta.fields + ("avatar_image_url", "avatar_url", "avatar_version")
+
+
 class HealthSerializer(serializers.Serializer):
     status = serializers.CharField(read_only=True)
     database = serializers.CharField(read_only=True)
@@ -223,7 +237,7 @@ class ProjectListQuerySerializer(serializers.Serializer):
 
 
 class MembershipSerializer(serializers.ModelSerializer):
-    user = UserSummarySerializer(read_only=True)
+    user = TeamMemberSerializer(read_only=True)
 
     class Meta:
         model = ProjectMembership

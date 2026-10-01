@@ -285,6 +285,15 @@ that email delivery itself can be rolled back.
 | `DELETE /api/v1/memberships/{membership_id}/` | None | Project owner only; soft-removes a non-owner and revokes project access. |
 | `POST /api/v1/memberships/{membership_id}/transfer-ownership/` | Optional `previous_owner_role` (`member` or `facilitator`) | Current project owner only; atomically preserves exactly one owner. |
 
+Membership responses use a Team-specific `user` summary: `id`, `display_name`,
+`avatar_image_url`, `avatar_url` and `avatar_version`. An uploaded photo uses the
+existing private avatar endpoint; the version matches the profile's `updated_at`
+timestamp. Missing photos return an empty image URL, with the legacy `avatar_url`
+available as a fallback. The Team displays initials when no usable image exists.
+Profile updates invalidate cached member lists so a subsequent Team visit reads
+the new identity. These read-only fields do not permit changing another member's
+photo, expose private storage paths, or change other resources' user summaries.
+
 The invitation create response additionally contains a `share_token`. It is
 shown only on that response, stored only as a SHA-256 digest, and never returned
 by later list calls. A registered matching user also receives an in-app

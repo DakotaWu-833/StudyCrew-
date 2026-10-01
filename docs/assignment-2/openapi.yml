@@ -2745,7 +2745,7 @@ components:
           readOnly: true
         user:
           allOf:
-          - $ref: '#/components/schemas/UserSummary'
+          - $ref: '#/components/schemas/TeamMember'
           readOnly: true
         role:
           $ref: '#/components/schemas/MembershipRoleEnum'
@@ -3651,6 +3651,34 @@ components:
           maxLength: 500
       required:
       - status
+    TeamMember:
+      type: object
+      description: Team-only identity data; uploaded images retain the private avatar
+        endpoint.
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        display_name:
+          type: string
+          readOnly: true
+        avatar_image_url:
+          type: string
+          readOnly: true
+        avatar_url:
+          type: string
+          readOnly: true
+        avatar_version:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - avatar_image_url
+      - avatar_url
+      - avatar_version
+      - display_name
+      - id
     TimeZoneList:
       type: object
       properties:

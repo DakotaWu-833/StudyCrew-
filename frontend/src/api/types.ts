@@ -9,6 +9,12 @@ export interface Page<T> {
 
 export interface UserSummary { id: UUID; display_name: string; }
 
+export interface TeamMemberSummary extends UserSummary {
+  avatar_image_url?: string;
+  avatar_url?: string;
+  avatar_version?: string;
+}
+
 export interface Profile {
   email: string;
   display_name: string;
@@ -55,7 +61,7 @@ export interface Project {
 export interface Membership {
   id: UUID;
   project: UUID;
-  user: UserSummary;
+  user: TeamMemberSummary;
   role: MemberRole;
   joined_at: string;
   removed_at: string | null;

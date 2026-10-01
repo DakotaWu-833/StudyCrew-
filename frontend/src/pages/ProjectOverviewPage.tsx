@@ -5,6 +5,7 @@ import { errorMessage } from "../api/client";
 import { invitationApi, membershipApi, projectApi } from "../api/resources";
 import type { MemberRole } from "../api/types";
 import { formatDate, parseOptionalDateTime, toDateTimeLocal } from "../app/format";
+import Avatar from "../components/Avatar";
 import { Button, ConfirmAction, EmptyState, ErrorState, Field, FloatingPanel, Loading, Panel, StatusBadge } from "../components/UI";
 
 export default function ProjectOverviewPage() {
@@ -75,7 +76,7 @@ export default function ProjectOverviewPage() {
         <div className="data-list">
           {memberships.data?.results.map((member) => (
             <div className="data-row" key={member.id}>
-              <span className="avatar" aria-hidden="true">{member.user.display_name.slice(0, 1).toUpperCase()}</span>
+              <Avatar name={member.user.display_name} imageUrl={member.user.avatar_image_url || member.user.avatar_url} version={member.user.avatar_image_url ? member.user.avatar_version : undefined} />
               <span className="data-row__main"><strong>{member.user.display_name}</strong><StatusBadge value={member.role} /></span>
               {isOwner && !isArchived && member.role !== "owner" && (
                 <span className="row-actions">

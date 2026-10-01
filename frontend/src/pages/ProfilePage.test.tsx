@@ -88,6 +88,7 @@ describe("ProfilePage", () => {
   });
 
   it("tracks draft changes and saves only the three editable profile attributes", async () => {
+    client.setQueryData(["memberships", "project-a"], { count: 0, results: [] });
     vi.mocked(accountApi.updateProfile).mockImplementation(async (patch) => {
       const updated = { ...me.profile, ...patch };
       vi.mocked(accountApi.me).mockResolvedValue({ ...me, profile: updated });
@@ -103,6 +104,39 @@ describe("ProfilePage", () => {
     expect(vi.mocked(accountApi.updateProfile).mock.calls[0]?.[0]).toEqual({ display_name: "Alex Chen", biography: "Teamwork.", time_zone: "Australia/Sydney" });
     expect(container.textContent).toContain("Profile saved.");
     expect(container.textContent).toContain("Up to date");
+    expect(client.getQueryState(["memberships", "project-a"])?.isInvalidated).toBe(true);
+  });
+
+  it("refreshes identity and every cached Team list after uploading a replacement photo", async () => {
+    const profile = { ...me.profile, avatar_image_url: "/api/v1/users/profile-test/avatar/", updated_at: "2026-10-01T10:00:00Z" };
+    client.setQueryData(["memberships", "project-a"], { count: 0, results: [] });
+    client.setQueryData(["memberships", "project-b"], { count: 0, results: [] });
+    vi.mocked(accountApi.uploadAvatar).mockResolvedValue(profile);
+    vi.mocked(accountApi.me).mockResolvedValue({ ...me, profile });
+    await render();
+    const input = container.querySelector<HTMLInputElement>('input[type="file"]')!;
+    const photo = new File(["photo"], "photo.png", { type: "image/png" });
+    Object.defineProperty(input, "files", { configurable: true, value: [photo] });
+    await act(async () => input.dispatchEvent(new Event("change", { bubbles: true })));
+    await settle();
+    expect(vi.mocked(accountApi.uploadAvatar).mock.calls[0]?.[0]).toBe(photo);
+    expect(container.querySelector(".profile-avatar__image img")?.getAttribute("src")).toBe("/api/v1/users/profile-test/avatar/?v=2026-10-01T10%3A00%3A00Z");
+    expect(client.getQueryState(["memberships", "project-a"])?.isInvalidated).toBe(true);
+    expect(client.getQueryState(["memberships", "project-b"])?.isInvalidated).toBe(true);
+    expect(container.textContent).toContain("Photo updated.");
+  });
+
+  it("keeps Team caches and the current avatar unchanged after a failed upload", async () => {
+    client.setQueryData(["memberships", "project-a"], { count: 0, results: [] });
+    vi.mocked(accountApi.uploadAvatar).mockRejectedValue(new Error("Choose a valid image."));
+    await render();
+    const input = container.querySelector<HTMLInputElement>('input[type="file"]')!;
+    Object.defineProperty(input, "files", { configurable: true, value: [new File(["bad"], "bad.png", { type: "image/png" })] });
+    await act(async () => input.dispatchEvent(new Event("change", { bubbles: true })));
+    await settle();
+    expect(container.querySelector(".profile-avatar__image img")).toBeNull();
+    expect(client.getQueryState(["memberships", "project-a"])?.isInvalidated).toBe(false);
+    expect(container.textContent).toContain("Choose a valid image.");
   });
 
   it("keeps global time-zone options out of the tab sequence and supports keyboard selection", async () => {
