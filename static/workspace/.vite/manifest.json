@@ -1,0 +1,274 @@
+{
+  "_pdf-preview-CjnYo_ti.js": {
+    "file": "assets/pdf-preview-CjnYo_ti.js",
+    "name": "pdf-preview",
+    "imports": [
+      "_rolldown-runtime-hePW80VL.js"
+    ],
+    "assets": [
+      "assets/pdf.worker.min-Dswkl-cV.mjs"
+    ]
+  },
+  "_rolldown-runtime-hePW80VL.js": {
+    "file": "assets/rolldown-runtime-hePW80VL.js",
+    "name": "rolldown-runtime"
+  },
+  "_vendor-Dz5UNvB-.js": {
+    "file": "assets/vendor-Dz5UNvB-.js",
+    "name": "vendor",
+    "imports": [
+      "_rolldown-runtime-hePW80VL.js",
+      "_pdf-preview-CjnYo_ti.js"
+    ]
+  },
+  "_workspace-BoOxVpRQ.js": {
+    "file": "assets/workspace-BoOxVpRQ.js",
+    "name": "workspace",
+    "imports": [
+      "_rolldown-runtime-hePW80VL.js",
+      "_vendor-Dz5UNvB-.js"
+    ]
+  },
+  "index.html": {
+    "file": "main.js",
+    "name": "index",
+    "src": "index.html",
+    "isEntry": true,
+    "imports": [
+      "_rolldown-runtime-hePW80VL.js",
+      "_vendor-Dz5UNvB-.js",
+      "_pdf-preview-CjnYo_ti.js",
+      "_workspace-BoOxVpRQ.js"
+    ],
+    "dynamicImports": [
+      "src/pages/ContributionsPage.tsx",
+      "src/pages/AccountSecurityPage.tsx",
+      "src/pages/CampusPage.tsx",
+      "src/pages/ProjectPlanPage.tsx",
+      "src/pages/ResourcesPage.tsx",
+      "src/pages/CalendarPage.tsx",
+      "src/pages/CoordinationPage.tsx",
+      "src/pages/EvidencePage.tsx",
+      "src/pages/NotificationSettingsPage.tsx",
+      "src/pages/SupportPage.tsx",
+      "src/pages/OperationsPage.tsx",
+      "src/pages/ProjectUpdatesPage.tsx",
+      "src/pages/TeamFinderPage.tsx",
+      "src/pages/ProjectFilesPage.tsx",
+      "src/pages/LearningExchangePage.tsx",
+      "src/pages/ProjectChatPage.tsx",
+      "src/pages/WorkloadPage.tsx",
+      "src/pages/OfflineTasksPage.tsx"
+    ]
+  },
+  "node_modules/pdfjs-dist/build/pdf.worker.min.mjs": {
+    "file": "assets/pdf.worker.min-Dswkl-cV.mjs",
+    "src": "node_modules/pdfjs-dist/build/pdf.worker.min.mjs"
+  },
+  "src/pages/AccountSecurityPage.tsx": {
+    "file": "assets/AccountSecurityPage-D619-35y.js",
+    "name": "AccountSecurityPage",
+    "src": "src/pages/AccountSecurityPage.tsx",
+    "isDynamicEntry": true,
+    "imports": [
+      "_rolldown-runtime-hePW80VL.js",
+      "_vendor-Dz5UNvB-.js",
+      "_workspace-BoOxVpRQ.js"
+    ]
+  },
+  "src/pages/CalendarPage.tsx": {
+    "file": "assets/CalendarPage-DKhRiFD8.js",
+    "name": "CalendarPage",
+    "src": "src/pages/CalendarPage.tsx",
+    "isDynamicEntry": true,
+    "imports": [
+      "_rolldown-runtime-hePW80VL.js",
+      "_vendor-Dz5UNvB-.js",
+      "_workspace-BoOxVpRQ.js"
+    ]
+  },
+  "src/pages/CampusPage.tsx": {
+    "file": "assets/CampusPage-Hl6BxUeF.js",
+    "name": "CampusPage",
+    "src": "src/pages/CampusPage.tsx",
+    "isDynamicEntry": true,
+    "imports": [
+      "_rolldown-runtime-hePW80VL.js",
+      "_vendor-Dz5UNvB-.js",
+      "_workspace-BoOxVpRQ.js"
+    ]
+  },
+  "src/pages/ContributionsPage.tsx": {
+    "file": "assets/ContributionsPage-DSHKQ9dN.js",
+    "name": "ContributionsPage",
+    "src": "src/pages/ContributionsPage.tsx",
+    "isDynamicEntry": true,
+    "imports": [
+      "_rolldown-runtime-hePW80VL.js",
+      "_vendor-Dz5UNvB-.js",
+      "_workspace-BoOxVpRQ.js"
+    ]
+  },
+  "src/pages/CoordinationPage.tsx": {
+    "file": "assets/CoordinationPage-CvAmTN5Y.js",
+    "name": "CoordinationPage",
+    "src": "src/pages/CoordinationPage.tsx",
+    "isDynamicEntry": true,
+    "imports": [
+      "_rolldown-runtime-hePW80VL.js",
+      "_vendor-Dz5UNvB-.js",
+      "_workspace-BoOxVpRQ.js"
+    ]
+  },
+  "src/pages/EvidencePage.tsx": {
+    "file": "assets/EvidencePage-B6vmWlad.js",
+    "name": "EvidencePage",
+    "src": "src/pages/EvidencePage.tsx",
+    "isDynamicEntry": true,
+    "imports": [
+      "_rolldown-runtime-hePW80VL.js",
+      "_vendor-Dz5UNvB-.js",
+      "_workspace-BoOxVpRQ.js"
+    ]
+  },
+  "src/pages/LearningExchangePage.tsx": {
+    "file": "assets/LearningExchangePage-D3FJgWGx.js",
+    "name": "LearningExchangePage",
+    "src": "src/pages/LearningExchangePage.tsx",
+    "isDynamicEntry": true,
+    "imports": [
+      "_rolldown-runtime-hePW80VL.js",
+      "_vendor-Dz5UNvB-.js",
+      "_workspace-BoOxVpRQ.js"
+    ]
+  },
+  "src/pages/NotificationSettingsPage.tsx": {
+    "file": "assets/NotificationSettingsPage-BsmrZrNe.js",
+    "name": "NotificationSettingsPage",
+    "src": "src/pages/NotificationSettingsPage.tsx",
+    "isDynamicEntry": true,
+    "imports": [
+      "_rolldown-runtime-hePW80VL.js",
+      "_vendor-Dz5UNvB-.js",
+      "_workspace-BoOxVpRQ.js"
+    ]
+  },
+  "src/pages/OfflineTasksPage.tsx": {
+    "file": "assets/OfflineTasksPage-CPPnLMj3.js",
+    "name": "OfflineTasksPage",
+    "src": "src/pages/OfflineTasksPage.tsx",
+    "isDynamicEntry": true,
+    "imports": [
+      "_rolldown-runtime-hePW80VL.js",
+      "_vendor-Dz5UNvB-.js",
+      "_workspace-BoOxVpRQ.js"
+    ]
+  },
+  "src/pages/OperationsPage.tsx": {
+    "file": "assets/OperationsPage-DOeiZb8L.js",
+    "name": "OperationsPage",
+    "src": "src/pages/OperationsPage.tsx",
+    "isDynamicEntry": true,
+    "imports": [
+      "_rolldown-runtime-hePW80VL.js",
+      "_vendor-Dz5UNvB-.js",
+      "_workspace-BoOxVpRQ.js",
+      "src/pages/SupportPage.tsx"
+    ]
+  },
+  "src/pages/ProjectChatPage.tsx": {
+    "file": "assets/ProjectChatPage-Cv5kppZZ.js",
+    "name": "ProjectChatPage",
+    "src": "src/pages/ProjectChatPage.tsx",
+    "isDynamicEntry": true,
+    "imports": [
+      "_rolldown-runtime-hePW80VL.js",
+      "_vendor-Dz5UNvB-.js",
+      "_workspace-BoOxVpRQ.js"
+    ]
+  },
+  "src/pages/ProjectFilesPage.tsx": {
+    "file": "assets/ProjectFilesPage-CUOipSYB.js",
+    "name": "ProjectFilesPage",
+    "src": "src/pages/ProjectFilesPage.tsx",
+    "isDynamicEntry": true,
+    "imports": [
+      "_rolldown-runtime-hePW80VL.js",
+      "_vendor-Dz5UNvB-.js",
+      "_pdf-preview-CjnYo_ti.js",
+      "_workspace-BoOxVpRQ.js"
+    ],
+    "dynamicImports": [
+      "_pdf-preview-CjnYo_ti.js"
+    ]
+  },
+  "src/pages/ProjectPlanPage.tsx": {
+    "file": "assets/ProjectPlanPage-Bx-_Kuel.js",
+    "name": "ProjectPlanPage",
+    "src": "src/pages/ProjectPlanPage.tsx",
+    "isDynamicEntry": true,
+    "imports": [
+      "_rolldown-runtime-hePW80VL.js",
+      "_vendor-Dz5UNvB-.js",
+      "_workspace-BoOxVpRQ.js"
+    ]
+  },
+  "src/pages/ProjectUpdatesPage.tsx": {
+    "file": "assets/ProjectUpdatesPage-CkLsVJ7F.js",
+    "name": "ProjectUpdatesPage",
+    "src": "src/pages/ProjectUpdatesPage.tsx",
+    "isDynamicEntry": true,
+    "imports": [
+      "_rolldown-runtime-hePW80VL.js",
+      "_vendor-Dz5UNvB-.js",
+      "_workspace-BoOxVpRQ.js"
+    ]
+  },
+  "src/pages/ResourcesPage.tsx": {
+    "file": "assets/ResourcesPage-C0G1peHm.js",
+    "name": "ResourcesPage",
+    "src": "src/pages/ResourcesPage.tsx",
+    "isDynamicEntry": true,
+    "imports": [
+      "_rolldown-runtime-hePW80VL.js",
+      "_vendor-Dz5UNvB-.js",
+      "_workspace-BoOxVpRQ.js"
+    ]
+  },
+  "src/pages/SupportPage.tsx": {
+    "file": "assets/SupportPage-BQSBYFMC.js",
+    "name": "SupportPage",
+    "src": "src/pages/SupportPage.tsx",
+    "isDynamicEntry": true,
+    "imports": [
+      "_rolldown-runtime-hePW80VL.js",
+      "_vendor-Dz5UNvB-.js",
+      "_workspace-BoOxVpRQ.js"
+    ]
+  },
+  "src/pages/TeamFinderPage.tsx": {
+    "file": "assets/TeamFinderPage-CEMyLQFc.js",
+    "name": "TeamFinderPage",
+    "src": "src/pages/TeamFinderPage.tsx",
+    "isDynamicEntry": true,
+    "imports": [
+      "_rolldown-runtime-hePW80VL.js",
+      "_vendor-Dz5UNvB-.js",
+      "_workspace-BoOxVpRQ.js"
+    ]
+  },
+  "src/pages/WorkloadPage.tsx": {
+    "file": "assets/WorkloadPage-ClHkTldk.js",
+    "name": "WorkloadPage",
+    "src": "src/pages/WorkloadPage.tsx",
+    "isDynamicEntry": true,
+    "imports": [
+      "_vendor-Dz5UNvB-.js",
+      "_workspace-BoOxVpRQ.js"
+    ]
+  },
+  "style.css": {
+    "file": "workspace.css",
+    "src": "style.css"
+  }
+}

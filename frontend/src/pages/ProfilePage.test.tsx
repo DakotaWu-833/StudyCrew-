@@ -87,7 +87,7 @@ describe("ProfilePage", () => {
     expect(container.querySelector<HTMLButtonElement>('.profile-form button[type="submit"]')?.disabled).toBe(true);
   });
 
-  it("tracks draft changes and saves only the three editable profile attributes", async () => {
+  it("tracks draft changes and saves editable profile attributes", async () => {
     client.setQueryData(["memberships", "project-a"], { count: 0, results: [] });
     vi.mocked(accountApi.updateProfile).mockImplementation(async (patch) => {
       const updated = { ...me.profile, ...patch };
@@ -101,7 +101,7 @@ describe("ProfilePage", () => {
     expect(container.textContent).toContain("Unsaved changes");
     expect(container.textContent).toContain("9 / 500");
     await act(async () => container.querySelector(".profile-form")!.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true })));
-    expect(vi.mocked(accountApi.updateProfile).mock.calls[0]?.[0]).toEqual({ display_name: "Alex Chen", biography: "Teamwork.", time_zone: "Australia/Sydney" });
+    expect(vi.mocked(accountApi.updateProfile).mock.calls[0]?.[0]).toEqual({ display_name: "Alex Chen", biography: "Teamwork.", time_zone: "Australia/Sydney", major: "", skills: [], communication_languages: [], collaboration_preference: "" });
     expect(container.textContent).toContain("Profile saved.");
     expect(container.textContent).toContain("Up to date");
     expect(client.getQueryState(["memberships", "project-a"])?.isInvalidated).toBe(true);

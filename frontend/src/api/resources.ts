@@ -118,7 +118,7 @@ export const taskApi = {
     priority: TaskPriority;
     due_at: string | null;
   }) => apiFetch<Task>("/api/v1/tasks/", { method: "POST", ...jsonBody(data) }),
-  update: (id: UUID, data: Partial<Pick<Task, "title" | "description" | "priority" | "due_at">>) =>
+  update: (id: UUID, data: Partial<Pick<Task, "title" | "description" | "priority" | "due_at">> & { expected_updated_at?: string }) =>
     apiFetch<Task>(`/api/v1/tasks/${id}/`, { method: "PATCH", ...jsonBody(data) }),
   archive: (id: UUID) => apiFetch<void>(`/api/v1/tasks/${id}/`, { method: "DELETE" }),
   transition: (id: UUID, status: TaskStatus, blocker_note = "") =>

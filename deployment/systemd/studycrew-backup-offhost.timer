@@ -1,0 +1,11 @@
+[Unit]
+Description=Daily encrypted off-host StudyCrew backup transport
+
+[Timer]
+OnCalendar=*-*-* 04:00:00 UTC
+RandomizedDelaySec=600
+Persistent=true
+Unit=studycrew-backup-offhost.service
+
+[Install]
+WantedBy=timers.target

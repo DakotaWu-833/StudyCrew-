@@ -4,6 +4,85 @@ info:
   version: 1.0.0
   description: Versioned API for project, task, meeting and collaboration workflows.
 paths:
+  /api/v1/account/close/:
+    post:
+      operationId: account_close_create
+      tags:
+      - account
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CloseAccount'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/CloseAccount'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/CloseAccount'
+        required: true
+      security:
+      - mfaSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/account/data/download/:
+    post:
+      operationId: account_data_download_create
+      tags:
+      - account
+      security:
+      - mfaSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: string
+                format: binary
+          description: ''
+  /api/v1/account/devices/{device_id}/revoke/:
+    post:
+      operationId: account_devices_revoke_create
+      parameters:
+      - in: path
+        name: device_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - account
+      security:
+      - mfaSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/account/devices/revoke-others/:
+    post:
+      operationId: account_devices_revoke_others_create
+      tags:
+      - account
+      security:
+      - mfaSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
   /api/v1/account/email-change/confirm/:
     post:
       operationId: account_email_change_confirm_create
@@ -56,6 +135,1433 @@ paths:
               schema:
                 $ref: '#/components/schemas/EmailChangeStarted'
           description: ''
+  /api/v1/account/reauthenticate/:
+    post:
+      operationId: account_reauthenticate_create
+      tags:
+      - account
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Reauthentication'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Reauthentication'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Reauthentication'
+        required: true
+      security:
+      - mfaSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/account/recovery-email/:
+    post:
+      operationId: account_recovery_email_create
+      tags:
+      - account
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RecoveryEmail'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/RecoveryEmail'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/RecoveryEmail'
+        required: true
+      security:
+      - mfaSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+    delete:
+      operationId: account_recovery_email_destroy
+      tags:
+      - account
+      security:
+      - mfaSession: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/account/security/:
+    get:
+      operationId: account_security_retrieve
+      tags:
+      - account
+      security:
+      - mfaSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/campus/courses/:
+    post:
+      operationId: campus_courses_create
+      tags:
+      - campus
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CourseInput'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/CourseInput'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/CourseInput'
+        required: true
+      security:
+      - mfaSession: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/campus/join/:
+    post:
+      operationId: campus_join_create
+      tags:
+      - campus
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/JoinInput'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/JoinInput'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/JoinInput'
+        required: true
+      security:
+      - mfaSession: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/campus/overview/:
+    get:
+      operationId: campus_overview_retrieve
+      tags:
+      - campus
+      security:
+      - mfaSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/campus/projects/{project_id}/:
+    get:
+      operationId: campus_projects_retrieve
+      parameters:
+      - in: query
+        name: page
+        schema:
+          type: integer
+      - in: path
+        name: project_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - campus
+      security:
+      - mfaSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/campus/projects/{project_id}/agreement/:
+    put:
+      operationId: campus_projects_agreement_update
+      parameters:
+      - in: path
+        name: project_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - campus
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AgreementInput'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/AgreementInput'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/AgreementInput'
+        required: true
+      security:
+      - mfaSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/campus/projects/{project_id}/agreement/confirm/:
+    post:
+      operationId: campus_projects_agreement_confirm_create
+      parameters:
+      - in: path
+        name: project_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - campus
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RevisionInput'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/RevisionInput'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/RevisionInput'
+        required: true
+      security:
+      - mfaSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/campus/projects/{project_id}/course-links/:
+    post:
+      operationId: campus_projects_course_links_create
+      parameters:
+      - in: path
+        name: project_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - campus
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CourseLinkInput'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/CourseLinkInput'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/CourseLinkInput'
+        required: true
+      security:
+      - mfaSession: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/campus/projects/{project_id}/course-links/{link_id}/:
+    delete:
+      operationId: campus_projects_course_links_destroy
+      parameters:
+      - in: path
+        name: link_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - in: path
+        name: project_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - campus
+      security:
+      - mfaSession: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/campus/projects/{project_id}/join-links/:
+    get:
+      operationId: campus_projects_join_links_retrieve
+      parameters:
+      - in: path
+        name: project_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - campus
+      security:
+      - mfaSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+    post:
+      operationId: campus_projects_join_links_create
+      parameters:
+      - in: path
+        name: project_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - campus
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/JoinLinkInput'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/JoinLinkInput'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/JoinLinkInput'
+        required: true
+      security:
+      - mfaSession: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/campus/projects/{project_id}/join-links/{link_id}/revoke/:
+    post:
+      operationId: campus_projects_join_links_revoke_create
+      parameters:
+      - in: path
+        name: link_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - in: path
+        name: project_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - campus
+      security:
+      - mfaSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/campus/projects/{project_id}/join-requests/{request_id}/resolve/:
+    post:
+      operationId: campus_projects_join_requests_resolve_create
+      parameters:
+      - in: path
+        name: project_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - in: path
+        name: request_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - campus
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ResolveInput'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ResolveInput'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ResolveInput'
+        required: true
+      security:
+      - mfaSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/campus/projects/{project_id}/leave/:
+    post:
+      operationId: campus_projects_leave_create
+      parameters:
+      - in: path
+        name: project_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - campus
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LeaveInput'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/LeaveInput'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/LeaveInput'
+      security:
+      - mfaSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/campus/projects/{project_id}/milestones/:
+    post:
+      operationId: campus_projects_milestones_create
+      parameters:
+      - in: path
+        name: project_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - campus
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MilestoneInput'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/MilestoneInput'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/MilestoneInput'
+      security:
+      - mfaSession: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/campus/projects/{project_id}/milestones/{milestone_id}/:
+    patch:
+      operationId: campus_projects_milestones_partial_update
+      parameters:
+      - in: path
+        name: milestone_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - in: path
+        name: project_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - campus
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedMilestoneInput'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedMilestoneInput'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedMilestoneInput'
+      security:
+      - mfaSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/campus/projects/{project_id}/resources/:
+    get:
+      operationId: campus_projects_resources_retrieve
+      parameters:
+      - in: query
+        name: page
+        schema:
+          type: integer
+      - in: path
+        name: project_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - in: query
+        name: q
+        schema:
+          type: string
+      - in: query
+        name: tag
+        schema:
+          type: string
+      tags:
+      - campus
+      security:
+      - mfaSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+    post:
+      operationId: campus_projects_resources_create
+      parameters:
+      - in: path
+        name: project_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - campus
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ResourceInput'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ResourceInput'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ResourceInput'
+      security:
+      - mfaSession: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/campus/projects/{project_id}/resources/{resource_id}/:
+    patch:
+      operationId: campus_projects_resources_partial_update
+      parameters:
+      - in: path
+        name: project_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - in: path
+        name: resource_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - campus
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedResourceInput'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedResourceInput'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedResourceInput'
+      security:
+      - mfaSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+    delete:
+      operationId: campus_projects_resources_destroy
+      parameters:
+      - in: path
+        name: project_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - in: path
+        name: resource_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - campus
+      security:
+      - mfaSession: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/campus/projects/{project_id}/submission/:
+    patch:
+      operationId: campus_projects_submission_partial_update
+      parameters:
+      - in: path
+        name: project_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - campus
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedSubmissionInput'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedSubmissionInput'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedSubmissionInput'
+      security:
+      - mfaSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/campus/projects/{project_id}/submission/confirm/:
+    post:
+      operationId: campus_projects_submission_confirm_create
+      parameters:
+      - in: path
+        name: project_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - campus
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RevisionInput'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/RevisionInput'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/RevisionInput'
+        required: true
+      security:
+      - mfaSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/campus/projects/{project_id}/submission/items/:
+    post:
+      operationId: campus_projects_submission_items_create
+      parameters:
+      - in: path
+        name: project_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - campus
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChecklistInput'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ChecklistInput'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ChecklistInput'
+      security:
+      - mfaSession: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/campus/projects/{project_id}/submission/items/{item_id}/:
+    patch:
+      operationId: campus_projects_submission_items_partial_update
+      parameters:
+      - in: path
+        name: item_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - in: path
+        name: project_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - campus
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedChecklistInput'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedChecklistInput'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedChecklistInput'
+      security:
+      - mfaSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/campus/projects/{project_id}/submission/receipt/:
+    post:
+      operationId: campus_projects_submission_receipt_create
+      parameters:
+      - in: path
+        name: project_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - campus
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReceiptInput'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ReceiptInput'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ReceiptInput'
+      security:
+      - mfaSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/campus/projects/{project_id}/task-create/:
+    post:
+      operationId: campus_projects_task_create_create
+      parameters:
+      - in: path
+        name: project_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - campus
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TaskCreateInput'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/TaskCreateInput'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/TaskCreateInput'
+        required: true
+      security:
+      - mfaSession: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/campus/projects/{project_id}/tasks/{task_id}/:
+    patch:
+      operationId: campus_projects_tasks_partial_update
+      parameters:
+      - in: path
+        name: project_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - in: path
+        name: task_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - campus
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedTaskPlanInput'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedTaskPlanInput'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedTaskPlanInput'
+      security:
+      - mfaSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/campus/projects/{project_id}/tasks/{task_id}/checklist/:
+    post:
+      operationId: campus_projects_tasks_checklist_create
+      parameters:
+      - in: path
+        name: project_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - in: path
+        name: task_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - campus
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChecklistInput'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ChecklistInput'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ChecklistInput'
+      security:
+      - mfaSession: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/campus/projects/{project_id}/tasks/{task_id}/checklist/{item_id}/:
+    patch:
+      operationId: campus_projects_tasks_checklist_partial_update
+      parameters:
+      - in: path
+        name: item_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - in: path
+        name: project_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - in: path
+        name: task_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - campus
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedChecklistInput'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedChecklistInput'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedChecklistInput'
+      security:
+      - mfaSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/campus/projects/{project_id}/tasks/{task_id}/copy/:
+    post:
+      operationId: campus_projects_tasks_copy_create
+      parameters:
+      - in: path
+        name: project_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - in: path
+        name: task_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - campus
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TaskCopyInput'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/TaskCopyInput'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/TaskCopyInput'
+        required: true
+      security:
+      - mfaSession: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/campus/projects/{project_id}/tasks/{task_id}/request-review/:
+    post:
+      operationId: campus_projects_tasks_request_review_create
+      parameters:
+      - in: path
+        name: project_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - in: path
+        name: task_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - campus
+      security:
+      - mfaSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/campus/projects/{project_id}/tasks/{task_id}/review/:
+    post:
+      operationId: campus_projects_tasks_review_create
+      parameters:
+      - in: path
+        name: project_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - in: path
+        name: task_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - campus
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReviewInput'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ReviewInput'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ReviewInput'
+        required: true
+      security:
+      - mfaSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/campus/projects/{project_id}/tasks/bulk/:
+    patch:
+      operationId: campus_projects_tasks_bulk_partial_update
+      parameters:
+      - in: path
+        name: project_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - campus
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedTaskBulkInput'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedTaskBulkInput'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedTaskBulkInput'
+      security:
+      - mfaSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/campus/projects/{project_id}/template/:
+    post:
+      operationId: campus_projects_template_create
+      parameters:
+      - in: path
+        name: project_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - campus
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TemplateInput'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/TemplateInput'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/TemplateInput'
+        required: true
+      security:
+      - mfaSession: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/campus/search/:
+    get:
+      operationId: campus_search_retrieve
+      parameters:
+      - in: query
+        name: page
+        schema:
+          type: integer
+      - in: query
+        name: q
+        schema:
+          type: string
+      tags:
+      - campus
+      security:
+      - mfaSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/campus/terms/:
+    post:
+      operationId: campus_terms_create
+      tags:
+      - campus
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TermInput'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/TermInput'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/TermInput'
+        required: true
+      security:
+      - mfaSession: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/campus/terms/{term_id}/archive/:
+    post:
+      operationId: campus_terms_archive_create
+      parameters:
+      - in: path
+        name: term_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - campus
+      security:
+      - mfaSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/campus/terms/{term_id}/copy/:
+    post:
+      operationId: campus_terms_copy_create
+      parameters:
+      - in: path
+        name: term_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - campus
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CopyTermInput'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/CopyTermInput'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/CopyTermInput'
+        required: true
+      security:
+      - mfaSession: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/campus/todos/:
+    get:
+      operationId: campus_todos_retrieve
+      parameters:
+      - in: query
+        name: due
+        schema:
+          type: string
+          enum:
+          - all
+          - open
+          - overdue
+          - today
+          - week
+      - in: query
+        name: page
+        schema:
+          type: integer
+      - in: query
+        name: q
+        schema:
+          type: string
+      tags:
+      - campus
+      security:
+      - mfaSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/chat/projects/{project_id}/messages/:
+    get:
+      operationId: chat_projects_messages_retrieve
+      parameters:
+      - in: query
+        name: before
+        schema:
+          type: string
+          format: uuid
+      - in: path
+        name: project_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - in: query
+        name: since
+        schema:
+          type: integer
+          minimum: 0
+      tags:
+      - chat
+      security:
+      - mfaSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+    post:
+      operationId: chat_projects_messages_create
+      parameters:
+      - in: path
+        name: project_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - chat
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChatSendInput'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ChatSendInput'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ChatSendInput'
+        required: true
+      security:
+      - mfaSession: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/chat/projects/{project_id}/messages/{message_id}/remove/:
+    post:
+      operationId: chat_projects_messages_remove_create
+      parameters:
+      - in: path
+        name: message_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - in: path
+        name: project_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - chat
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChatRemoveInput'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ChatRemoveInput'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ChatRemoveInput'
+        required: true
+      security:
+      - mfaSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/chat/projects/{project_id}/presence/:
+    post:
+      operationId: chat_projects_presence_create
+      parameters:
+      - in: path
+        name: project_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - chat
+      security:
+      - mfaSession: []
+      responses:
+        '204':
+          description: No response body
   /api/v1/comments/:
     get:
       operationId: comments_list
@@ -241,6 +1747,745 @@ paths:
               schema:
                 $ref: '#/components/schemas/CommentReportResult'
           description: ''
+  /api/v1/coordination/availability/:
+    get:
+      operationId: coordination_availability_get
+      parameters:
+      - in: query
+        name: project
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - in: query
+        name: week_start
+        schema:
+          type: string
+          format: date
+        required: true
+      tags:
+      - coordination
+      security:
+      - mfaSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+    put:
+      operationId: coordination_availability_put
+      tags:
+      - coordination
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AvailabilityWrite'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/AvailabilityWrite'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/AvailabilityWrite'
+        required: true
+      security:
+      - mfaSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/coordination/calendar/:
+    get:
+      operationId: coordination_calendar_get
+      parameters:
+      - in: query
+        name: project
+        schema:
+          type: string
+          format: uuid
+      - in: query
+        name: range_end
+        schema:
+          type: string
+          format: date
+        required: true
+      - in: query
+        name: range_start
+        schema:
+          type: string
+          format: date
+        required: true
+      tags:
+      - coordination
+      security:
+      - mfaSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/coordination/calendar/export/:
+    get:
+      operationId: coordination_calendar_export_get
+      parameters:
+      - in: query
+        name: project
+        schema:
+          type: string
+          format: uuid
+      - in: query
+        name: range_end
+        schema:
+          type: string
+          format: date
+        required: true
+      - in: query
+        name: range_start
+        schema:
+          type: string
+          format: date
+        required: true
+      tags:
+      - coordination
+      security:
+      - mfaSession: []
+      responses:
+        '200':
+          content:
+            text/calendar:
+              schema:
+                type: string
+                format: binary
+          description: ''
+  /api/v1/coordination/claims/:
+    get:
+      operationId: coordination_claims_get
+      parameters:
+      - in: query
+        name: page
+        schema:
+          type: integer
+          minimum: 1
+          default: 1
+      - in: query
+        name: project
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - in: query
+        name: range_end
+        schema:
+          type: string
+          format: date
+      - in: query
+        name: range_start
+        schema:
+          type: string
+          format: date
+      tags:
+      - coordination
+      security:
+      - mfaSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+    post:
+      operationId: coordination_claims_post
+      tags:
+      - coordination
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ClaimWrite'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ClaimWrite'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ClaimWrite'
+        required: true
+      security:
+      - mfaSession: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/coordination/claims/{id}/respond/:
+    post:
+      operationId: coordination_claim_response_post
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - coordination
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ClaimResponse'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ClaimResponse'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ClaimResponse'
+        required: true
+      security:
+      - mfaSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/coordination/claims/{id}/review/:
+    post:
+      operationId: coordination_claim_review_post
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - coordination
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReviewWrite'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ReviewWrite'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ReviewWrite'
+        required: true
+      security:
+      - mfaSession: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/coordination/claims/{id}/withdraw/:
+    post:
+      operationId: coordination_claim_withdraw_post
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - coordination
+      security:
+      - mfaSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/coordination/meeting-records/:
+    get:
+      operationId: coordination_meeting_records_get
+      parameters:
+      - in: query
+        name: page
+        schema:
+          type: integer
+          minimum: 1
+          default: 1
+      - in: query
+        name: project
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - coordination
+      security:
+      - mfaSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/coordination/meeting-records/{id}/:
+    get:
+      operationId: coordination_meeting_record_get
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - coordination
+      security:
+      - mfaSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+    put:
+      operationId: coordination_meeting_record_put
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - coordination
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RecordWrite'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/RecordWrite'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/RecordWrite'
+      security:
+      - mfaSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/coordination/meeting-records/{id}/actions/:
+    post:
+      operationId: coordination_meeting_action_post
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - coordination
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ActionWrite'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ActionWrite'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ActionWrite'
+        required: true
+      security:
+      - mfaSession: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/coordination/meeting-records/{id}/attendance/:
+    post:
+      operationId: coordination_attendance_post
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - coordination
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AttendanceWrite'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/AttendanceWrite'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/AttendanceWrite'
+        required: true
+      security:
+      - mfaSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/coordination/meeting-records/{id}/confirm/:
+    post:
+      operationId: coordination_confirm_minutes_post
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - coordination
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ConfirmationWrite'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ConfirmationWrite'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ConfirmationWrite'
+        required: true
+      security:
+      - mfaSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/coordination/meeting-records/{id}/repeat/:
+    post:
+      operationId: coordination_repeat_meeting_post
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - coordination
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RepeatWrite'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/RepeatWrite'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/RepeatWrite'
+        required: true
+      security:
+      - mfaSession: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/coordination/poll-options/{id}/vote/:
+    post:
+      operationId: coordination_vote_post
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - coordination
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VoteWrite'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/VoteWrite'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/VoteWrite'
+        required: true
+      security:
+      - mfaSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/coordination/polls/:
+    get:
+      operationId: coordination_polls_get
+      parameters:
+      - in: query
+        name: page
+        schema:
+          type: integer
+          minimum: 1
+          default: 1
+      - in: query
+        name: project
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - coordination
+      security:
+      - mfaSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+    post:
+      operationId: coordination_polls_post
+      tags:
+      - coordination
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PollWrite'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PollWrite'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PollWrite'
+        required: true
+      security:
+      - mfaSession: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/coordination/polls/{id}/cancel/:
+    post:
+      operationId: coordination_cancel_poll_post
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - coordination
+      security:
+      - mfaSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/coordination/polls/{id}/close/:
+    post:
+      operationId: coordination_close_poll_post
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - coordination
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PollClose'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PollClose'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PollClose'
+        required: true
+      security:
+      - mfaSession: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/coordination/subscriptions/:
+    get:
+      operationId: coordination_subscriptions_get
+      tags:
+      - coordination
+      security:
+      - mfaSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+    post:
+      operationId: coordination_subscriptions_post
+      tags:
+      - coordination
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SubscriptionWrite'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/SubscriptionWrite'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/SubscriptionWrite'
+      security:
+      - mfaSession: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/coordination/subscriptions/{id}/revoke/:
+    post:
+      operationId: coordination_subscription_revoke_post
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - coordination
+      security:
+      - mfaSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/coordination/subscriptions/{id}/rotate/:
+    post:
+      operationId: coordination_subscription_rotate_post
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - coordination
+      security:
+      - mfaSession: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/coordination/subscriptions/feed/{token}/:
+    get:
+      operationId: coordination_subscription_feed_get
+      parameters:
+      - in: path
+        name: token
+        schema:
+          type: string
+        required: true
+      tags:
+      - coordination
+      responses:
+        '200':
+          content:
+            text/calendar:
+              schema:
+                type: string
+                format: binary
+          description: ''
   /api/v1/exports/:
     get:
       operationId: exports_list
@@ -333,6 +2578,375 @@ paths:
               schema:
                 type: string
                 format: binary
+          description: ''
+  /api/v1/files/projects/{project_id}/:
+    get:
+      operationId: files_projects_retrieve
+      parameters:
+      - in: query
+        name: folder
+        schema:
+          type: string
+      - in: query
+        name: page
+        schema:
+          type: integer
+      - in: path
+        name: project_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - in: query
+        name: q
+        schema:
+          type: string
+      - in: query
+        name: tag
+        schema:
+          type: string
+      tags:
+      - files
+      security:
+      - mfaSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+    post:
+      operationId: files_projects_create
+      parameters:
+      - in: path
+        name: project_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - files
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/UploadInput'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/UploadInput'
+        required: true
+      security:
+      - mfaSession: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/files/projects/{project_id}/documents/{document_id}/:
+    get:
+      operationId: files_projects_documents_retrieve
+      parameters:
+      - in: path
+        name: document_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - in: path
+        name: project_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - files
+      security:
+      - mfaSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+    patch:
+      operationId: files_projects_documents_partial_update
+      parameters:
+      - in: path
+        name: document_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - in: path
+        name: project_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - files
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedMetadataInput'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedMetadataInput'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedMetadataInput'
+      security:
+      - mfaSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+    delete:
+      operationId: files_projects_documents_destroy
+      parameters:
+      - in: path
+        name: document_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - in: path
+        name: project_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - files
+      security:
+      - mfaSession: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/files/projects/{project_id}/documents/{document_id}/compare/:
+    get:
+      operationId: files_projects_documents_compare_retrieve
+      parameters:
+      - in: path
+        name: document_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - in: query
+        name: from_version
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - in: path
+        name: project_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - in: query
+        name: to_version
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - files
+      security:
+      - mfaSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/files/projects/{project_id}/documents/{document_id}/download/:
+    get:
+      operationId: files_projects_documents_download_retrieve
+      parameters:
+      - in: path
+        name: document_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - in: path
+        name: project_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - in: query
+        name: version
+        schema:
+          type: string
+          format: uuid
+      tags:
+      - files
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: string
+                format: binary
+          description: ''
+  /api/v1/files/projects/{project_id}/documents/{document_id}/preview/:
+    get:
+      operationId: files_projects_documents_preview_retrieve
+      parameters:
+      - in: path
+        name: document_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - in: path
+        name: project_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - in: query
+        name: version
+        schema:
+          type: string
+          format: uuid
+      tags:
+      - files
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: string
+                format: binary
+          description: ''
+  /api/v1/files/projects/{project_id}/documents/{document_id}/restore/:
+    post:
+      operationId: files_projects_documents_restore_create
+      parameters:
+      - in: path
+        name: document_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - in: path
+        name: project_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - files
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DocumentRevisionInput'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/DocumentRevisionInput'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/DocumentRevisionInput'
+        required: true
+      security:
+      - mfaSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/files/projects/{project_id}/documents/{document_id}/versions/:
+    post:
+      operationId: files_projects_documents_versions_create
+      parameters:
+      - in: path
+        name: document_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - in: path
+        name: project_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - files
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/UploadInput'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/UploadInput'
+        required: true
+      security:
+      - mfaSession: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/files/projects/{project_id}/trash/:
+    get:
+      operationId: files_projects_trash_retrieve
+      parameters:
+      - in: query
+        name: page
+        schema:
+          type: integer
+      - in: path
+        name: project_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - in: query
+        name: q
+        schema:
+          type: string
+      tags:
+      - files
+      security:
+      - mfaSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
           description: ''
   /api/v1/health/:
     get:
@@ -457,6 +3071,159 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Invitation'
+          description: ''
+  /api/v1/learning-exchange/projects/{project_id}/:
+    get:
+      operationId: learning_exchange_projects_retrieve
+      parameters:
+      - in: query
+        name: page
+        schema:
+          type: integer
+      - in: path
+        name: project_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - learning-exchange
+      security:
+      - mfaSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/learning-exchange/projects/{project_id}/batches/{batch_id}/export/:
+    get:
+      operationId: learning_exchange_projects_batches_export_retrieve
+      parameters:
+      - in: path
+        name: batch_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - in: path
+        name: project_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - learning-exchange
+      security:
+      - mfaSession: []
+      responses:
+        '200':
+          content:
+            text/csv:
+              schema:
+                type: string
+          description: ''
+  /api/v1/learning-exchange/projects/{project_id}/export/:
+    get:
+      operationId: learning_exchange_projects_export_retrieve
+      parameters:
+      - in: path
+        name: project_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - learning-exchange
+      security:
+      - mfaSession: []
+      responses:
+        '200':
+          content:
+            text/csv:
+              schema:
+                type: string
+          description: ''
+  /api/v1/learning-exchange/projects/{project_id}/import/:
+    post:
+      operationId: learning_exchange_projects_import_create
+      parameters:
+      - in: path
+        name: project_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - learning-exchange
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ConfirmInput'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ConfirmInput'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ConfirmInput'
+        required: true
+      security:
+      - mfaSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/learning-exchange/projects/{project_id}/preview/:
+    post:
+      operationId: learning_exchange_projects_preview_create
+      parameters:
+      - in: path
+        name: project_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - learning-exchange
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PreviewInput'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PreviewInput'
+        required: true
+      security:
+      - mfaSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/learning-exchange/sample/:
+    get:
+      operationId: learning_exchange_sample_retrieve
+      tags:
+      - learning-exchange
+      security:
+      - mfaSession: []
+      responses:
+        '200':
+          content:
+            text/csv:
+              schema:
+                type: string
           description: ''
   /api/v1/me/:
     get:
@@ -988,6 +3755,1156 @@ paths:
               schema:
                 $ref: '#/components/schemas/Notification'
           description: ''
+  /api/v1/offline/tasks/{task_id}/sync/:
+    post:
+      operationId: offline_tasks_sync_create
+      parameters:
+      - in: path
+        name: task_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - offline
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OfflineTaskSyncInput'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/OfflineTaskSyncInput'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/OfflineTaskSyncInput'
+        required: true
+      security:
+      - mfaSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OfflineTaskSyncResult'
+          description: ''
+        '409':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OfflineSyncConflict'
+          description: ''
+  /api/v1/operations/admin/contacts/:
+    get:
+      operationId: operations_admin_contacts_retrieve
+      parameters:
+      - in: query
+        name: page
+        schema:
+          type: integer
+        description: One-based page; 25 records per page.
+      tags:
+      - operations
+      security:
+      - mfaSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminContactsViewPage'
+          description: ''
+  /api/v1/operations/admin/contacts/{identifier}/response/:
+    post:
+      operationId: operations_admin_contacts_response_create
+      parameters:
+      - in: path
+        name: identifier
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - operations
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ContactResponse'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ContactResponse'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ContactResponse'
+        required: true
+      security:
+      - mfaSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Contact'
+          description: ''
+  /api/v1/operations/admin/deliveries/:
+    get:
+      operationId: operations_admin_deliveries_retrieve
+      parameters:
+      - in: query
+        name: page
+        schema:
+          type: integer
+        description: One-based page; 25 records per page.
+      tags:
+      - operations
+      security:
+      - mfaSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminDeliveriesViewPage'
+          description: ''
+  /api/v1/operations/admin/deliveries/{identifier}/retry/:
+    post:
+      operationId: operations_admin_deliveries_retry_create
+      parameters:
+      - in: path
+        name: identifier
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - operations
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Retry'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Retry'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Retry'
+        required: true
+      security:
+      - mfaSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Delivery'
+          description: ''
+  /api/v1/operations/admin/post-reports/:
+    get:
+      operationId: operations_admin_post_reports_retrieve
+      tags:
+      - operations
+      security:
+      - mfaSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/operations/admin/post-reports/{identifier}/resolve/:
+    post:
+      operationId: operations_admin_post_reports_resolve_create
+      parameters:
+      - in: path
+        name: identifier
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - operations
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ModerationInput'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ModerationInput'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ModerationInput'
+        required: true
+      security:
+      - mfaSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/operations/admin/summary/:
+    get:
+      operationId: operations_admin_summary_retrieve
+      tags:
+      - operations
+      security:
+      - mfaSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/operations/admin/support/:
+    get:
+      operationId: operations_admin_support_retrieve
+      parameters:
+      - in: query
+        name: page
+        schema:
+          type: integer
+        description: One-based page; 25 records per page.
+      tags:
+      - operations
+      security:
+      - mfaSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminTicketsViewPage'
+          description: ''
+  /api/v1/operations/admin/support/{identifier}/:
+    patch:
+      operationId: operations_admin_support_partial_update
+      parameters:
+      - in: path
+        name: identifier
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - operations
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedTicketUpdate'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedTicketUpdate'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedTicketUpdate'
+      security:
+      - mfaSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Ticket'
+          description: ''
+  /api/v1/operations/alerts/:
+    get:
+      operationId: operations_alerts_retrieve
+      parameters:
+      - in: query
+        name: page
+        schema:
+          type: integer
+        description: One-based page; 25 records per page.
+      tags:
+      - operations
+      security:
+      - mfaSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AlertsViewPage'
+          description: ''
+    post:
+      operationId: operations_alerts_create
+      tags:
+      - operations
+      security:
+      - mfaSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Payload'
+          description: ''
+  /api/v1/operations/alerts/{identifier}/read/:
+    patch:
+      operationId: operations_alerts_read_partial_update
+      parameters:
+      - in: path
+        name: identifier
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - operations
+      security:
+      - mfaSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Alert'
+          description: ''
+  /api/v1/operations/blocks/:
+    get:
+      operationId: operations_blocks_retrieve
+      tags:
+      - operations
+      security:
+      - mfaSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Payload'
+          description: ''
+    post:
+      operationId: operations_blocks_create
+      tags:
+      - operations
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Block'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Block'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Block'
+        required: true
+      security:
+      - mfaSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Block'
+          description: ''
+  /api/v1/operations/deliveries/:
+    get:
+      operationId: operations_deliveries_retrieve
+      parameters:
+      - in: query
+        name: page
+        schema:
+          type: integer
+        description: One-based page; 25 records per page.
+      tags:
+      - operations
+      security:
+      - mfaSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeliveriesViewPage'
+          description: ''
+  /api/v1/operations/notices/:
+    get:
+      operationId: operations_notices_retrieve
+      tags:
+      - operations
+      security:
+      - mfaSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Payload'
+          description: ''
+    post:
+      operationId: operations_notices_create
+      tags:
+      - operations
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Notice'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Notice'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Notice'
+        required: true
+      security:
+      - mfaSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Notice'
+          description: ''
+  /api/v1/operations/notices/{identifier}/end/:
+    patch:
+      operationId: operations_notices_end_partial_update
+      parameters:
+      - in: path
+        name: identifier
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - operations
+      security:
+      - mfaSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Notice'
+          description: ''
+  /api/v1/operations/posts/{identifier}/:
+    patch:
+      operationId: operations_posts_partial_update
+      parameters:
+      - in: path
+        name: identifier
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - operations
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedPostInput'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedPostInput'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedPostInput'
+      security:
+      - mfaSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/operations/posts/{identifier}/remove/:
+    post:
+      operationId: operations_posts_remove_create
+      parameters:
+      - in: path
+        name: identifier
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - operations
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RemoveInput'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/RemoveInput'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/RemoveInput'
+      security:
+      - mfaSession: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/operations/posts/{identifier}/replies/:
+    get:
+      operationId: operations_posts_replies_retrieve
+      parameters:
+      - in: path
+        name: identifier
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - operations
+      security:
+      - mfaSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+    post:
+      operationId: operations_posts_replies_create
+      parameters:
+      - in: path
+        name: identifier
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - operations
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReplyInput'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ReplyInput'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ReplyInput'
+        required: true
+      security:
+      - mfaSession: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/operations/posts/{identifier}/report/:
+    post:
+      operationId: operations_posts_report_create
+      parameters:
+      - in: path
+        name: identifier
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - operations
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReportInput'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ReportInput'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ReportInput'
+        required: true
+      security:
+      - mfaSession: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/operations/preferences/:
+    get:
+      operationId: operations_preferences_retrieve
+      tags:
+      - operations
+      security:
+      - mfaSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Preference'
+          description: ''
+    patch:
+      operationId: operations_preferences_partial_update
+      tags:
+      - operations
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedPreference'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedPreference'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedPreference'
+      security:
+      - mfaSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Preference'
+          description: ''
+  /api/v1/operations/project-mutes/:
+    get:
+      operationId: operations_project_mutes_retrieve
+      tags:
+      - operations
+      security:
+      - mfaSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Payload'
+          description: ''
+    post:
+      operationId: operations_project_mutes_create
+      tags:
+      - operations
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Mute'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Mute'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Mute'
+        required: true
+      security:
+      - mfaSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Mute'
+          description: ''
+  /api/v1/operations/projects/{project_id}/posts/:
+    get:
+      operationId: operations_projects_posts_retrieve
+      parameters:
+      - in: path
+        name: project_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - operations
+      security:
+      - mfaSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+    post:
+      operationId: operations_projects_posts_create
+      parameters:
+      - in: path
+        name: project_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - operations
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PostInput'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PostInput'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PostInput'
+        required: true
+      security:
+      - mfaSession: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/operations/support/:
+    get:
+      operationId: operations_support_retrieve
+      parameters:
+      - in: query
+        name: page
+        schema:
+          type: integer
+        description: One-based page; 25 records per page.
+      tags:
+      - operations
+      security:
+      - mfaSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TicketsViewPage'
+          description: ''
+    post:
+      operationId: operations_support_create
+      tags:
+      - operations
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Ticket'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Ticket'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Ticket'
+        required: true
+      security:
+      - mfaSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Ticket'
+          description: ''
+  /api/v1/operations/support/{identifier}/replies/:
+    post:
+      operationId: operations_support_replies_create
+      parameters:
+      - in: path
+        name: identifier
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - operations
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Body'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Body'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Body'
+        required: true
+      security:
+      - mfaSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Ticket'
+          description: ''
+  /api/v1/productivity/projects/{project_id}/tasks/{task_id}/:
+    get:
+      operationId: productivity_task_overview
+      parameters:
+      - in: query
+        name: page
+        schema:
+          type: integer
+      - in: path
+        name: project_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - in: path
+        name: task_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - productivity
+      security:
+      - mfaSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/productivity/projects/{project_id}/tasks/{task_id}/schedules/:
+    post:
+      operationId: productivity_create_schedule
+      parameters:
+      - in: path
+        name: project_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - in: path
+        name: task_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - productivity
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RecurrenceInput'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/RecurrenceInput'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/RecurrenceInput'
+        required: true
+      security:
+      - mfaSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/productivity/projects/{project_id}/tasks/{task_id}/schedules/{schedule_id}/stop/:
+    post:
+      operationId: productivity_stop_schedule
+      parameters:
+      - in: path
+        name: project_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - in: path
+        name: schedule_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - in: path
+        name: task_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - productivity
+      security:
+      - mfaSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/productivity/projects/{project_id}/tasks/{task_id}/time/:
+    post:
+      operationId: productivity_add_manual
+      parameters:
+      - in: path
+        name: project_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - in: path
+        name: task_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - productivity
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ManualTimeInput'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ManualTimeInput'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ManualTimeInput'
+        required: true
+      security:
+      - mfaSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/productivity/projects/{project_id}/tasks/{task_id}/time/{entry_id}/:
+    patch:
+      operationId: productivity_correct_entry
+      parameters:
+      - in: path
+        name: entry_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - in: path
+        name: project_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - in: path
+        name: task_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - productivity
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedCorrectTimeInput'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedCorrectTimeInput'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedCorrectTimeInput'
+      security:
+      - mfaSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/productivity/projects/{project_id}/tasks/{task_id}/time/{entry_id}/discard/:
+    post:
+      operationId: productivity_discard_entry
+      parameters:
+      - in: path
+        name: entry_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - in: path
+        name: project_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - in: path
+        name: task_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - productivity
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DiscardTimeInput'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/DiscardTimeInput'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/DiscardTimeInput'
+        required: true
+      security:
+      - mfaSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/productivity/projects/{project_id}/tasks/{task_id}/timer/start/:
+    post:
+      operationId: productivity_start_timer
+      parameters:
+      - in: path
+        name: project_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - in: path
+        name: task_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - productivity
+      security:
+      - mfaSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/productivity/projects/{project_id}/tasks/{task_id}/timer/stop/:
+    post:
+      operationId: productivity_stop_timer
+      parameters:
+      - in: path
+        name: project_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - in: path
+        name: task_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - productivity
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TimerStopInput'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/TimerStopInput'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/TimerStopInput'
+      security:
+      - mfaSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/productivity/projects/{project_id}/workload/:
+    get:
+      operationId: productivity_workload
+      parameters:
+      - in: path
+        name: project_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - productivity
+      security:
+      - mfaSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/productivity/timer/:
+    get:
+      operationId: productivity_active_timer
+      tags:
+      - productivity
+      security:
+      - mfaSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/productivity/timer/discard/:
+    post:
+      operationId: productivity_discard_timer
+      tags:
+      - productivity
+      security:
+      - mfaSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
   /api/v1/profile/:
     get:
       operationId: profile_retrieve
@@ -1493,6 +5410,520 @@ paths:
               schema:
                 $ref: '#/components/schemas/ActivityTimelineResponse'
           description: ''
+  /api/v1/recruiting/applications/{application_id}/decision/:
+    post:
+      operationId: recruiting_applications_decision_create
+      parameters:
+      - in: path
+        name: application_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - recruiting
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DecisionInput'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/DecisionInput'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/DecisionInput'
+        required: true
+      security:
+      - mfaSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/recruiting/applications/{application_id}/withdraw/:
+    post:
+      operationId: recruiting_applications_withdraw_create
+      parameters:
+      - in: path
+        name: application_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - recruiting
+      security:
+      - mfaSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/recruiting/listings/:
+    get:
+      operationId: recruiting_listings_list
+      parameters:
+      - in: query
+        name: cooperation
+        schema:
+          type: string
+      - in: query
+        name: course
+        schema:
+          type: string
+      - in: query
+        name: page
+        schema:
+          type: integer
+      - in: query
+        name: q
+        schema:
+          type: string
+      - in: query
+        name: saved
+        schema:
+          type: boolean
+      - in: query
+        name: skill
+        schema:
+          type: string
+      - in: query
+        name: university
+        schema:
+          type: string
+      tags:
+      - recruiting
+      security:
+      - mfaSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+    post:
+      operationId: recruiting_listings_create
+      parameters:
+      - in: query
+        name: cooperation
+        schema:
+          type: string
+      - in: query
+        name: course
+        schema:
+          type: string
+      - in: query
+        name: page
+        schema:
+          type: integer
+      - in: query
+        name: q
+        schema:
+          type: string
+      - in: query
+        name: saved
+        schema:
+          type: boolean
+      - in: query
+        name: skill
+        schema:
+          type: string
+      - in: query
+        name: university
+        schema:
+          type: string
+      tags:
+      - recruiting
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RecruitmentInput'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/RecruitmentInput'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/RecruitmentInput'
+        required: true
+      security:
+      - mfaSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/recruiting/listings/{listing_id}/:
+    get:
+      operationId: recruiting_listings_retrieve
+      parameters:
+      - in: path
+        name: listing_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - recruiting
+      security:
+      - mfaSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+    patch:
+      operationId: recruiting_listings_partial_update
+      parameters:
+      - in: path
+        name: listing_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - recruiting
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedRecruitmentEdit'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedRecruitmentEdit'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedRecruitmentEdit'
+      security:
+      - mfaSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/recruiting/listings/{listing_id}/applications/:
+    get:
+      operationId: recruiting_listings_applications_retrieve
+      parameters:
+      - in: path
+        name: listing_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - in: query
+        name: page
+        schema:
+          type: integer
+      tags:
+      - recruiting
+      security:
+      - mfaSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/recruiting/listings/{listing_id}/apply/:
+    post:
+      operationId: recruiting_listings_apply_create
+      parameters:
+      - in: path
+        name: listing_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - recruiting
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ApplicationInput'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ApplicationInput'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ApplicationInput'
+        required: true
+      security:
+      - mfaSession: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/recruiting/listings/{listing_id}/bookmark/:
+    post:
+      operationId: recruiting_listings_bookmark_create
+      parameters:
+      - in: path
+        name: listing_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - recruiting
+      security:
+      - mfaSession: []
+      responses:
+        '204':
+          description: No response body
+    delete:
+      operationId: recruiting_listings_bookmark_destroy
+      parameters:
+      - in: path
+        name: listing_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - recruiting
+      security:
+      - mfaSession: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/recruiting/listings/{listing_id}/close/:
+    post:
+      operationId: recruiting_listings_close_create
+      parameters:
+      - in: path
+        name: listing_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - recruiting
+      security:
+      - mfaSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/recruiting/listings/{listing_id}/reopen/:
+    post:
+      operationId: recruiting_listings_reopen_create
+      parameters:
+      - in: path
+        name: listing_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - recruiting
+      security:
+      - mfaSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/recruiting/listings/{listing_id}/report/:
+    post:
+      operationId: recruiting_listings_report_create
+      parameters:
+      - in: path
+        name: listing_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - recruiting
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RecruitmentReportInput'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/RecruitmentReportInput'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/RecruitmentReportInput'
+        required: true
+      security:
+      - mfaSession: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/recruiting/overview/:
+    get:
+      operationId: recruiting_overview_retrieve
+      parameters:
+      - in: query
+        name: applications_page
+        schema:
+          type: integer
+      - in: query
+        name: mine_page
+        schema:
+          type: integer
+      - in: query
+        name: projects_page
+        schema:
+          type: integer
+      tags:
+      - recruiting
+      security:
+      - mfaSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/recruiting/recommendations/:
+    get:
+      operationId: recruiting_recommendations_list
+      parameters:
+      - in: query
+        name: cooperation
+        schema:
+          enum:
+          - ''
+          - online
+          - campus
+          - hybrid
+          type: string
+          minLength: 1
+        description: "* `` - \n* `online` - online\n* `campus` - campus\n* `hybrid`
+          - hybrid"
+      - in: query
+        name: course
+        schema:
+          type: string
+          maxLength: 60
+      - in: query
+        name: language
+        schema:
+          type: string
+          maxLength: 40
+      - in: query
+        name: page
+        schema:
+          type: integer
+      - in: query
+        name: skill
+        schema:
+          type: string
+          maxLength: 50
+      - in: query
+        name: university
+        schema:
+          type: string
+          maxLength: 120
+      tags:
+      - recruiting
+      security:
+      - mfaSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/recruiting/reports/:
+    get:
+      operationId: recruiting_reports_retrieve
+      parameters:
+      - in: query
+        name: page
+        schema:
+          type: integer
+      tags:
+      - recruiting
+      security:
+      - mfaSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/recruiting/reports/{report_id}/resolve/:
+    post:
+      operationId: recruiting_reports_resolve_create
+      parameters:
+      - in: path
+        name: report_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - recruiting
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RecruitmentModerationInput'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/RecruitmentModerationInput'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/RecruitmentModerationInput'
+        required: true
+      security:
+      - mfaSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
   /api/v1/tasks/:
     get:
       operationId: tasks_list
@@ -1838,6 +6269,31 @@ paths:
           description: ''
 components:
   schemas:
+    ActionWrite:
+      type: object
+      description: Reject undeclared and read-only input instead of silently ignoring
+        it.
+      properties:
+        title:
+          type: string
+          maxLength: 120
+          minLength: 3
+        description:
+          type: string
+          default: ''
+          maxLength: 4000
+        due_at:
+          type: string
+          format: date-time
+          nullable: true
+        assignee_ids:
+          type: array
+          items:
+            type: string
+            format: uuid
+          maxItems: 100
+      required:
+      - title
     ActivityEvent:
       type: object
       properties:
@@ -1911,9 +6367,163 @@ components:
       - events_page_size
       - events_pages
       - events_total
+    AdminContactsViewPage:
+      type: object
+      properties:
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Contact'
+        total:
+          type: integer
+        page:
+          type: integer
+        page_size:
+          type: integer
+        pages:
+          type: integer
+      required:
+      - page
+      - page_size
+      - pages
+      - results
+      - total
+    AdminDeliveriesViewPage:
+      type: object
+      properties:
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Delivery'
+        total:
+          type: integer
+        page:
+          type: integer
+        page_size:
+          type: integer
+        pages:
+          type: integer
+      required:
+      - page
+      - page_size
+      - pages
+      - results
+      - total
+    AdminTicketsViewPage:
+      type: object
+      properties:
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Ticket'
+        total:
+          type: integer
+        page:
+          type: integer
+        page_size:
+          type: integer
+        pages:
+          type: integer
+      required:
+      - page
+      - page_size
+      - pages
+      - results
+      - total
+    AgreementInput:
+      type: object
+      properties:
+        expected_revision:
+          type: integer
+          minimum: 0
+        body:
+          type: string
+          maxLength: 6000
+      required:
+      - body
+    Alert:
+      type: object
+      description: Reject undeclared and read-only input instead of silently ignoring
+        it.
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        project:
+          type: string
+          format: uuid
+          readOnly: true
+        project_name:
+          type: string
+          readOnly: true
+        category:
+          type: string
+          readOnly: true
+        title:
+          type: string
+          readOnly: true
+        body:
+          type: string
+          readOnly: true
+        target_url:
+          type: string
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        read_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+      required:
+      - body
+      - category
+      - created_at
+      - id
+      - project
+      - project_name
+      - read_at
+      - target_url
+      - title
+    AlertsViewPage:
+      type: object
+      properties:
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Alert'
+        total:
+          type: integer
+        page:
+          type: integer
+        page_size:
+          type: integer
+        pages:
+          type: integer
+        count:
+          type: integer
+          description: Unread reminders across all pages.
+      required:
+      - count
+      - page
+      - page_size
+      - pages
+      - results
+      - total
+    ApplicationInput:
+      type: object
+      properties:
+        message:
+          type: string
+          maxLength: 1500
+      required:
+      - message
     AssigneeUpdate:
       type: object
-      description: Reject undeclared and read-only input instead of silently discarding
+      description: Reject undeclared and read-only input instead of silently ignoring
         it.
       properties:
         assignee_ids:
@@ -1923,6 +6533,196 @@ components:
             format: uuid
       required:
       - assignee_ids
+    AttendanceWrite:
+      type: object
+      description: Reject undeclared and read-only input instead of silently ignoring
+        it.
+      properties:
+        user_id:
+          type: string
+          format: uuid
+        attended:
+          type: boolean
+        note:
+          type: string
+          maxLength: 500
+          minLength: 1
+      required:
+      - attended
+      - note
+      - user_id
+    AvailabilityWrite:
+      type: object
+      description: Reject undeclared and read-only input instead of silently ignoring
+        it.
+      properties:
+        project:
+          type: string
+          format: uuid
+        time_zone:
+          type: string
+          maxLength: 64
+        slots: {}
+      required:
+      - project
+      - slots
+      - time_zone
+    BlankEnum:
+      enum:
+      - ''
+    Block:
+      type: object
+      description: Reject undeclared and read-only input instead of silently ignoring
+        it.
+      properties:
+        user_id:
+          type: string
+          format: uuid
+        blocked:
+          type: boolean
+          default: true
+      required:
+      - user_id
+    Body:
+      type: object
+      description: Reject undeclared and read-only input instead of silently ignoring
+        it.
+      properties:
+        body:
+          type: string
+          maxLength: 2000
+      required:
+      - body
+    Candidate:
+      type: object
+      description: Reject undeclared and read-only input instead of silently ignoring
+        it.
+      properties:
+        starts_at:
+          type: string
+          format: date-time
+        ends_at:
+          type: string
+          format: date-time
+      required:
+      - ends_at
+      - starts_at
+    ChatRemoveInput:
+      type: object
+      description: Reject undeclared and read-only input instead of silently ignoring
+        it.
+      properties:
+        expected_updated_at:
+          type: string
+          format: date-time
+        reason:
+          type: string
+          default: Message withdrawn
+          maxLength: 300
+          minLength: 3
+      required:
+      - expected_updated_at
+    ChatSendInput:
+      type: object
+      description: Reject undeclared and read-only input instead of silently ignoring
+        it.
+      properties:
+        body:
+          type: string
+          maxLength: 2000
+          minLength: 1
+        client_nonce:
+          type: string
+          format: uuid
+      required:
+      - body
+      - client_nonce
+    ChecklistInput:
+      type: object
+      properties:
+        text:
+          type: string
+          maxLength: 300
+        checked:
+          type: boolean
+    ClaimResponse:
+      type: object
+      description: Reject undeclared and read-only input instead of silently ignoring
+        it.
+      properties:
+        response:
+          $ref: '#/components/schemas/ClaimResponseResponseEnum'
+      required:
+      - response
+    ClaimResponseResponseEnum:
+      enum:
+      - confirmed
+      - declined
+      type: string
+      description: |-
+        * `confirmed` - confirmed
+        * `declined` - declined
+    ClaimWrite:
+      type: object
+      description: Reject undeclared and read-only input instead of silently ignoring
+        it.
+      properties:
+        project:
+          type: string
+          format: uuid
+        title:
+          type: string
+          maxLength: 160
+          minLength: 3
+        statement:
+          type: string
+          maxLength: 6000
+          minLength: 10
+        artifact_url:
+          oneOf:
+          - type: string
+            format: uri
+            default: ''
+            maxLength: 2048
+          - type: string
+            maxLength: 0
+        task_id:
+          type: string
+          format: uuid
+          nullable: true
+        contributor_ids:
+          type: array
+          items:
+            type: string
+            format: uuid
+          maxItems: 100
+        supersedes_id:
+          type: string
+          format: uuid
+          nullable: true
+      required:
+      - project
+      - statement
+      - title
+    CloseAccount:
+      type: object
+      properties:
+        confirmation:
+          type: string
+          maxLength: 80
+      required:
+      - confirmation
+    CollaborationPreferenceEnum:
+      enum:
+      - online
+      - in_person
+      - hybrid
+      type: string
+      description: |-
+        * `` - No preference
+        * `online` - Online
+        * `in_person` - In person
+        * `hybrid` - Online and in person
     Comment:
       type: object
       properties:
@@ -1969,7 +6769,7 @@ components:
       - task
     CommentCreate:
       type: object
-      description: Reject undeclared and read-only input instead of silently discarding
+      description: Reject undeclared and read-only input instead of silently ignoring
         it.
       properties:
         body:
@@ -1989,17 +6789,29 @@ components:
       - task
     CommentReport:
       type: object
-      description: Reject undeclared and read-only input instead of silently discarding
+      description: Reject undeclared and read-only input instead of silently ignoring
         it.
       properties:
         reason:
-          $ref: '#/components/schemas/ReasonEnum'
+          $ref: '#/components/schemas/CommentReportReasonEnum'
         details:
           type: string
           default: ''
           maxLength: 500
       required:
       - reason
+    CommentReportReasonEnum:
+      enum:
+      - abuse
+      - privacy
+      - spam
+      - other
+      type: string
+      description: |-
+        * `abuse` - Abusive content
+        * `privacy` - Personal or private information
+        * `spam` - Spam
+        * `other` - Other
     CommentReportResult:
       type: object
       properties:
@@ -2016,7 +6828,7 @@ components:
       - status
     CommentWrite:
       type: object
-      description: Reject undeclared and read-only input instead of silently discarding
+      description: Reject undeclared and read-only input instead of silently ignoring
         it.
       properties:
         body:
@@ -2025,9 +6837,297 @@ components:
           minLength: 1
       required:
       - body
+    ConfirmInput:
+      type: object
+      properties:
+        preview_id:
+          type: string
+          format: uuid
+        confirmed:
+          type: boolean
+      required:
+      - confirmed
+      - preview_id
+    ConfirmationWrite:
+      type: object
+      description: Reject undeclared and read-only input instead of silently ignoring
+        it.
+      properties:
+        version:
+          type: integer
+          minimum: 1
+      required:
+      - version
+    Contact:
+      type: object
+      description: Reject undeclared and read-only input instead of silently ignoring
+        it.
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        email:
+          type: string
+          format: email
+          readOnly: true
+        category:
+          allOf:
+          - $ref: '#/components/schemas/ContactCategoryEnum'
+          readOnly: true
+        subject:
+          type: string
+          readOnly: true
+        description:
+          type: string
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        verified_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        resolved_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        response:
+          type: string
+          readOnly: true
+      required:
+      - category
+      - created_at
+      - description
+      - email
+      - id
+      - resolved_at
+      - response
+      - subject
+      - verified_at
+    ContactCategoryEnum:
+      enum:
+      - help
+      - appeal
+      - privacy
+      type: string
+      description: |-
+        * `help` - Help
+        * `appeal` - Appeal
+        * `privacy` - Privacy
+    ContactResponse:
+      type: object
+      description: Reject undeclared and read-only input instead of silently ignoring
+        it.
+      properties:
+        response:
+          type: string
+          maxLength: 2000
+      required:
+      - response
+    CooperationEnum:
+      enum:
+      - online
+      - campus
+      - hybrid
+      type: string
+      description: |-
+        * `online` - online
+        * `campus` - campus
+        * `hybrid` - hybrid
+    CopyTermInput:
+      type: object
+      properties:
+        year:
+          type: integer
+          maximum: 2100
+          minimum: 2000
+        name:
+          type: string
+          maxLength: 80
+        projects:
+          type: array
+          items:
+            type: string
+            format: uuid
+          maxItems: 20
+      required:
+      - name
+      - year
+    CourseInput:
+      type: object
+      properties:
+        university:
+          type: string
+          maxLength: 120
+        code:
+          type: string
+          maxLength: 30
+        name:
+          type: string
+          maxLength: 120
+      required:
+      - code
+      - name
+      - university
+    CourseLinkInput:
+      type: object
+      properties:
+        course:
+          type: string
+          format: uuid
+        term:
+          type: string
+          format: uuid
+      required:
+      - course
+      - term
+    DecisionInput:
+      type: object
+      properties:
+        decision:
+          $ref: '#/components/schemas/DecisionInputDecisionEnum'
+        reason:
+          type: string
+          default: ''
+          maxLength: 1000
+      required:
+      - decision
+    DecisionInputDecisionEnum:
+      enum:
+      - approve
+      - reject
+      type: string
+      description: |-
+        * `approve` - approve
+        * `reject` - reject
+    DeliveriesViewPage:
+      type: object
+      properties:
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Delivery'
+        total:
+          type: integer
+        page:
+          type: integer
+        page_size:
+          type: integer
+        pages:
+          type: integer
+      required:
+      - page
+      - page_size
+      - pages
+      - results
+      - total
+    Delivery:
+      type: object
+      description: Reject undeclared and read-only input instead of silently ignoring
+        it.
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        subject:
+          type: string
+          readOnly: true
+        category:
+          type: string
+          readOnly: true
+        status:
+          allOf:
+          - $ref: '#/components/schemas/DeliveryStatusEnum'
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        available_at:
+          type: string
+          format: date-time
+          readOnly: true
+        accepted_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        confirmed_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        attempts:
+          type: integer
+          readOnly: true
+        failure_reason:
+          type: string
+          readOnly: true
+      required:
+      - accepted_at
+      - attempts
+      - available_at
+      - category
+      - confirmed_at
+      - created_at
+      - failure_reason
+      - id
+      - status
+      - subject
+    DeliveryStatusEnum:
+      enum:
+      - queued
+      - processing
+      - accepted
+      - delivered
+      - failed
+      - bounced
+      - complained
+      - cancelled
+      type: string
+      description: |-
+        * `queued` - Queued
+        * `processing` - Processing
+        * `accepted` - Accepted by mail server
+        * `delivered` - Delivery confirmed
+        * `failed` - Failed
+        * `bounced` - Bounced
+        * `complained` - Complaint
+        * `cancelled` - Cancelled
+    DigestEnum:
+      enum:
+      - 'off'
+      - daily
+      - weekly
+      type: string
+      description: |-
+        * `off` - Off
+        * `daily` - Daily
+        * `weekly` - Weekly
+    DiscardTimeInput:
+      type: object
+      properties:
+        expected_updated_at:
+          type: string
+          format: date-time
+      required:
+      - expected_updated_at
+    DocumentRevisionInput:
+      type: object
+      properties:
+        expected_revision:
+          type: integer
+          minimum: 1
+      required:
+      - expected_revision
     EmailChangeConfirm:
       type: object
-      description: Reject undeclared and read-only input instead of silently discarding
+      description: Reject undeclared and read-only input instead of silently ignoring
         it.
       properties:
         request_id:
@@ -2051,7 +7151,7 @@ components:
       - email
     EmailChangeStart:
       type: object
-      description: Reject undeclared and read-only input instead of silently discarding
+      description: Reject undeclared and read-only input instead of silently ignoring
         it.
       properties:
         new_email:
@@ -2220,7 +7320,7 @@ components:
         * `expired` - Expired
     ExportRequest:
       type: object
-      description: Reject undeclared and read-only input instead of silently discarding
+      description: Reject undeclared and read-only input instead of silently ignoring
         it.
       properties:
         project:
@@ -2247,6 +7347,14 @@ components:
       description: |-
         * `pdf` - PDF
         * `csv` - CSV
+    FrequencyEnum:
+      enum:
+      - weekly
+      - monthly
+      type: string
+      description: |-
+        * `weekly` - weekly
+        * `monthly` - monthly
     Health:
       type: object
       properties:
@@ -2279,7 +7387,7 @@ components:
           nullable: true
         source:
           allOf:
-          - $ref: '#/components/schemas/SourceEnum'
+          - $ref: '#/components/schemas/HolidayAdvisorySourceEnum'
           readOnly: true
         message:
           type: string
@@ -2291,6 +7399,18 @@ components:
       - meeting_date
       - message
       - source
+    HolidayAdvisorySourceEnum:
+      enum:
+      - live
+      - cache
+      - stale
+      - unavailable
+      type: string
+      description: |-
+        * `live` - live
+        * `cache` - cache
+        * `stale` - stale
+        * `unavailable` - unavailable
     InsightDailyCount:
       type: object
       properties:
@@ -2416,9 +7536,17 @@ components:
       - members
       - range_end
       - range_start
+    IntervalDaysEnum:
+      enum:
+      - 7
+      - 14
+      type: integer
+      description: |-
+        * `7` - 7
+        * `14` - 14
     Invitation:
       type: object
-      description: Reject undeclared and read-only input instead of silently discarding
+      description: Reject undeclared and read-only input instead of silently ignoring
         it.
       properties:
         id:
@@ -2533,6 +7661,64 @@ components:
         * `declined` - Declined
         * `cancelled` - Cancelled
         * `expired` - Expired
+    JoinInput:
+      type: object
+      properties:
+        token:
+          type: string
+          maxLength: 100
+          minLength: 20
+      required:
+      - token
+    JoinLinkInput:
+      type: object
+      properties:
+        expires_at:
+          type: string
+          format: date-time
+        max_uses:
+          type: integer
+          maximum: 50
+          minimum: 1
+          default: 10
+      required:
+      - expires_at
+    KindEnum:
+      enum:
+      - discussion
+      - announcement
+      type: string
+      description: |-
+        * `discussion` - discussion
+        * `announcement` - announcement
+    LeaveInput:
+      type: object
+      properties:
+        handover_user:
+          type: string
+          format: uuid
+          nullable: true
+        new_owner:
+          type: string
+          format: uuid
+          nullable: true
+    ManualTimeInput:
+      type: object
+      properties:
+        started_at:
+          type: string
+          format: date-time
+        minutes:
+          type: integer
+          maximum: 1440
+          minimum: 1
+        note:
+          type: string
+          default: ''
+          maxLength: 500
+      required:
+      - minutes
+      - started_at
     Me:
       type: object
       properties:
@@ -2640,7 +7826,7 @@ components:
       - updated_at
     MeetingCreate:
       type: object
-      description: Reject undeclared and read-only input instead of silently discarding
+      description: Reject undeclared and read-only input instead of silently ignoring
         it.
       properties:
         title:
@@ -2669,7 +7855,7 @@ components:
       - title
     MeetingReplace:
       type: object
-      description: Reject undeclared and read-only input instead of silently discarding
+      description: Reject undeclared and read-only input instead of silently ignoring
         it.
       properties:
         title:
@@ -2776,13 +7962,39 @@ components:
         * `member` - Member
     MembershipRoleUpdate:
       type: object
-      description: Reject undeclared and read-only input instead of silently discarding
+      description: Reject undeclared and read-only input instead of silently ignoring
         it.
       properties:
         role:
           $ref: '#/components/schemas/MutableMembershipRoleEnum'
       required:
       - role
+    MilestoneInput:
+      type: object
+      properties:
+        title:
+          type: string
+          maxLength: 120
+        due_at:
+          type: string
+          format: date-time
+          nullable: true
+        done:
+          type: boolean
+    ModerationInput:
+      type: object
+      description: Reject undeclared and read-only input instead of silently ignoring
+        it.
+      properties:
+        hide:
+          type: boolean
+        reason:
+          type: string
+          maxLength: 2000
+          minLength: 5
+      required:
+      - hide
+      - reason
     MutableMembershipRoleEnum:
       enum:
       - member
@@ -2791,6 +8003,47 @@ components:
       description: |-
         * `member` - member
         * `facilitator` - facilitator
+    Mute:
+      type: object
+      description: Reject undeclared and read-only input instead of silently ignoring
+        it.
+      properties:
+        project:
+          type: string
+          format: uuid
+        muted:
+          type: boolean
+      required:
+      - muted
+      - project
+    Notice:
+      type: object
+      description: Reject undeclared and read-only input instead of silently ignoring
+        it.
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        title:
+          type: string
+          maxLength: 160
+        body:
+          type: string
+          maxLength: 2000
+        severity:
+          $ref: '#/components/schemas/SeverityEnum'
+        starts_at:
+          type: string
+          format: date-time
+        ends_at:
+          type: string
+          format: date-time
+          nullable: true
+      required:
+      - body
+      - id
+      - title
     Notification:
       type: object
       properties:
@@ -2845,9 +8098,91 @@ components:
         * `task_assignment` - Task assignment
         * `comment_mention` - Comment mention
         * `meeting_change` - Meeting change
+    OfflineSyncConflict:
+      type: object
+      properties:
+        error:
+          $ref: '#/components/schemas/OfflineSyncError'
+        current:
+          $ref: '#/components/schemas/Task'
+      required:
+      - current
+      - error
+    OfflineSyncError:
+      type: object
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+      required:
+      - code
+      - message
+    OfflineTaskChanges:
+      type: object
+      description: Reject undeclared and read-only input instead of silently ignoring
+        it.
+      properties:
+        title:
+          type: string
+          maxLength: 120
+          minLength: 3
+        description:
+          type: string
+          maxLength: 4000
+        priority:
+          $ref: '#/components/schemas/TaskPriorityEnum'
+        due_at:
+          type: string
+          format: date-time
+          nullable: true
+        status:
+          $ref: '#/components/schemas/TaskStatusEnum'
+        blocker_note:
+          type: string
+          maxLength: 500
+    OfflineTaskSyncInput:
+      type: object
+      description: Reject undeclared and read-only input instead of silently ignoring
+        it.
+      properties:
+        expected_user_id:
+          type: string
+          format: uuid
+        mutation_id:
+          type: string
+          format: uuid
+        expected_updated_at:
+          type: string
+          format: date-time
+        changes:
+          $ref: '#/components/schemas/OfflineTaskChanges'
+      required:
+      - changes
+      - expected_updated_at
+      - expected_user_id
+      - mutation_id
+    OfflineTaskSyncResult:
+      type: object
+      properties:
+        task:
+          $ref: '#/components/schemas/Task'
+        duplicate:
+          type: boolean
+      required:
+      - duplicate
+      - task
+    OutcomeEnum:
+      enum:
+      - confirmed
+      - changes_requested
+      type: string
+      description: |-
+        * `confirmed` - confirmed
+        * `changes_requested` - changes_requested
     OwnershipTransfer:
       type: object
-      description: Reject undeclared and read-only input instead of silently discarding
+      description: Reject undeclared and read-only input instead of silently ignoring
         it.
       properties:
         previous_owner_role:
@@ -3061,18 +8396,56 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/Task'
+    Participant:
+      type: object
+      description: Reject undeclared and read-only input instead of silently ignoring
+        it.
+      properties:
+        user_id:
+          type: string
+          format: uuid
+        required:
+          type: boolean
+      required:
+      - required
+      - user_id
+    PatchedChecklistInput:
+      type: object
+      properties:
+        text:
+          type: string
+          maxLength: 300
+        checked:
+          type: boolean
     PatchedCommentWrite:
       type: object
-      description: Reject undeclared and read-only input instead of silently discarding
+      description: Reject undeclared and read-only input instead of silently ignoring
         it.
       properties:
         body:
           type: string
           maxLength: 2000
           minLength: 1
+    PatchedCorrectTimeInput:
+      type: object
+      properties:
+        started_at:
+          type: string
+          format: date-time
+        minutes:
+          type: integer
+          maximum: 1440
+          minimum: 1
+        note:
+          type: string
+          default: ''
+          maxLength: 500
+        expected_updated_at:
+          type: string
+          format: date-time
     PatchedMeetingWrite:
       type: object
-      description: Reject undeclared and read-only input instead of silently discarding
+      description: Reject undeclared and read-only input instead of silently ignoring
         it.
       properties:
         title:
@@ -3093,14 +8466,105 @@ components:
           maxLength: 4000
     PatchedMembershipRoleUpdate:
       type: object
-      description: Reject undeclared and read-only input instead of silently discarding
+      description: Reject undeclared and read-only input instead of silently ignoring
         it.
       properties:
         role:
           $ref: '#/components/schemas/MutableMembershipRoleEnum'
+    PatchedMetadataInput:
+      type: object
+      properties:
+        title:
+          type: string
+          maxLength: 150
+        folder:
+          type: string
+          maxLength: 80
+        tags:
+          type: array
+          items:
+            type: string
+            maxLength: 32
+          maxItems: 10
+        pinned:
+          type: boolean
+        expected_revision:
+          type: integer
+          minimum: 1
+    PatchedMilestoneInput:
+      type: object
+      properties:
+        title:
+          type: string
+          maxLength: 120
+        due_at:
+          type: string
+          format: date-time
+          nullable: true
+        done:
+          type: boolean
+    PatchedPostInput:
+      type: object
+      description: Reject undeclared and read-only input instead of silently ignoring
+        it.
+      properties:
+        title:
+          type: string
+          maxLength: 120
+          minLength: 3
+        body:
+          type: string
+          maxLength: 6000
+        kind:
+          allOf:
+          - $ref: '#/components/schemas/KindEnum'
+          default: discussion
+        pinned:
+          type: boolean
+          default: false
+        mention_ids:
+          type: array
+          items:
+            type: string
+            format: uuid
+          maxItems: 50
+        expected_updated_at:
+          type: string
+          format: date-time
+    PatchedPreference:
+      type: object
+      description: Reject undeclared and read-only input instead of silently ignoring
+        it.
+      properties:
+        in_app:
+          type: boolean
+        email:
+          type: boolean
+        task_reminders:
+          type: boolean
+        meeting_reminders:
+          type: boolean
+        assignments:
+          type: boolean
+        mentions:
+          type: boolean
+        invitations:
+          type: boolean
+        meeting_changes:
+          type: boolean
+        digest:
+          $ref: '#/components/schemas/DigestEnum'
+        quiet_start:
+          type: string
+          format: time
+          nullable: true
+        quiet_end:
+          type: string
+          format: time
+          nullable: true
     PatchedProfile:
       type: object
-      description: Reject undeclared and read-only input instead of silently discarding
+      description: Reject undeclared and read-only input instead of silently ignoring
         it.
       properties:
         email:
@@ -3120,6 +8584,28 @@ components:
         biography:
           type: string
           maxLength: 500
+        major:
+          type: string
+          maxLength: 120
+        skills:
+          type: array
+          items:
+            type: string
+            maxLength: 40
+          maxItems: 12
+        communication_languages:
+          type: array
+          items:
+            type: string
+            maxLength: 40
+          maxItems: 8
+        collaboration_preference:
+          oneOf:
+          - $ref: '#/components/schemas/CollaborationPreferenceEnum'
+          - $ref: '#/components/schemas/BlankEnum'
+        email_verified:
+          type: boolean
+          readOnly: true
         avatar_url:
           oneOf:
           - type: string
@@ -3136,7 +8622,7 @@ components:
           readOnly: true
     PatchedProject:
       type: object
-      description: Reject undeclared and read-only input instead of silently discarding
+      description: Reject undeclared and read-only input instead of silently ignoring
         it.
       properties:
         id:
@@ -3178,11 +8664,157 @@ components:
         member_count:
           type: integer
           readOnly: true
+    PatchedRecruitmentEdit:
+      type: object
+      properties:
+        title:
+          type: string
+          maxLength: 120
+        university:
+          type: string
+          maxLength: 120
+        course:
+          type: string
+          maxLength: 60
+        term:
+          type: string
+          maxLength: 80
+        description:
+          type: string
+          maxLength: 3000
+        skills:
+          type: array
+          items:
+            type: string
+            maxLength: 50
+          maxItems: 10
+        languages:
+          type: array
+          items:
+            type: string
+            maxLength: 40
+          maxItems: 5
+        cooperation:
+          allOf:
+          - $ref: '#/components/schemas/CooperationEnum'
+          default: hybrid
+        capacity:
+          type: integer
+          maximum: 20
+          minimum: 1
+        expires_at:
+          type: string
+          format: date-time
+        expected_updated_at:
+          type: string
+          format: date-time
+    PatchedResourceInput:
+      type: object
+      properties:
+        title:
+          type: string
+          maxLength: 150
+        url:
+          type: string
+          maxLength: 2048
+        description:
+          type: string
+          maxLength: 1000
+        tags:
+          type: array
+          items:
+            type: string
+            maxLength: 30
+          maxItems: 10
+        pinned:
+          type: boolean
+    PatchedSubmissionInput:
+      type: object
+      properties:
+        internal_due_at:
+          type: string
+          format: date-time
+          nullable: true
+        official_due_at:
+          type: string
+          format: date-time
+          nullable: true
+    PatchedTaskBulkInput:
+      type: object
+      properties:
+        tasks:
+          type: array
+          items:
+            type: string
+            format: uuid
+          maxItems: 50
+          minItems: 1
+        assignees:
+          type: array
+          items:
+            type: string
+            format: uuid
+          maxItems: 100
+        priority:
+          $ref: '#/components/schemas/TaskPriorityEnum'
+        internal_due_at:
+          type: string
+          format: date-time
+          nullable: true
+    PatchedTaskPlanInput:
+      type: object
+      properties:
+        tags:
+          type: array
+          items:
+            type: string
+            maxLength: 30
+          maxItems: 10
+        estimate_hours:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,4}(?:\.\d{0,2})?$
+          nullable: true
+        parent:
+          type: string
+          format: uuid
+          nullable: true
+        milestone:
+          type: string
+          format: uuid
+          nullable: true
+        reviewer:
+          type: string
+          format: uuid
+          nullable: true
+        acceptance:
+          type: string
+          maxLength: 4000
+        internal_due_at:
+          type: string
+          format: date-time
+          nullable: true
+        official_due_at:
+          type: string
+          format: date-time
+          nullable: true
+        outcome_url:
+          type: string
+          maxLength: 2048
+        dependencies:
+          type: array
+          items:
+            type: string
+            format: uuid
+          maxItems: 100
     PatchedTaskWrite:
       type: object
-      description: Reject undeclared and read-only input instead of silently discarding
+      description: Reject undeclared and read-only input instead of silently ignoring
         it.
       properties:
+        expected_updated_at:
+          type: string
+          format: date-time
         title:
           type: string
           maxLength: 120
@@ -3191,11 +8823,31 @@ components:
           type: string
           maxLength: 4000
         priority:
-          $ref: '#/components/schemas/PriorityEnum'
+          $ref: '#/components/schemas/TaskPriorityEnum'
         due_at:
           type: string
           format: date-time
           nullable: true
+    PatchedTicketUpdate:
+      type: object
+      description: Reject undeclared and read-only input instead of silently ignoring
+        it.
+      properties:
+        status:
+          $ref: '#/components/schemas/SupportStatusEnum'
+        resolution:
+          type: string
+          maxLength: 2000
+    Payload:
+      type: object
+      description: Reject undeclared and read-only input instead of silently ignoring
+        it.
+      properties:
+        results: {}
+        count:
+          type: integer
+        detail:
+          type: string
     PermissionSummary:
       type: object
       properties:
@@ -3204,21 +8856,143 @@ components:
           readOnly: true
       required:
       - site_moderator
-    PriorityEnum:
+    PollClose:
+      type: object
+      description: Reject undeclared and read-only input instead of silently ignoring
+        it.
+      properties:
+        option_id:
+          type: string
+          format: uuid
+      required:
+      - option_id
+    PollWrite:
+      type: object
+      description: Reject undeclared and read-only input instead of silently ignoring
+        it.
+      properties:
+        project:
+          type: string
+          format: uuid
+        title:
+          type: string
+          maxLength: 120
+          minLength: 3
+        agenda:
+          type: string
+          default: ''
+          maxLength: 4000
+        location:
+          type: string
+          default: ''
+          maxLength: 2048
+        participants:
+          type: array
+          items:
+            $ref: '#/components/schemas/Participant'
+        options:
+          type: array
+          items:
+            $ref: '#/components/schemas/Candidate'
+      required:
+      - options
+      - participants
+      - project
+      - title
+    PostInput:
+      type: object
+      description: Reject undeclared and read-only input instead of silently ignoring
+        it.
+      properties:
+        title:
+          type: string
+          maxLength: 120
+          minLength: 3
+        body:
+          type: string
+          maxLength: 6000
+        kind:
+          allOf:
+          - $ref: '#/components/schemas/KindEnum'
+          default: discussion
+        pinned:
+          type: boolean
+          default: false
+        mention_ids:
+          type: array
+          items:
+            type: string
+            format: uuid
+          maxItems: 50
+        expected_updated_at:
+          type: string
+          format: date-time
+      required:
+      - body
+      - title
+    Preference:
+      type: object
+      description: Reject undeclared and read-only input instead of silently ignoring
+        it.
+      properties:
+        in_app:
+          type: boolean
+        email:
+          type: boolean
+        task_reminders:
+          type: boolean
+        meeting_reminders:
+          type: boolean
+        assignments:
+          type: boolean
+        mentions:
+          type: boolean
+        invitations:
+          type: boolean
+        meeting_changes:
+          type: boolean
+        digest:
+          $ref: '#/components/schemas/DigestEnum'
+        quiet_start:
+          type: string
+          format: time
+          nullable: true
+        quiet_end:
+          type: string
+          format: time
+          nullable: true
+    PreviewInput:
+      type: object
+      properties:
+        file:
+          type: string
+          format: uri
+        source:
+          allOf:
+          - $ref: '#/components/schemas/PreviewInputSourceEnum'
+          default: generic
+        source_namespace:
+          type: string
+          default: manual
+          maxLength: 80
+        timezone_name:
+          type: string
+          maxLength: 64
+      required:
+      - file
+    PreviewInputSourceEnum:
       enum:
-      - low
-      - medium
-      - high
-      - urgent
+      - generic
+      - canvas
+      - moodle
       type: string
       description: |-
-        * `low` - Low
-        * `medium` - Medium
-        * `high` - High
-        * `urgent` - Urgent
+        * `generic` - generic
+        * `canvas` - canvas
+        * `moodle` - moodle
     Profile:
       type: object
-      description: Reject undeclared and read-only input instead of silently discarding
+      description: Reject undeclared and read-only input instead of silently ignoring
         it.
       properties:
         email:
@@ -3238,6 +9012,28 @@ components:
         biography:
           type: string
           maxLength: 500
+        major:
+          type: string
+          maxLength: 120
+        skills:
+          type: array
+          items:
+            type: string
+            maxLength: 40
+          maxItems: 12
+        communication_languages:
+          type: array
+          items:
+            type: string
+            maxLength: 40
+          maxItems: 8
+        collaboration_preference:
+          oneOf:
+          - $ref: '#/components/schemas/CollaborationPreferenceEnum'
+          - $ref: '#/components/schemas/BlankEnum'
+        email_verified:
+          type: boolean
+          readOnly: true
         avatar_url:
           oneOf:
           - type: string
@@ -3256,10 +9052,11 @@ components:
       - avatar_image_url
       - display_name
       - email
+      - email_verified
       - updated_at
     ProfileAvatarUpload:
       type: object
-      description: Reject undeclared and read-only input instead of silently discarding
+      description: Reject undeclared and read-only input instead of silently ignoring
         it.
       properties:
         avatar:
@@ -3289,6 +9086,28 @@ components:
         biography:
           type: string
           maxLength: 500
+        major:
+          type: string
+          maxLength: 120
+        skills:
+          type: array
+          items:
+            type: string
+            maxLength: 40
+          maxItems: 12
+        communication_languages:
+          type: array
+          items:
+            type: string
+            maxLength: 40
+          maxItems: 8
+        collaboration_preference:
+          oneOf:
+          - $ref: '#/components/schemas/CollaborationPreferenceEnum'
+          - $ref: '#/components/schemas/BlankEnum'
+        email_verified:
+          type: boolean
+          readOnly: true
         avatar_url:
           oneOf:
           - type: string
@@ -3310,11 +9129,12 @@ components:
       - course_code
       - display_name
       - email
+      - email_verified
       - time_zone
       - updated_at
     Project:
       type: object
-      description: Reject undeclared and read-only input instead of silently discarding
+      description: Reject undeclared and read-only input instead of silently ignoring
         it.
       properties:
         id:
@@ -3421,29 +9241,208 @@ components:
       - updated_at
     RSVP:
       type: object
-      description: Reject undeclared and read-only input instead of silently discarding
+      description: Reject undeclared and read-only input instead of silently ignoring
         it.
       properties:
         response:
-          $ref: '#/components/schemas/ResponseEnum'
+          $ref: '#/components/schemas/RSVPResponseEnum'
         availability_note:
           type: string
           default: ''
           maxLength: 500
       required:
       - response
-    ReasonEnum:
+    RSVPResponseEnum:
       enum:
-      - abuse
-      - privacy
+      - pending
+      - accepted
+      - declined
+      type: string
+      description: |-
+        * `pending` - Pending
+        * `accepted` - Accepted
+        * `declined` - Declined
+    Reauthentication:
+      type: object
+      properties:
+        current_password:
+          type: string
+          writeOnly: true
+          maxLength: 512
+      required:
+      - current_password
+    ReceiptInput:
+      type: object
+      properties:
+        receipt_url:
+          type: string
+          default: ''
+          maxLength: 2048
+        receipt_reference:
+          type: string
+          default: ''
+          maxLength: 200
+    RecordWrite:
+      type: object
+      description: Reject undeclared and read-only input instead of silently ignoring
+        it.
+      properties:
+        expected_version:
+          type: integer
+          minimum: 0
+        participants:
+          type: array
+          items:
+            $ref: '#/components/schemas/Participant'
+        minutes:
+          type: string
+          maxLength: 12000
+        decisions:
+          type: string
+          maxLength: 6000
+    RecoveryEmail:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+          maxLength: 254
+      required:
+      - email
+    RecruitmentInput:
+      type: object
+      properties:
+        project:
+          type: string
+          format: uuid
+        title:
+          type: string
+          maxLength: 120
+        university:
+          type: string
+          maxLength: 120
+        course:
+          type: string
+          maxLength: 60
+        term:
+          type: string
+          maxLength: 80
+        description:
+          type: string
+          maxLength: 3000
+        skills:
+          type: array
+          items:
+            type: string
+            maxLength: 50
+          maxItems: 10
+        languages:
+          type: array
+          items:
+            type: string
+            maxLength: 40
+          maxItems: 5
+        cooperation:
+          allOf:
+          - $ref: '#/components/schemas/CooperationEnum'
+          default: hybrid
+        capacity:
+          type: integer
+          maximum: 20
+          minimum: 1
+        expires_at:
+          type: string
+          format: date-time
+        publish_consent:
+          type: boolean
+      required:
+      - capacity
+      - course
+      - description
+      - expires_at
+      - project
+      - publish_consent
+      - term
+      - title
+      - university
+    RecruitmentModerationInput:
+      type: object
+      properties:
+        decision:
+          $ref: '#/components/schemas/RecruitmentModerationInputDecisionEnum'
+        reason:
+          type: string
+          maxLength: 1000
+      required:
+      - decision
+      - reason
+    RecruitmentModerationInputDecisionEnum:
+      enum:
+      - dismiss
+      - hide
+      - restore
+      type: string
+      description: |-
+        * `dismiss` - dismiss
+        * `hide` - hide
+        * `restore` - restore
+    RecruitmentReportInput:
+      type: object
+      properties:
+        reason:
+          $ref: '#/components/schemas/RecruitmentReportInputReasonEnum'
+        details:
+          type: string
+          maxLength: 2000
+      required:
+      - details
+      - reason
+    RecruitmentReportInputReasonEnum:
+      enum:
       - spam
+      - harassment
+      - misleading
       - other
       type: string
       description: |-
-        * `abuse` - Abusive content
-        * `privacy` - Personal or private information
-        * `spam` - Spam
-        * `other` - Other
+        * `spam` - spam
+        * `harassment` - harassment
+        * `misleading` - misleading
+        * `other` - other
+    RecurrenceInput:
+      type: object
+      properties:
+        frequency:
+          $ref: '#/components/schemas/FrequencyEnum'
+        interval:
+          type: integer
+          maximum: 12
+          minimum: 1
+          default: 1
+        timezone_name:
+          type: string
+          maxLength: 64
+        start_local:
+          type: string
+          maxLength: 32
+        until_date:
+          type: string
+          format: date
+        occurrence_limit:
+          type: integer
+          maximum: 520
+          minimum: 1
+          default: 52
+        lead_days:
+          type: integer
+          maximum: 30
+          minimum: 0
+          default: 7
+      required:
+      - frequency
+      - start_local
+      - timezone_name
+      - until_date
     ReminderDelivery:
       type: object
       properties:
@@ -3455,31 +9454,204 @@ components:
           type: string
           format: date-time
           readOnly: true
+          nullable: true
+        delivery_status:
+          type: string
+          readOnly: true
       required:
+      - delivery_status
       - recipient_count
       - sent_at
-    ResponseEnum:
+    RemoveInput:
+      type: object
+      description: Reject undeclared and read-only input instead of silently ignoring
+        it.
+      properties:
+        reply_id:
+          type: string
+          format: uuid
+          nullable: true
+    RepeatWrite:
+      type: object
+      description: Reject undeclared and read-only input instead of silently ignoring
+        it.
+      properties:
+        count:
+          type: integer
+          maximum: 12
+          minimum: 1
+        interval_days:
+          $ref: '#/components/schemas/IntervalDaysEnum'
+        time_zone:
+          type: string
+          maxLength: 64
+      required:
+      - count
+      - interval_days
+      - time_zone
+    Reply:
+      type: object
+      description: Reject undeclared and read-only input instead of silently ignoring
+        it.
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        author_name:
+          type: string
+          readOnly: true
+        body:
+          type: string
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - author_name
+      - body
+      - created_at
+      - id
+    ReplyInput:
+      type: object
+      description: Reject undeclared and read-only input instead of silently ignoring
+        it.
+      properties:
+        body:
+          type: string
+          maxLength: 2000
+        mention_ids:
+          type: array
+          items:
+            type: string
+            format: uuid
+          maxItems: 50
+      required:
+      - body
+    ReportInput:
+      type: object
+      description: Reject undeclared and read-only input instead of silently ignoring
+        it.
+      properties:
+        reason:
+          type: string
+          maxLength: 500
+          minLength: 5
+        reply_id:
+          type: string
+          format: uuid
+          nullable: true
+      required:
+      - reason
+    ResolveInput:
+      type: object
+      properties:
+        approve:
+          type: boolean
+      required:
+      - approve
+    ResourceInput:
+      type: object
+      properties:
+        title:
+          type: string
+          maxLength: 150
+        url:
+          type: string
+          maxLength: 2048
+        description:
+          type: string
+          maxLength: 1000
+        tags:
+          type: array
+          items:
+            type: string
+            maxLength: 30
+          maxItems: 10
+        pinned:
+          type: boolean
+    Retry:
+      type: object
+      description: Reject undeclared and read-only input instead of silently ignoring
+        it.
+      properties:
+        reason:
+          type: string
+          maxLength: 160
+          minLength: 5
+        acknowledge_uncertain_delivery:
+          type: boolean
+          default: false
+      required:
+      - reason
+    ReviewInput:
+      type: object
+      properties:
+        approved:
+          type: boolean
+        note:
+          type: string
+          default: ''
+          maxLength: 1000
+      required:
+      - approved
+    ReviewWrite:
+      type: object
+      description: Reject undeclared and read-only input instead of silently ignoring
+        it.
+      properties:
+        outcome:
+          $ref: '#/components/schemas/OutcomeEnum'
+        note:
+          type: string
+          maxLength: 1000
+          minLength: 1
+      required:
+      - note
+      - outcome
+    RevisionInput:
+      type: object
+      properties:
+        revision:
+          type: integer
+          minimum: 1
+      required:
+      - revision
+    SeverityEnum:
       enum:
-      - pending
-      - accepted
-      - declined
+      - information
+      - maintenance
+      - incident
       type: string
       description: |-
-        * `pending` - Pending
-        * `accepted` - Accepted
-        * `declined` - Declined
-    SourceEnum:
+        * `information` - Information
+        * `maintenance` - Maintenance
+        * `incident` - Incident
+    SubscriptionWrite:
+      type: object
+      description: Reject undeclared and read-only input instead of silently ignoring
+        it.
+      properties:
+        project:
+          type: string
+          format: uuid
+          nullable: true
+        include_details:
+          type: boolean
+          default: false
+    SupportStatusEnum:
       enum:
-      - live
-      - cache
-      - stale
-      - unavailable
+      - open
+      - in_progress
+      - awaiting_user
+      - resolved
       type: string
       description: |-
-        * `live` - live
-        * `cache` - cache
-        * `stale` - stale
-        * `unavailable` - unavailable
+        * `open` - Open
+        * `in_progress` - In progress
+        * `awaiting_user` - Awaiting user
+        * `resolved` - Resolved
     TargetTypeEnum:
       enum:
       - project
@@ -3523,7 +9695,7 @@ components:
           readOnly: true
         priority:
           allOf:
-          - $ref: '#/components/schemas/PriorityEnum'
+          - $ref: '#/components/schemas/TaskPriorityEnum'
           readOnly: true
         blocker_note:
           type: string
@@ -3579,11 +9751,26 @@ components:
       - status
       - title
       - updated_at
+    TaskCopyInput:
+      type: object
+      properties:
+        title:
+          type: string
+          maxLength: 120
+          minLength: 3
+        reuse_dependencies:
+          type: boolean
+          default: false
+      required:
+      - title
     TaskCreate:
       type: object
-      description: Reject undeclared and read-only input instead of silently discarding
+      description: Reject undeclared and read-only input instead of silently ignoring
         it.
       properties:
+        expected_updated_at:
+          type: string
+          format: date-time
         title:
           type: string
           maxLength: 120
@@ -3592,7 +9779,7 @@ components:
           type: string
           maxLength: 4000
         priority:
-          $ref: '#/components/schemas/PriorityEnum'
+          $ref: '#/components/schemas/TaskPriorityEnum'
         due_at:
           type: string
           format: date-time
@@ -3603,11 +9790,39 @@ components:
       required:
       - project
       - title
+    TaskCreateInput:
+      type: object
+      properties:
+        title:
+          type: string
+          maxLength: 120
+          minLength: 3
+        parent:
+          type: string
+          format: uuid
+      required:
+      - parent
+      - title
+    TaskPriorityEnum:
+      enum:
+      - low
+      - medium
+      - high
+      - urgent
+      type: string
+      description: |-
+        * `low` - Low
+        * `medium` - Medium
+        * `high` - High
+        * `urgent` - Urgent
     TaskReplace:
       type: object
-      description: Reject undeclared and read-only input instead of silently discarding
+      description: Reject undeclared and read-only input instead of silently ignoring
         it.
       properties:
+        expected_updated_at:
+          type: string
+          format: date-time
         title:
           type: string
           maxLength: 120
@@ -3616,7 +9831,7 @@ components:
           type: string
           maxLength: 4000
         priority:
-          $ref: '#/components/schemas/PriorityEnum'
+          $ref: '#/components/schemas/TaskPriorityEnum'
         due_at:
           type: string
           format: date-time
@@ -3640,7 +9855,7 @@ components:
         * `done` - Done
     TaskTransition:
       type: object
-      description: Reject undeclared and read-only input instead of silently discarding
+      description: Reject undeclared and read-only input instead of silently ignoring
         it.
       properties:
         status:
@@ -3679,6 +9894,132 @@ components:
       - avatar_version
       - display_name
       - id
+    TemplateEnum:
+      enum:
+      - report
+      - software
+      - presentation
+      - data_analysis
+      - design
+      - research
+      type: string
+      description: |-
+        * `report` - report
+        * `software` - software
+        * `presentation` - presentation
+        * `data_analysis` - data_analysis
+        * `design` - design
+        * `research` - research
+    TemplateInput:
+      type: object
+      properties:
+        template:
+          $ref: '#/components/schemas/TemplateEnum'
+      required:
+      - template
+    TermInput:
+      type: object
+      properties:
+        university:
+          type: string
+          maxLength: 120
+        year:
+          type: integer
+          maximum: 2100
+          minimum: 2000
+        name:
+          type: string
+          maxLength: 80
+      required:
+      - name
+      - university
+      - year
+    Ticket:
+      type: object
+      description: Reject undeclared and read-only input instead of silently ignoring
+        it.
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        category:
+          $ref: '#/components/schemas/TicketCategoryEnum'
+        subject:
+          type: string
+          maxLength: 160
+        description:
+          type: string
+          maxLength: 4000
+        status:
+          allOf:
+          - $ref: '#/components/schemas/SupportStatusEnum'
+          readOnly: true
+        resolution:
+          type: string
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+        requester_name:
+          type: string
+          readOnly: true
+        replies:
+          type: array
+          items:
+            $ref: '#/components/schemas/Reply'
+          readOnly: true
+      required:
+      - category
+      - created_at
+      - description
+      - id
+      - replies
+      - requester_name
+      - resolution
+      - status
+      - subject
+      - updated_at
+    TicketCategoryEnum:
+      enum:
+      - help
+      - bug
+      - appeal
+      - privacy
+      - feedback
+      type: string
+      description: |-
+        * `help` - Help
+        * `bug` - Bug
+        * `appeal` - Appeal
+        * `privacy` - Privacy
+        * `feedback` - Feedback
+    TicketsViewPage:
+      type: object
+      properties:
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Ticket'
+        total:
+          type: integer
+        page:
+          type: integer
+        page_size:
+          type: integer
+        pages:
+          type: integer
+      required:
+      - page
+      - page_size
+      - pages
+      - results
+      - total
     TimeZoneList:
       type: object
       properties:
@@ -3709,6 +10050,39 @@ components:
       - label
       - offset
       - value
+    TimerStopInput:
+      type: object
+      properties:
+        note:
+          type: string
+          default: ''
+          maxLength: 500
+    UploadInput:
+      type: object
+      properties:
+        file:
+          type: string
+          format: uri
+        title:
+          type: string
+          maxLength: 150
+        folder:
+          type: string
+          maxLength: 80
+        tags:
+          type: array
+          items:
+            type: string
+            maxLength: 32
+          maxItems: 10
+        pinned:
+          type: boolean
+          default: false
+        expected_revision:
+          type: integer
+          minimum: 1
+      required:
+      - file
     UserSummary:
       type: object
       properties:
@@ -3722,7 +10096,30 @@ components:
       required:
       - display_name
       - id
+    VoteWrite:
+      type: object
+      description: Reject undeclared and read-only input instead of silently ignoring
+        it.
+      properties:
+        response:
+          $ref: '#/components/schemas/VoteWriteResponseEnum'
+      required:
+      - response
+    VoteWriteResponseEnum:
+      enum:
+      - 'yes'
+      - maybe
+      - 'no'
+      type: string
+      description: |-
+        * `yes` - yes
+        * `maybe` - maybe
+        * `no` - no
   securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: sessionid
     mfaSession:
       type: apiKey
       in: cookie

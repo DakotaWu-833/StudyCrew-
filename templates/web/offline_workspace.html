@@ -1,0 +1,16 @@
+{% load static %}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#14213d">
+  <title>Offline tasks · StudyCrew</title>
+  <link rel="stylesheet" href="{% static 'workspace/workspace.css' %}?v={{ workspace_css_version }}">
+</head>
+<body class="workspace-body">
+  <div id="workspace-root"><p>Opening saved task copies…</p></div>
+  <noscript>JavaScript is required to edit saved task copies.</noscript>
+  <script type="module" src="{% static 'workspace/main.js' %}?v={{ workspace_js_version }}"></script>
+</body>
+</html>

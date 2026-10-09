@@ -1,0 +1,10 @@
+[Unit]
+Description=Five-minute StudyCrew readiness and backup monitoring
+
+[Timer]
+OnBootSec=5min
+OnUnitActiveSec=5min
+Unit=studycrew-health.service
+
+[Install]
+WantedBy=timers.target

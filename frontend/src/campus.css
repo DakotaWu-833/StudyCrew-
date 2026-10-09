@@ -1,0 +1,15 @@
+.campus-page > .panel h3 { margin-top: 0; }
+.campus-page fieldset.form-grid { border: 0; padding: 0; margin: 0; min-width: 0; }
+.campus-page fieldset.form-grid > legend { font-weight: 650; margin-bottom: .75rem; }
+.campus-page details.panel > summary { cursor: pointer; line-height: 1.6; }
+.campus-page details.panel[open] > summary { margin-bottom: 1rem; }
+.campus-page .compact-row > input[type="checkbox"] { flex: 0 0 auto; }
+.campus-page .compact-row:has(> input[type="checkbox"]) { justify-content: flex-start; gap: .75rem; }
+.campus-page .card-grid > .field { min-width: 0; }
+.campus-page .inline-form { flex-wrap: wrap; }
+.campus-page .row-actions { flex-wrap: wrap; }
+.campus-page .notice { overflow-wrap: anywhere; }
+@media (max-width: 700px) {
+  .campus-page .inline-form > .field { width: 100%; }
+  .campus-page .compact-row { flex-wrap: wrap; }
+}

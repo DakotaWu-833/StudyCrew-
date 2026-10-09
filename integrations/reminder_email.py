@@ -10,6 +10,7 @@ from __future__ import annotations
 from collections.abc import Iterable
 from dataclasses import dataclass
 from datetime import datetime
+import uuid
 
 from django.conf import settings
 from django.core.mail import EmailMessage, get_connection
@@ -25,7 +26,8 @@ class ReminderDeliveryResult:
     """Observable result returned to the API without exposing recipient data."""
 
     recipient_count: int
-    sent_at: datetime
+    sent_at: datetime | None
+    delivery_status: str = "accepted"
 
 
 def deliver_reminder_emails(
@@ -33,6 +35,11 @@ def deliver_reminder_emails(
     subject: str,
     message: str,
     recipient_emails: Iterable[str],
+    project=None,
+    target_type: str = "",
+    target_id=None,
+    target_revision: str = "",
+    category: str = "service",
 ) -> ReminderDeliveryResult:
     """Send one plain-text message per unique recipient using one connection."""
 
@@ -45,6 +52,23 @@ def deliver_reminder_emails(
     )
     if not recipients:
         raise ReminderDeliveryError("No reminder recipients were supplied.")
+
+    if getattr(settings, "ASYNC_REMINDERS", False):
+        from accounts.models import User
+        from operations.services import enqueue_email
+        batch = uuid.uuid4()
+        queued = 0
+        for email in recipients:
+            user = User.objects.filter(email__iexact=email).first()
+            if not user:
+                continue
+            result = enqueue_email(recipient=email, subject=subject, body=message, key=f"manual:{batch}:{user.id}",
+                                   user=user, project=project, category=category, target_type=target_type,
+                                   target_id=target_id, target_revision=target_revision)
+            queued += int(result is not None)
+        if not queued:
+            raise ReminderDeliveryError("No recipients have enabled this reminder.")
+        return ReminderDeliveryResult(recipient_count=queued, sent_at=None, delivery_status="queued")
 
     try:
         connection = get_connection(fail_silently=False)

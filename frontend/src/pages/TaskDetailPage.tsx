@@ -1,3 +1,7 @@
+import DraftForm from "../components/DraftForm";
+import KeepTaskOffline from "../components/KeepTaskOffline";
+import TaskProductivity from "../components/TaskProductivity";
+import { clearDraft } from "../app/drafts";
 import { useEffect, useState, type FormEvent } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate, useParams } from "react-router-dom";
@@ -14,6 +18,7 @@ export default function TaskDetailPage() {
   const navigate = useNavigate();
   const client = useQueryClient();
   const [editing, setEditing] = useState(false);
+  const [editVersion, setEditVersion] = useState<string>();
   const [editDirty, setEditDirty] = useState(false);
   const [blockerDirty, setBlockerDirty] = useState(false);
   const [commentDirty, setCommentDirty] = useState(false);
@@ -38,11 +43,11 @@ export default function TaskDetailPage() {
 
   const fail = (value: unknown) => { setMessage(""); setError(errorMessage(value)); };
   const refreshTask = () => Promise.all([client.invalidateQueries({ queryKey: ["task", taskId] }), client.invalidateQueries({ queryKey: ["tasks", taskProjectId] })]);
-  const update = useMutation({ mutationFn: (data: { title: string; description: string; priority: TaskPriority; due_at: string | null }) => taskApi.update(taskId, data), onSuccess: async () => { await refreshTask(); setEditing(false); setError(""); setMessage("Task details saved."); }, onError: fail });
+  const update = useMutation({ mutationFn: (data: { title: string; description: string; priority: TaskPriority; due_at: string | null }) => taskApi.update(taskId, { ...data, expected_updated_at: editVersion }), onSuccess: async () => { await refreshTask(); if (me.data?.user.id) clearDraft(me.data.user.id, `task:${projectId}:${taskId}`); setEditing(false); setError(""); setMessage("Task details saved."); }, onError: fail });
   const assign = useMutation({ mutationFn: () => taskApi.setAssignees(taskId, selectedAssignees), onSuccess: async () => { await refreshTask(); setError(""); setMessage("Assignees updated."); }, onError: fail });
   const transition = useMutation({ mutationFn: ({ status, blocker_note }: { status: TaskStatus; blocker_note: string }) => taskApi.transition(taskId, status, blocker_note), onSuccess: async () => { await refreshTask(); setPendingStatus(null); setError(""); setMessage("Task status updated."); }, onError: fail });
   const archive = useMutation({ mutationFn: () => taskApi.archive(taskId), onSuccess: async () => { await client.invalidateQueries({ queryKey: ["tasks", taskProjectId] }); navigate(`/app/projects/${taskProjectId}/tasks/`); }, onError: fail });
-  const reminder = useMutation({ mutationFn: () => taskApi.sendReminder(taskId), onSuccess: (delivery) => { setError(""); setMessage(`Email reminder sent to ${delivery.recipient_count} assignee${delivery.recipient_count === 1 ? "" : "s"}.`); }, onError: fail });
+  const reminder = useMutation({ mutationFn: () => taskApi.sendReminder(taskId), onSuccess: (delivery) => { setError(""); setMessage(`Email reminder ${delivery.delivery_status === "queued" ? "queued for" : "sent to"} ${delivery.recipient_count} assignee${delivery.recipient_count === 1 ? "" : "s"}.`); }, onError: fail });
   const addComment = useMutation({ mutationFn: (body: string) => commentApi.create(taskId, body, mentionedUsers), onSuccess: async () => { await Promise.all([comments.refetch(), refreshTask()]); setMentionedUsers([]); setError(""); setMessage("Comment added."); }, onError: fail });
   const editComment = useMutation({ mutationFn: ({ id, body }: { id: string; body: string }) => commentApi.update(id, body), onSuccess: async () => { await comments.refetch(); setEditingCommentId(null); setError(""); setMessage("Comment updated."); }, onError: fail });
   const deleteComment = useMutation({ mutationFn: commentApi.remove, onSuccess: async () => { await Promise.all([comments.refetch(), refreshTask()]); setError(""); setMessage("Comment removed."); }, onError: fail });
@@ -88,7 +93,7 @@ export default function TaskDetailPage() {
       <Link className="back-link" to={`/app/projects/${taskProjectId}/tasks/`}>← Back to task board</Link>
       {(message || error) && <p className={error ? "notice notice--error" : "notice"} role={error ? "alert" : "status"}>{error || message}</p>}
       {isReadOnly && <p className="notice" role="status">{isTaskArchived ? "This task is archived." : "Its project is archived."} Details and discussion remain available as read-only evidence.</p>}
-      <div className="page-heading"><div><div className="heading-badges"><StatusBadge value={task.data.status} /><StatusBadge value={task.data.priority} />{isTaskArchived && <StatusBadge value="archived" />}</div><h2>{task.data.title}</h2><p>Created by {task.data.created_by.display_name} · updated {formatDate(task.data.updated_at)}</p></div>{!isReadOnly && <Button variant="secondary" onClick={() => { setError(""); setEditDirty(false); setEditing(true); }}>Edit details</Button>}</div>
+      <div className="page-heading"><div><div className="heading-badges"><StatusBadge value={task.data.status} /><StatusBadge value={task.data.priority} />{isTaskArchived && <StatusBadge value="archived" />}</div><h2>{task.data.title}</h2><p>Created by {task.data.created_by.display_name} · updated {formatDate(task.data.updated_at)}</p></div>{!isReadOnly && <Button variant="secondary" onClick={() => { setError(""); setEditDirty(false); setEditVersion(task.data?.updated_at); setEditing(true); }}>Edit details</Button>}</div>
 
       {task.data.status === "blocked" && <div className="blocker" role="note"><strong>Blocked:</strong> {task.data.blocker_note}</div>}
       <div className="detail-grid">
@@ -100,15 +105,17 @@ export default function TaskDetailPage() {
         </aside>
       </div>
 
+      <TaskProductivity projectId={taskProjectId} taskId={taskId} readOnly={isReadOnly} />
+      {me.data && <KeepTaskOffline me={me.data} task={task.data} projectName={project.data?.name ?? "Project"} readOnly={isReadOnly} />}
       {editing && <FloatingPanel title="Edit task details" busy={update.isPending} dirty={editDirty} onDismiss={() => setEditing(false)}>
-        <form className="form-grid" onSubmit={submitEdit} onChange={() => setEditDirty(true)}>
+        <DraftForm scope={`task:${projectId}:${taskId}`} fields={["title", "description"]} className="form-grid" onSubmit={submitEdit} onChange={() => setEditDirty(true)}>
           <Field label="Title"><input name="title" required minLength={3} maxLength={120} defaultValue={task.data.title} autoFocus /></Field>
           <Field label="Priority"><select name="priority" defaultValue={task.data.priority}><option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option><option value="urgent">Urgent</option></select></Field>
           <Field label="Due date"><input name="due_at" type="datetime-local" defaultValue={toDateTimeLocal(task.data.due_at)} /></Field>
           <Field label="Description"><textarea name="description" rows={5} maxLength={4000} defaultValue={task.data.description} /></Field>
           {error && <p className="form-error" role="alert">{error}</p>}
           <div className="form-actions"><Button type="submit" disabled={update.isPending}>{update.isPending ? "Saving…" : "Save details"}</Button></div>
-        </form>
+        </DraftForm>
       </FloatingPanel>}
       {pendingStatus === "blocked" && <FloatingPanel title="Describe the blocker" busy={transition.isPending} dirty={blockerDirty} onDismiss={() => setPendingStatus(null)}>
         <form className="form-grid" onSubmit={submitBlocker} onChange={() => setBlockerDirty(true)}>

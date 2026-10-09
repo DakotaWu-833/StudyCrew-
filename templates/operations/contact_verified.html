@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block title %}Support request · StudyCrew{% endblock %}
+{% block content %}
+<div class="page-shell information-page information-page--reading">
+  <header class="information-page__header">
+    <h1>{% if confirmed %}Request confirmed{% elif valid %}Confirm your support request{% else %}Confirmation unavailable{% endif %}</h1>
+  </header>
+  <section class="panel information-panel">
+    <p>{% if confirmed %}Your request is now available to the support team. They can reply to your confirmed email address.{% elif valid %}Press confirm to make your request available to the support team.{% else %}This link has expired or was already used. You can submit a new request if needed.{% endif %}</p>
+    {% if valid and not confirmed %}
+      <form method="post" class="support-form">
+        {% csrf_token %}
+        <button class="button" type="submit">Confirm request</button>
+      </form>
+    {% endif %}
+  </section>
+  <nav class="information-related" aria-label="Support navigation"><a href="/help/">Return to help</a></nav>
+</div>
+{% endblock %}

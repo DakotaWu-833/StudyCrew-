@@ -21,6 +21,11 @@ export interface Profile {
   course_code: string;
   time_zone: string;
   biography: string;
+  major?: string;
+  skills?: string[];
+  communication_languages?: string[];
+  collaboration_preference?: "" | "online" | "in_person" | "hybrid";
+  email_verified?: boolean;
   avatar_url: string;
   avatar_image_url: string;
   updated_at: string;
@@ -68,6 +73,7 @@ export interface Membership {
 }
 
 export interface Invitation {
+  delivery_status?: "queued" | "accepted";
   id: UUID;
   project: UUID;
   project_name: string;
@@ -140,7 +146,8 @@ export interface MeetingListFilters {
 
 export interface ReminderDelivery {
   recipient_count: number;
-  sent_at: string;
+  sent_at: string | null;
+  delivery_status?: "queued" | "accepted";
 }
 
 export interface HolidayAdvisory {

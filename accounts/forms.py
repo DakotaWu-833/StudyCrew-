@@ -93,6 +93,8 @@ class OTPVerificationForm(forms.Form):
 
 
 class ProfileForm(forms.ModelForm):
+    skills = forms.CharField(required=False, max_length=500, help_text="Optional. Separate up to 12 skills with commas.")
+    communication_languages = forms.CharField(required=False, max_length=350, help_text="Optional. Separate up to 8 languages with commas.")
     time_zone = forms.ChoiceField(
         choices=(),
         help_text="Meeting times will be displayed in this IANA time zone.",
@@ -100,17 +102,32 @@ class ProfileForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        if self.instance.pk:
+            self.initial["skills"] = ", ".join(self.instance.skills)
+            self.initial["communication_languages"] = ", ".join(self.instance.communication_languages)
         self.fields["time_zone"].choices = [
             (option["value"], option["label"]) for option in time_zone_options()
         ]
 
     class Meta:
         model = Profile
-        fields = ("display_name", "time_zone", "biography")
+        fields = ("display_name", "time_zone", "biography", "major", "skills", "communication_languages", "collaboration_preference")
         widgets = {
             "display_name": forms.TextInput(attrs={"autocomplete": "name"}),
             "biography": forms.Textarea(attrs={"rows": 5}),
         }
+
+    def clean_skills(self):
+        from accounts.validators import validate_skills_list
+        values = [value.strip() for value in self.cleaned_data["skills"].split(",") if value.strip()]
+        validate_skills_list(values)
+        return values
+
+    def clean_communication_languages(self):
+        from accounts.validators import validate_languages_list
+        values = [value.strip() for value in self.cleaned_data["communication_languages"].split(",") if value.strip()]
+        validate_languages_list(values)
+        return values
 
 
 class AvatarUploadForm(forms.Form):

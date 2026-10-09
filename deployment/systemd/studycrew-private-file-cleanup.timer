@@ -1,0 +1,10 @@
+[Unit]
+Description=Daily cleanup of retired private project files
+
+[Timer]
+OnCalendar=*-*-* 04:00:00 UTC
+Persistent=true
+Unit=studycrew-private-file-cleanup.service
+
+[Install]
+WantedBy=timers.target

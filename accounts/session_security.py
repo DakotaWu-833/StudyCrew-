@@ -15,6 +15,8 @@ def mark_mfa_verified(request: HttpRequest) -> None:
     """Record MFA only after the one-time challenge has been consumed."""
 
     request.session[MFA_VERIFIED_SESSION_KEY] = timezone.now().isoformat()
+    from accounts.readiness_services import track_device_session
+    track_device_session(request, force=True)
 
 
 def is_mfa_verified(request: HttpRequest) -> bool:

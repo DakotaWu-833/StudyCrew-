@@ -71,6 +71,11 @@ def create_notification(
     _require_active_user(recipient)
     if recipient.pk == event.actor_id:
         return None
+    from operations.services import channel_enabled
+    in_app = channel_enabled(recipient, notification_type, event.project, actor=event.actor)
+    email = channel_enabled(recipient, notification_type, event.project, "email", actor=event.actor)
+    if not in_app and not email:
+        return None
     if not target_url.startswith("/") or target_url.startswith("//") or "://" in target_url:
         raise ValidationError({"target_url": "Notification targets must be local paths."})
 
@@ -82,15 +87,24 @@ def create_notification(
         target_url=target_url,
     )
     candidate.full_clean(validate_constraints=False)
-    notification, _ = Notification.objects.get_or_create(
-        recipient=recipient,
-        source_event=event,
-        defaults={
-            "project": event.project,
-            "notification_type": notification_type,
-            "target_url": target_url,
-        },
-    )
+    notification = None
+    if in_app:
+        notification, _ = Notification.objects.get_or_create(
+            recipient=recipient,
+            source_event=event,
+            defaults={
+                "project": event.project,
+                "notification_type": notification_type,
+                "target_url": target_url,
+            },
+        )
+    if email and notification_type != "invitation":
+        from operations.services import enqueue_email
+        from django.conf import settings
+        enqueue_email(recipient=recipient.email, subject=f"[StudyCrew] {notification_type.replace('_', ' ').title()}",
+                      body=f"You have an update in {event.project.name}.\n\n{settings.PUBLIC_BASE_URL.rstrip('/')}{target_url}",
+                      key=f"event:{event.id}:{recipient.id}", user=recipient, project=event.project,
+                      category=notification_type, target_type="event", target_id=event.pk)
     return notification
 
 

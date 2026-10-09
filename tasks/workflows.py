@@ -94,6 +94,11 @@ def send_task_reminder(
         subject="[StudyCrew] Task reminder",
         message=message,
         recipient_emails=recipient_emails,
+        project=current.project,
+        target_type="task",
+        target_id=current.id,
+        target_revision=current.due_at.isoformat() if current.due_at else "",
+        category="task_due",
     )
     record_event(
         project=current.project,
@@ -101,6 +106,6 @@ def send_task_reminder(
         event_type=ActivityEvent.Type.TASK_REMINDER_SENT,
         target_type=ActivityEvent.TargetType.TASK,
         target_id=current.id,
-        metadata={"recipient_count": delivery.recipient_count},
+        metadata={"recipient_count": delivery.recipient_count, **({"delivery_status": "queued"} if delivery.delivery_status == "queued" else {})},
     )
     return delivery

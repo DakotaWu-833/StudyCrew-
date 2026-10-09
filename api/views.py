@@ -760,6 +760,7 @@ class InvitationViewSet(
             site_url=request.build_absolute_uri("/"),
         )
         payload = InvitationSerializer(dispatch.invitation).data
+        payload["delivery_status"] = "queued" if settings.ASYNC_REMINDERS else "accepted"
         payload["share_token"] = dispatch.token
         return Response(payload, status=201)
 
@@ -895,7 +896,8 @@ class ExportViewSet(
         serializer.is_valid(raise_exception=True)
         data = dict(serializer.validated_data)
         export_format = data.pop("format")
-        job = request_export(actor=request.user, export_format=export_format, **data)
+        job = request_export(actor=request.user, export_format=export_format,
+                             defer=getattr(settings, "ASYNC_EXPORTS", False), **data)
         return Response(ExportJobSerializer(job, context={"request": request}).data, status=201)
 
     @extend_schema(

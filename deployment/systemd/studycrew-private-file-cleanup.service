@@ -1,0 +1,18 @@
+[Unit]
+Description=Remove retired StudyCrew private files after their retention period
+After=network.target
+
+[Service]
+Type=oneshot
+User=studycrew
+Group=www-data
+WorkingDirectory=/srv/studycrew/app
+EnvironmentFile=/etc/studycrew/studycrew.env
+ExecStart=/srv/studycrew/venv/bin/python manage.py purge_private_files --apply
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict
+ReadWritePaths=/srv/studycrew/app/var
+TimeoutStartSec=300

@@ -33,9 +33,35 @@ artifacts remain under `design/`, `database/` and `deliverables/`.
 - A custom `/control/` site panel. Django's developer admin is deliberately not
   exposed.
 
-The application has 18 meaningful domain/security tables, including one-to-one,
-one-to-many and explicit many-to-many relationships. Django's built-in session,
-permission and content-type tables are not included in that count.
+The `advance` branch extends this baseline with account recovery and privacy,
+private courses and terms, assignment planning and reviews, availability polls,
+meeting minutes and actual action tasks, discussions and mentions, broad search,
+notification preferences, reliable queues, support and operational tooling.
+It also includes consent-based team recruiting, private project file versions,
+and previewed assignment CSV exchange. The latest local enhancements add private
+file previews and text-version comparisons, a 30-day recycle bin, recurring tasks,
+explainable team recommendations, task time records and factual workload views,
+polling project chat, and explicitly selected offline task edits with field-by-field
+conflict resolution. The UI remains in English; interface language switching is
+outside this change. See [local expansion details](docs/advance-local-expansion.md).
+See [the advance feature and acceptance checklist](docs/advance-readiness.md)
+and [local operation and deployment instructions](docs/launch-operations.md).
+
+For the local version using PowerShell 7 after dependencies and the
+frontend build are available:
+
+```powershell
+.\scripts\Start-Advance.ps1 -Port 8003
+.\scripts\Start-Advance.ps1 -Demo -Port 8002
+```
+
+The first command serves existing local accounts and data at
+`http://127.0.0.1:8003/app/`, with sign-in codes under `var/emails/`. The second
+runs an isolated demo at `http://127.0.0.1:8002/app/`, with sign-in codes under
+`var/advance-preview-emails/`. Each runs the web app and independent worker;
+choose one for the intended dataset. These commands do not publish a public
+service or configure real SMTP. The `advance` implementation is local and has
+not been committed, pushed or published as a public service.
 
 ## Architecture
 
@@ -153,6 +179,8 @@ The versioned base is `/api/v1/`; the generated OpenAPI contract is
 - `/meetings/`
 - `/notifications/`, `/exports/`
 - `/projects/{id}/activity/` and `/projects/{id}/insights/`
+- `/recruiting/`, `/files/`, `/learning-exchange/`
+- `/productivity/`, `/chat/` and `/offline/`
 
 Normal resources use `GET`, `POST`, `PUT`, `PATCH` and `DELETE` as applicable.
 Deletes soft-archive collaboration records rather than destroying evidence;
@@ -197,12 +225,19 @@ tests and framework bootstrap files rather than inflating results with generated
 code. See `docs/assignment-2/test-plan.md` for the access matrix and evidence
 plan.
 
-Verified locally on 1 October 2026: 374 Django tests, 96.2% combined statement/branch
+Historical baseline verified locally on 1 October 2026: 374 Django tests, 96.2% combined statement/branch
 coverage (86.7% minimum among reported files), 15 files/91 Vitest cases, zero-warning OpenAPI
 validation, TypeScript checking and a production build all passed. An executable
 architecture test also prevents domain-to-HTTP imports,
 external HTTP outside `integrations/` and direct frontend API calls outside the
 shared client.
+
+The latest `advance` checks passed 836 backend tests, 36 frontend files/213 tests,
+type checking, production build and strict zero-warning schema validation.
+Combined coverage with branch measurement enabled is 91.8% (93.6% statements,
+83.9% branches). Integrated browser and isolated SQLite recovery evidence are
+tracked separately in [the local acceptance document](docs/advance-local-expansion.md);
+the historical counts above do not cover the seven latest enhancements.
 
 Task serialization stays at four database queries, including membership checks,
 for 1, 5 and 10 records with identical output. The Meetings screen uses filtered
@@ -241,6 +276,12 @@ team must still capture the real hostname, certificate, EC2 reboot, firewall,
 | `meetings/` | bounded scheduling, lifecycle, attendance and reminders |
 | `activity/` | append-only evidence, insights, notifications and exports |
 | `integrations/` | resilient Nager.Date cache and private email-delivery boundaries |
+| `recruiting/` | consent-based discovery, bounded applications and admission |
+| `documents_store/` | private file uploads, version history, quotas and scanner boundary |
+| `learning_exchange/` | explicit CSV preview/import and source-aware deduplication |
+| `productivity/` | bounded recurring task generation, personal time records and factual workload |
+| `project_chat/` | private polling conversations, bounded presence and message withdrawal |
+| `offline_sync/` | account-bound, revision-checked and idempotent selected-task synchronization |
 | `api/` | REST authentication, serializers, views, errors and schema |
 | `web/` | public shell and custom moderation centre |
 | `frontend/` | React/TypeScript source and tests |
@@ -253,6 +294,13 @@ team must still capture the real hostname, certificate, EC2 reboot, firewall,
 - Contribution figures are factual counts, never grades or quality scores.
 - Public-holiday advice is Australian and advisory; meeting creation still works
   when the provider or cache is unavailable.
-- CSV/PDF export is synchronous and limited to a 366-day course-scale dataset.
-- Modern Web option 1 is used; WebSocket functionality is intentionally absent.
-- Account recovery and LMS integration are outside the approved scope.
+- Evidence export supports the advance asynchronous worker and bounded course-scale datasets.
+- Modern Web option 1 is used. Project chat polls every 2 seconds while visible
+  and every 10 seconds in the background; it uses no WebSocket transport.
+- Private offline task copies require explicit selection and stay in this
+  browser's IndexedDB for at most 24 hours: up to 200 copies and 50 pending edits.
+  Service Worker caching covers public code and the generic offline shell only,
+  never API responses or the rest of a private workspace.
+- Account recovery is implemented on `advance`. Assignment CSV exchange is
+  manual; university OAuth, institution SSO and live LMS data synchronisation
+  remain outside the implemented local scope.

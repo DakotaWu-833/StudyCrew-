@@ -1,0 +1,8 @@
+.chat-presence { display:flex; flex-wrap:wrap; gap:.6rem; align-items:center; margin-bottom:1rem; }
+.chat-presence > span:not(.muted) { border-radius:1rem; background:#e8f4ee; padding:.2rem .65rem; }
+.chat-messages { max-height:60vh; overflow-y:auto; padding:.25rem; }
+.chat-message { border-bottom:1px solid var(--border,#e1e5eb); padding:.8rem 0; overflow-wrap:anywhere; }
+.chat-message__heading { display:flex; flex-wrap:wrap; align-items:center; gap:.65rem; }
+.chat-message__heading time { color:var(--muted,#667085); font-size:.8rem; }
+.chat-compose { margin-top:1rem; display:grid; gap:.7rem; }
+.chat-compose textarea { resize:vertical; }

@@ -75,6 +75,17 @@
           {% if form.biography.errors %}<div class="form-errors" role="alert">{% for error in form.biography.errors %}<p>{{ error }}</p>{% endfor %}</div>{% endif %}
         </div>
 
+        {% for field in form %}
+          {% if field.name == "major" or field.name == "skills" or field.name == "communication_languages" or field.name == "collaboration_preference" %}
+            <div class="form-field{% if field.errors %} form-field--invalid{% endif %}">
+              <label for="{{ field.id_for_label }}">{{ field.label }} (optional)</label>
+              {{ field }}
+              {% if field.help_text %}<p class="form-help" id="{{ field.id_for_label }}_helptext">{{ field.help_text }}</p>{% endif %}
+              {% if field.errors %}<div class="form-errors" role="alert">{{ field.errors }}</div>{% endif %}
+            </div>
+          {% endif %}
+        {% endfor %}
+
         <div class="account-form-actions"><span>Keep your team in the loop.</span><button class="button" type="submit">Save changes</button></div>
       </form>
     </section>

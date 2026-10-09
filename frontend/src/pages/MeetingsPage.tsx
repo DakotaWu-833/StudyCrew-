@@ -204,7 +204,7 @@ export default function MeetingsPage() {
     mutationFn: meetingApi.sendReminder,
     onSuccess: (delivery) => {
       setError("");
-      setMessage(`Email reminder sent to ${delivery.recipient_count} project member${delivery.recipient_count === 1 ? "" : "s"}.`);
+      setMessage(`Email reminder ${delivery.delivery_status === "queued" ? "queued for" : "sent to"} ${delivery.recipient_count} project member${delivery.recipient_count === 1 ? "" : "s"}.`);
     },
     onError: fail,
   });

@@ -78,7 +78,8 @@ export default function ContributionsPage() {
     enabled: Boolean(projectId),
     placeholderData: (previous, query) => query?.queryKey[1] === projectId ? previous : undefined,
   });
-  const exports = useQuery({ queryKey: ["exports"], queryFn: exportApi.list });
+  const exports = useQuery({ queryKey: ["exports"], queryFn: exportApi.list,
+    refetchInterval: (query) => query.state.data?.results.some((job) => ["queued", "processing"].includes(job.status)) ? 3000 : false });
   const createExport = useMutation({
     mutationFn: (request: { format: "csv" | "pdf"; range_start: string; range_end: string }) => exportApi.create({ project: projectId, ...request }),
     onSuccess: async (job) => {
@@ -86,6 +87,9 @@ export default function ContributionsPage() {
       if (job.status === "ready") {
         setError("");
         setMessage("Evidence export is ready to download.");
+      } else if (job.status === "queued" || job.status === "processing") {
+        setError("");
+        setMessage("Your export is being prepared. Its download link will appear here when ready.");
       } else {
         setMessage("");
         setError(`${job.error_message || "Export generation failed."} Use Export CSV or Export PDF to retry.`);
@@ -143,7 +147,7 @@ export default function ContributionsPage() {
     </form></Panel>
     {insights.isLoading ? <Loading label="Calculating contribution evidence…" /> : insights.error ? <ErrorState error={insights.error} retry={() => void insights.refetch()} /> : insights.data && <>
       <ContributionDashboard members={insights.data.members} rangeStart={insights.data.range_start} rangeEnd={insights.data.range_end} eventType={insights.data.event_type} charts={insights.data.charts} />
-      <Panel labelledBy="summary-heading"><div className="section-heading"><h3 id="summary-heading">Member summary</h3><span>{insights.data.range_start} to {insights.data.range_end}</span></div><div className="table-wrap"><table><thead><tr><th scope="col">Member</th><th scope="col">Role</th><th scope="col">Recorded actions</th><th scope="col">Tasks completed</th><th scope="col">Comments</th><th scope="col">Meetings accepted</th></tr></thead><tbody>{insights.data.members.map((member) => <tr key={member.user_id}><th scope="row">{member.display_name}</th><td><StatusBadge value={member.role} /></td><td>{member.total_events}</td><td>{member.completed_tasks}</td><td>{member.comments}</td><td>{member.accepted_meetings}</td></tr>)}</tbody></table></div></Panel>
+      <Panel labelledBy="summary-heading"><div className="section-heading"><h3 id="summary-heading">Member summary</h3><span>{insights.data.range_start} to {insights.data.range_end}</span></div><p className="muted">Done counts record distinct tasks this member marked done within the range. Accepted RSVPs show intent to attend and exclude cancelled meetings. For actual attendance, former members and reviewed contribution statements, open Evidence &amp; claims.</p><div className="table-wrap"><table><thead><tr><th scope="col">Member</th><th scope="col">Role</th><th scope="col">Recorded actions</th><th scope="col">Tasks marked done</th><th scope="col">Comments created</th><th scope="col">Accepted RSVPs</th></tr></thead><tbody>{insights.data.members.map((member) => <tr key={member.user_id}><th scope="row">{member.display_name}</th><td><StatusBadge value={member.role} /></td><td>{member.total_events}</td><td>{member.completed_tasks}</td><td>{member.comments}</td><td>{member.accepted_meetings}</td></tr>)}</tbody></table></div></Panel>
     </>}
         <Panel labelledBy="timeline-heading" className="activity-timeline-panel">
           <div className="section-heading">

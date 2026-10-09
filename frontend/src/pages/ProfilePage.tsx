@@ -153,6 +153,10 @@ function ProfileContent({ me }: { me: Me }) {
   const client = useQueryClient();
   const [displayName, setDisplayName] = useState(me.profile.display_name);
   const [biography, setBiography] = useState(me.profile.biography);
+  const [major, setMajor] = useState(me.profile.major ?? "");
+  const [skills, setSkills] = useState((me.profile.skills ?? []).join(", "));
+  const [languages, setLanguages] = useState((me.profile.communication_languages ?? []).join(", "));
+  const [collaborationPreference, setCollaborationPreference] = useState(me.profile.collaboration_preference ?? "");
   const [timeZone, setTimeZone] = useState(me.profile.time_zone);
   const [profileMessage, setProfileMessage] = useState("");
   const [avatarMessage, setAvatarMessage] = useState("");
@@ -167,7 +171,11 @@ function ProfileContent({ me }: { me: Me }) {
     ? `${me.profile.avatar_image_url}?v=${encodeURIComponent(me.profile.updated_at)}`
     : me.profile.avatar_url;
   const initials = me.profile.display_name.trim().slice(0, 1).toLocaleUpperCase() || "?";
-  const dirty = displayName.trim() !== me.profile.display_name || biography.trim() !== me.profile.biography || timeZone !== me.profile.time_zone;
+  const list = (value: string) => value.split(",").map((entry) => entry.trim()).filter(Boolean);
+  const dirty = displayName.trim() !== me.profile.display_name || biography.trim() !== me.profile.biography || timeZone !== me.profile.time_zone
+    || major.trim() !== (me.profile.major ?? "") || JSON.stringify(list(skills)) !== JSON.stringify(me.profile.skills ?? [])
+    || JSON.stringify(list(languages)) !== JSON.stringify(me.profile.communication_languages ?? [])
+    || collaborationPreference !== (me.profile.collaboration_preference ?? "");
 
   const update = useMutation({
     mutationFn: accountApi.updateProfile,
@@ -219,7 +227,8 @@ function ProfileContent({ me }: { me: Me }) {
   const submitProfile = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setProfileMessage("");
-    update.mutate({ display_name: displayName.trim(), time_zone: timeZone, biography: biography.trim() });
+    update.mutate({ display_name: displayName.trim(), time_zone: timeZone, biography: biography.trim(),
+      major: major.trim(), skills: list(skills), communication_languages: list(languages), collaboration_preference: collaborationPreference });
   };
   const uploadAvatar = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -264,6 +273,10 @@ function ProfileContent({ me }: { me: Me }) {
           <form ref={profileForm} className="profile-form" onSubmit={submitProfile}>
             <Field label="Display name" error={profileErrors.display_name}><input name="display_name" required minLength={2} maxLength={80} value={displayName} onChange={(event) => { setDisplayName(event.target.value); if (update.error) update.reset(); }} autoComplete="name" /></Field>
             <TimeZonePicker value={timeZone} error={profileErrors.time_zone} onChange={(value) => { setTimeZone(value); if (update.error) update.reset(); }} />
+            <Field label="Major / study area (optional)" error={profileErrors.major}><input name="major" maxLength={120} value={major} onChange={(event) => { setMajor(event.target.value); update.reset(); }} placeholder="For example, Computer Science" /></Field>
+            <Field label="Skills (optional)" hint="Separate up to 12 skills with commas. Each can be up to 40 characters." error={profileErrors.skills}><input name="skills" maxLength={500} value={skills} onChange={(event) => { setSkills(event.target.value); update.reset(); }} placeholder="Research, Python, presentations" /></Field>
+            <Field label="Communication languages (optional)" hint="Separate up to 8 languages with commas." error={profileErrors.communication_languages}><input name="communication_languages" maxLength={350} value={languages} onChange={(event) => { setLanguages(event.target.value); update.reset(); }} placeholder="English, Mandarin" /></Field>
+            <Field label="Collaboration preference (optional)" error={profileErrors.collaboration_preference}><select name="collaboration_preference" value={collaborationPreference} onChange={(event) => { setCollaborationPreference(event.target.value as typeof collaborationPreference); update.reset(); }}><option value="">No preference</option><option value="online">Online</option><option value="in_person">In person</option><option value="hybrid">Online and in person</option></select></Field>
             <div className="profile-biography"><Field label="About you" error={profileErrors.biography}><textarea name="biography" rows={4} maxLength={500} value={biography} onChange={(event) => { setBiography(event.target.value); if (update.error) update.reset(); }} placeholder="Your interests, your role, or what you bring to the team." /></Field><div className="profile-biography__meta"><span>A short introduction goes a long way.</span><span>{biography.length} / 500</span></div></div>
             <div className="profile-form__footer"><span><ProfileIcon name="person" />Visible to your project teammates</span><Button type="submit" disabled={update.isPending || !dirty}>{update.isPending ? "Saving…" : "Save changes"}</Button></div>
           </form>
@@ -276,9 +289,9 @@ function ProfileContent({ me }: { me: Me }) {
             <span className="profile-security-row__icon"><ProfileIcon name="mail" /></span><div><h4>Sign-in email</h4><p>{me.email}</p><Button type="button" variant="quiet" onClick={() => setEmailOpen(true)}>{pendingEmail ? "Continue email change" : "Change email"}<ProfileIcon name="arrow" /></Button></div>
           </div>
           <div className="profile-security-row">
-            <span className="profile-security-row__icon"><ProfileIcon name="lock" /></span><div><h4>Password</h4><p>A private key to your workspace.</p><a className="button button--quiet" href="/account/password/">Change password<ProfileIcon name="arrow" /></a></div>
+            <span className="profile-security-row__icon"><ProfileIcon name="lock" /></span><div><h4>Password</h4><p>A private key to your workspace.</p><a className="button button--quiet" href="/account/password/change/">Change password<ProfileIcon name="arrow" /></a></div>
           </div>
-          <p className="profile-security-note"><ProfileIcon name="lock" />Email changes require verification.</p>
+          <p className="profile-security-note"><ProfileIcon name="lock" />{me.profile.email_verified ? "Email address verified." : "Email verification status unavailable."} This confirms access to the mailbox and is not university certification. Your email is not a public profile field.</p>
         </Panel>
         <ProfileLocalTime timeZone={me.profile.time_zone} />
       </div>

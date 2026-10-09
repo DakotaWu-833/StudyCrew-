@@ -16,6 +16,8 @@
     </form>
 
     <p class="auth-switch">New to StudyCrew? <a href="{% url 'accounts:register' %}">Create an account</a>.</p>
+    <p><a href="{% url 'accounts:password_reset' %}">Forgot your password?</a> · <a href="{% url 'accounts:email_recovery' %}">Cannot access your sign-in email?</a></p>
+    <p><a href="{% url 'accounts:privacy' %}">Privacy and data retention</a></p>
   </section>
 </div>
 {% endblock %}

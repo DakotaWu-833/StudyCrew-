@@ -98,8 +98,8 @@ class ProductionConfigurationTests(SimpleTestCase):
                 self.assertGreater(self.sql.index(revoke), general_grant_position)
 
     def test_nginx_accepts_the_largest_permitted_avatar_with_multipart_overhead(self):
-        limits = re.findall(r"\bclient_max_body_size\s+(\d+)([kKmM]?)\s*;", self.nginx)
-        self.assertEqual(len(limits), 1, "Keep one reviewed edge request-body limit.")
+        limits = re.findall(r"(?m)^    client_max_body_size\s+(\d+)([kKmM]?)\s*;", self.nginx)
+        self.assertEqual(len(limits), 1, "Keep one small global request-body limit.")
         amount, unit = limits[0]
         edge_limit = int(amount) * {"": 1, "k": 1024, "m": 1024 * 1024}[unit.lower()]
         # Real multipart encoding adds boundaries and headers to the file bytes.
@@ -109,6 +109,13 @@ class ProductionConfigurationTests(SimpleTestCase):
         self.assertGreaterEqual(edge_limit, len(multipart_body))
         self.assertLessEqual(edge_limit, 3 * 1024 * 1024)
         self.assertEqual(MAX_AVATAR_BYTES, 2 * 1024 * 1024)
+
+    def test_only_private_file_routes_receive_the_larger_upload_limit(self):
+        location = re.search(r"location \^~ /api/v1/files/\s*\{([^}]+)\}", self.nginx)
+        self.assertIsNotNone(location)
+        self.assertIn("client_max_body_size 12m;", location.group(1))
+        self.assertIn("uwsgi_pass unix:/run/studycrew/studycrew.sock;", location.group(1))
+        self.assertEqual(len(re.findall(r"\bclient_max_body_size", self.nginx)), 2)
 
     def test_private_media_is_only_served_after_an_internal_authorised_handoff(self):
         location = re.search(r"location \^~ /protected-media/\s*\{([^}]+)\}", self.nginx)

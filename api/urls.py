@@ -1,4 +1,4 @@
-from django.urls import path
+from django.urls import include, path
 from rest_framework.routers import SimpleRouter
 
 from api.views import (
@@ -34,6 +34,16 @@ router.register("notifications", NotificationViewSet, basename="notification")
 router.register("exports", ExportViewSet, basename="export")
 
 urlpatterns = [
+    path("account/", include("accounts.readiness_urls")),
+    path("campus/", include("campus.urls")),
+    path("coordination/", include("coordination.urls")),
+    path("operations/", include("operations.urls")),
+    path("recruiting/", include("recruiting.urls")),
+    path("files/", include("documents_store.urls")),
+    path("learning-exchange/", include("learning_exchange.urls")),
+    path("chat/", include("project_chat.urls")),
+    path("offline/", include("api.offline_urls")),
+    path("productivity/", include("productivity.urls")),
     path("health/", HealthView.as_view(), name="health"),
     path("me/", me_view, name="me"),
     path("profile/", ProfileView.as_view(), name="profile"),

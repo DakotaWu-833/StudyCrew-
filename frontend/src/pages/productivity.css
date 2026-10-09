@@ -1,0 +1,17 @@
+.productivity { min-width: 0; }
+.productivity .panel { min-width: 0; }
+.productivity-form { margin-top: 1rem; }
+.productivity-form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
+.productivity-entry { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; border-top: 1px solid var(--border, #dce2eb); padding: 1rem 0; overflow-wrap: anywhere; }
+.productivity-entry > div { min-width: 0; }
+.productivity-timer { display: grid; gap: .75rem; padding: 1rem; background: var(--surface-soft, #f4f7fb); border-radius: .75rem; }
+.productivity-clock { font: 600 1.75rem ui-monospace, monospace; font-variant-numeric: tabular-nums; }
+.productivity-metrics { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; }
+.productivity-metrics dt { font-size: .875rem; color: var(--muted, #5d687b); }
+.productivity-metrics dd { margin: .5rem 0; font-size: 1.5rem; font-weight: 600; }
+.productivity-due-bar { display: flex; height: .6rem; background: #edf1f5; border-radius: .3rem; overflow: hidden; }
+.productivity-due-overdue { background: #b83939; }
+.productivity-due-next_7_days { background: #ca7c19; }
+.productivity-due-later { background: #4076b8; }
+.productivity-due-no_deadline { background: #84919e; }
+@media (max-width: 600px) { .productivity-entry { flex-direction: column; } .productivity-form-grid, .productivity-metrics { grid-template-columns: 1fr; } }

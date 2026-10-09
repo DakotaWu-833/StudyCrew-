@@ -10,7 +10,7 @@ from django.test import SimpleTestCase
 
 
 ROOT = Path(__file__).resolve().parents[2]
-DOMAIN_PACKAGES = {"accounts", "activity", "integrations", "meetings", "projects", "tasks"}
+DOMAIN_PACKAGES = {"accounts", "activity", "integrations", "meetings", "projects", "tasks", "campus", "coordination", "operations", "recruiting", "documents_store", "learning_exchange", "project_chat", "offline_sync", "productivity"}
 HTTP_CLIENT_PACKAGES = {"aiohttp", "httpx", "requests"}
 
 

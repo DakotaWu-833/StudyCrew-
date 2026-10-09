@@ -58,15 +58,26 @@ INSTALLED_APPS = [
     "integrations.apps.IntegrationsConfig",
     "web.apps.WebConfig",
     "api.apps.ApiConfig",
+    "campus.apps.CampusConfig",
+    "coordination.apps.CoordinationConfig",
+    "operations.apps.OperationsConfig",
+    "recruiting.apps.RecruitingConfig",
+    "documents_store.apps.DocumentsStoreConfig",
+    "learning_exchange.apps.LearningExchangeConfig",
+    "project_chat.apps.ProjectChatConfig",
+    "offline_sync.apps.OfflineSyncConfig",
+    "productivity.apps.ProductivityConfig",
 ]
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
+    "documents_store.middleware.PrivateUploadLimitMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "accounts.middleware.UserTimezoneMiddleware",
+    "operations.middleware.OperationsMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "config.middleware.SecurityHeadersMiddleware",
@@ -115,7 +126,7 @@ else:
         "default": {
             "ENGINE": "django.db.backends.sqlite3",
             "NAME": _sqlite_path,
-            "OPTIONS": {"timeout": 20},
+            "OPTIONS": {"timeout": 20, "transaction_mode": "IMMEDIATE"},
         }
     }
 
@@ -144,7 +155,20 @@ STATIC_URL = "/static/"
 STATIC_ROOT = BASE_DIR / "var" / "static"
 STATICFILES_DIRS = [BASE_DIR / "static"]
 MEDIA_URL = "/media/"
-MEDIA_ROOT = BASE_DIR / "var" / "media"
+MEDIA_ROOT = BASE_DIR / env("MEDIA_PATH", "var/media")
+
+# These uploads are served only through current-project-membership checks.
+PROJECT_FILE_MAX_BYTES = int(env("PROJECT_FILE_MAX_BYTES", str(10 * 1024 * 1024)))
+PROJECT_FILE_QUOTA_BYTES = int(env("PROJECT_FILE_QUOTA_BYTES", str(250 * 1024 * 1024)))
+PROJECT_FILE_DAILY_BYTES = int(env("PROJECT_FILE_DAILY_BYTES", str(100 * 1024 * 1024)))
+PROJECT_FILE_DAILY_UPLOADS = int(env("PROJECT_FILE_DAILY_UPLOADS", "30"))
+PROJECT_FILE_ZIP_EXPANDED_BYTES = int(env("PROJECT_FILE_ZIP_EXPANDED_BYTES", str(50 * 1024 * 1024)))
+PROJECT_FILES_CLAMSCAN = env("PROJECT_FILES_CLAMSCAN", "")
+PROJECT_FILES_REQUIRE_SCAN = env_bool("PROJECT_FILES_REQUIRE_SCAN", ENVIRONMENT == "production")
+if ENVIRONMENT == "production" and not PROJECT_FILES_REQUIRE_SCAN:
+    raise ImproperlyConfigured("Production project uploads require malware scanning.")
+if PROJECT_FILES_REQUIRE_SCAN and not PROJECT_FILES_CLAMSCAN:
+    raise ImproperlyConfigured("Configure PROJECT_FILES_CLAMSCAN before enabling project uploads with required scanning.")
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
@@ -172,6 +196,26 @@ EMAIL_PORT = int(env("EMAIL_PORT", "587"))
 EMAIL_HOST_USER = env("EMAIL_HOST_USER", "")
 EMAIL_HOST_PASSWORD = env("EMAIL_HOST_PASSWORD", "")
 EMAIL_USE_TLS = env_bool("EMAIL_USE_TLS", True)
+EMAIL_TIMEOUT = int(env("EMAIL_TIMEOUT", "10"))
+PUBLIC_BASE_URL = env("PUBLIC_BASE_URL", f"https://{ALLOWED_HOSTS[0]}" if ENVIRONMENT == "production" and ALLOWED_HOSTS else "http://127.0.0.1:8000").rstrip("/")
+from urllib.parse import urlsplit
+_public_origin = urlsplit(PUBLIC_BASE_URL)
+if (_public_origin.scheme not in {"http", "https"} or not _public_origin.hostname or
+        _public_origin.username or _public_origin.password or _public_origin.path or _public_origin.query or _public_origin.fragment):
+    raise ImproperlyConfigured("PUBLIC_BASE_URL must be an HTTP(S) origin without credentials, paths or query strings.")
+MAIL_MESSAGE_DOMAIN = env("MAIL_MESSAGE_DOMAIN", "studycrew.local")
+MAIL_DAILY_LIMIT = int(env("MAIL_DAILY_LIMIT", "2000"))
+MAIL_RETENTION_DAYS = int(env("MAIL_RETENTION_DAYS", "30"))
+BACKUP_ROOT = Path(env("BACKUP_ROOT", str(BASE_DIR / "var" / "backups")))
+BACKUP_MAX_AGE_HOURS = int(env("BACKUP_MAX_AGE_HOURS", "30"))
+if not 1 <= BACKUP_MAX_AGE_HOURS <= 168:
+    raise ImproperlyConfigured("BACKUP_MAX_AGE_HOURS must be between 1 and 168.")
+MAIL_WEBHOOK_SECRET = env("MAIL_WEBHOOK_SECRET", "")
+ASYNC_EXPORTS = env_bool("ASYNC_EXPORTS", ENVIRONMENT == "production")
+ASYNC_REMINDERS = env_bool("ASYNC_REMINDERS", ENVIRONMENT == "production")
+OPERATIONS_RATE_LIMITS = env_bool("OPERATIONS_RATE_LIMITS", True)
+SERVICE_CONTACT_EMAIL = env("SERVICE_CONTACT_EMAIL", "")
+MAINTENANCE_MODE = env_bool("MAINTENANCE_MODE", False)
 
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [
@@ -199,8 +243,11 @@ SPECTACULAR_SETTINGS = {
     "ENUM_NAME_OVERRIDES": {
         "InvitationStatusEnum": "api.serializers.INVITATION_STATUS_CHOICES",
         "TaskStatusEnum": "api.serializers.TASK_STATUS_CHOICES",
+        "TaskPriorityEnum": "api.serializers.TASK_PRIORITY_CHOICES",
         "MembershipRoleEnum": "api.serializers.MEMBERSHIP_ROLE_CHOICES",
         "MutableMembershipRoleEnum": "api.serializers.MUTABLE_MEMBERSHIP_ROLE_CHOICES",
+        "DeliveryStatusEnum": "operations.serializers.DELIVERY_STATUS_CHOICES",
+        "SupportStatusEnum": "operations.serializers.SUPPORT_STATUS_CHOICES",
     },
 }
 
@@ -229,6 +276,8 @@ if ENVIRONMENT == "production":
         raise ImproperlyConfigured("DJANGO_SECRET_KEY must be a random value of at least 50 characters.")
     if not ALLOWED_HOSTS or "*" in ALLOWED_HOSTS:
         raise ImproperlyConfigured("Production requires explicit DJANGO_ALLOWED_HOSTS values.")
+    if _public_origin.scheme != "https" or _public_origin.hostname not in ALLOWED_HOSTS:
+        raise ImproperlyConfigured("Production PUBLIC_BASE_URL must use HTTPS and an allowed host.")
     if not CSRF_TRUSTED_ORIGINS or any(
         not origin.startswith("https://") for origin in CSRF_TRUSTED_ORIGINS
     ):
@@ -256,10 +305,19 @@ LOGGING = {
     "disable_existing_loggers": False,
     "formatters": {
         "standard": {"format": "{asctime} {levelname} {name}: {message}", "style": "{"},
+        "server": {"()": "django.utils.log.ServerFormatter", "format": "[{server_time}] {message}", "style": "{"},
     },
-    "handlers": {"console": {"class": "logging.StreamHandler", "formatter": "standard"}},
+    "filters": {"sensitive_urls": {"()": "config.logging.SensitiveURLFilter"}},
+    "handlers": {
+        "console": {"class": "logging.StreamHandler", "formatter": "standard", "filters": ["sensitive_urls"]},
+        "server": {"class": "logging.StreamHandler", "formatter": "server", "level": "INFO", "filters": ["sensitive_urls"]},
+    },
     "root": {"handlers": ["console"], "level": env("DJANGO_LOG_LEVEL", "INFO")},
     "loggers": {
+        # Django installs its defaults before this dictionary. Replace the
+        # inherited unfiltered handlers as well as runserver's separate handler.
+        "django": {"handlers": ["console"], "level": env("DJANGO_LOG_LEVEL", "INFO"), "propagate": False},
+        "django.server": {"handlers": ["server"], "level": "INFO", "propagate": False},
         "django.security": {"handlers": ["console"], "level": "WARNING", "propagate": False},
     },
 }

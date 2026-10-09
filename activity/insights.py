@@ -166,6 +166,7 @@ def contribution_insights(
     range_start: date,
     range_end: date,
     event_type: str = "",
+    include_former: bool = False,
 ) -> dict:
     """Return factual per-member totals and a drill-down event queryset.
 
@@ -217,6 +218,7 @@ def contribution_insights(
             meeting__project=project,
             meeting__starts_at__gte=starts_at,
             meeting__starts_at__lt=ends_at,
+            meeting__cancelled_at__isnull=True,
             response=MeetingAttendance.Response.ACCEPTED,
         )
         .values("user_id")
@@ -224,11 +226,12 @@ def contribution_insights(
     }
 
     memberships = (
-        ProjectMembership.objects.active()
-        .filter(project=project)
+        ProjectMembership.objects.filter(project=project)
         .select_related("user", "user__profile")
         .order_by("user__profile__display_name", "user__email")
     )
+    if not include_former:
+        memberships = memberships.filter(removed_at__isnull=True)
     members = []
     for membership in memberships:
         member = membership.user

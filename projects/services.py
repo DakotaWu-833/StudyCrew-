@@ -213,6 +213,10 @@ def invite_member(
 
     user_model = get_user_model()
     invitee = user_model.objects.filter(email__iexact=email).first()
+    if invitee:
+        from operations.models import UserBlock
+        if UserBlock.objects.filter(user=invitee, blocked=actor).exists():
+            raise ValidationError({"invited_email": "An invitation cannot be created for this address."})
     if invitee and ProjectMembership.objects.active().filter(
         project=project,
         user=invitee,
@@ -550,6 +554,8 @@ def remove_member(*, actor, project: Project, member, at=None) -> ProjectMembers
         task__project=project,
     )
     removed_assignment_count = assignments.count()
+    from tasks.models import Task
+    Task.objects.filter(pk__in=assignments.values_list("task_id", flat=True)).update(updated_at=at)
     assignments.delete()
     record_event(
         project=project,
