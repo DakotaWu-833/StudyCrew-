@@ -227,6 +227,9 @@ RAG_TIMEOUT_SECONDS = float(env("RAG_TIMEOUT_SECONDS", "15"))
 RAG_PARSE_TIMEOUT_SECONDS = float(env("RAG_PARSE_TIMEOUT_SECONDS", "3"))
 RAG_MAX_FILES = int(env("RAG_MAX_FILES", "20"))
 RAG_MAX_MEETINGS = int(env("RAG_MAX_MEETINGS", "40"))
+RAG_AGENT_TIMEOUT_SECONDS = float(env("RAG_AGENT_TIMEOUT_SECONDS", "22"))
+if not 1 <= RAG_AGENT_TIMEOUT_SECONDS <= 24:
+    raise ImproperlyConfigured("RAG_AGENT_TIMEOUT_SECONDS must be between 1 and 24.")
 if not (1 <= RAG_PARSE_TIMEOUT_SECONDS <= 5 and 1 <= RAG_MAX_FILES <= 50 and 1 <= RAG_MAX_MEETINGS <= 100):
     raise ImproperlyConfigured("RAG parsing limits must be 1–5 seconds, 1–50 files and 1–100 meeting notes.")
 

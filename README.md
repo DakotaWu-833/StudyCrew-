@@ -266,6 +266,44 @@ permissions, current-source checks, citations and transport failures without
 calling an external model. Real answer quality still needs evaluation after a
 model is configured.
 
+### Project assistant
+
+The project's **Assistant** page adds a bounded model tool-calling loop using the
+same model configuration. Choose a model that supports tool calling; compatible
+servers may also require their model-specific tool parser to be configured.
+The assistant is unavailable by default while `RAG_PROVIDER=disabled`; Knowledge
+source search remains usable without a model.
+
+The model can select three server-authorised tools:
+
+- `search_project_sources`: search current files and meeting notes within this project.
+- `list_project_tasks`: read current task descriptions, statuses and deadlines.
+- `propose_tasks`: prepare up to five source-cited task drafts in request memory.
+
+No tool accepts a project ID from the model. The server binds every tool to the
+signed-in user's selected project, validates every argument and rechecks access
+and source currency before each model turn and before returning the result.
+The assistant cannot create or change tasks, execute commands, open external URLs
+or send messages. Task drafts are explicitly unsaved, and existing task titles
+are omitted from the proposals. Questions, tool histories and proposals are not
+persisted to the database or browser storage.
+
+`GET /api/v1/knowledge/projects/{id}/assistant/` returns available capabilities.
+`POST` to the same endpoint accepts only `question` (1–1000 text characters).
+Results include labelled source excerpts, a short tool-use trace, optional
+unsaved drafts, and one of `completed`, `model_unavailable`, `no_evidence`,
+`invalid_response` or `limit_reached`. Unknown tools, invalid arguments and
+fabricated citations are stopped; partial runs withhold answers and task drafts.
+
+Limits are four model turns, six tool calls, twelve retained source excerpts,
+and at most twenty matching current tasks (the source budget may retain fewer).
+`RAG_AGENT_TIMEOUT_SECONDS` defaults to 22 seconds, shared by retrieval and model
+turns; a setting between 1 and 24 seconds is allowed. These limits keep the
+assistant within the existing web-worker timeout. Source and task snapshots are
+rechecked after model calls; withdrawn or edited evidence requires a new request.
+Tool labels and citation checks establish provenance, not factual accuracy.
+Evaluate real model responses after configuring a provider.
+
 ## Quality gates
 
 Run the same checks as CI:

@@ -31,6 +31,7 @@ const ProjectUpdatesPage = React.lazy(() => import("./pages/ProjectUpdatesPage")
 const TeamFinderPage = React.lazy(() => import("./pages/TeamFinderPage"));
 const ProjectFilesPage = React.lazy(() => import("./pages/ProjectFilesPage"));
 const ProjectKnowledgePage = React.lazy(() => import("./pages/ProjectKnowledgePage"));
+const ProjectAssistantPage = React.lazy(() => import("./pages/ProjectAssistantPage"));
 const LearningExchangePage = React.lazy(() => import("./pages/LearningExchangePage"));
 const ProjectChatPage = React.lazy(() => import("./pages/ProjectChatPage"));
 const WorkloadPage = React.lazy(() => import("./pages/WorkloadPage"));
@@ -76,6 +77,7 @@ ReactDOM.createRoot(document.getElementById("workspace-root")!).render(
             <Route path="projects/:projectId/resources" element={<ResourcesPage />} />
             <Route path="projects/:projectId/files" element={<ProjectFilesPage />} />
             <Route path="projects/:projectId/knowledge" element={<ProjectKnowledgePage />} />
+            <Route path="projects/:projectId/assistant" element={<ProjectAssistantPage />} />
             <Route path="projects/:projectId/learning" element={<LearningExchangePage />} />
             <Route path="projects/:projectId/updates" element={<ProjectUpdatesPage />} />
             <Route path="projects/:projectId/chat" element={<ProjectChatPage />} />

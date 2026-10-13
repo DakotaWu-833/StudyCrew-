@@ -41,8 +41,8 @@ def extract(data, extension, timeout):
     return json.loads(result.stdout)
 
 
-def corpus(user, project):
-    deadline = time.monotonic() + 8
+def corpus(user, project, *, timeout_seconds=8):
+    deadline = time.monotonic() + min(8, timeout_seconds)
     warnings = set()
     rows = []
     limited = False
@@ -100,6 +100,9 @@ def corpus(user, project):
         if not has_text:
             limited = True
             warnings.add("Some files contain no extractable text. Scanned PDFs and images need OCR, which is not enabled.")
+    if time.monotonic() >= deadline:
+        warnings.add("The search time limit was reached. Meeting notes were not searched.")
+        return rows, sorted(warnings), True
     max_meetings = settings.RAG_MAX_MEETINGS
     records = list(MeetingRecord.objects.filter(meeting__project=project, meeting__cancelled_at__isnull=True,
                                                 meeting__archived_at__isnull=True)
@@ -108,6 +111,10 @@ def corpus(user, project):
         limited = True
         warnings.add("Only the most recently updated meeting notes were searched; more notes exist.")
     for record in records[:max_meetings]:
+        if time.monotonic() >= deadline:
+            limited = True
+            warnings.add("The search time limit was reached. Some meeting notes were not searched.")
+            break
         text = "\n".join(part for part in (record.minutes, record.decisions) if part.strip())
         for excerpt in chunks(text):
             rows.append({"kind": "meeting", "source_id": str(record.pk), "title": record.meeting.title,

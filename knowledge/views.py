@@ -6,6 +6,7 @@ from rest_framework.response import Response
 
 from operations.services import consume_rate
 from . import serializers, services
+from . import agent
 from .policies import require_project
 
 
@@ -44,3 +45,17 @@ def search(request, project_id):
 @api_view(["POST"])
 def ask(request, project_id):
     return question(request, project_id, generate=True)
+
+
+@extend_schema(methods=["GET"], responses=serializers.AssistantCapabilitiesOutput)
+@extend_schema(methods=["POST"], request=serializers.AssistantInput, responses=serializers.AssistantOutput)
+@api_view(["GET", "POST"])
+def assistant(request, project_id):
+    if request.method == "GET":
+        return private_response(agent.capabilities(request.user, project_id))
+    require_project(request.user, project_id)
+    values = serializers.AssistantInput(data=request.data)
+    values.is_valid(raise_exception=True)
+    if settings.OPERATIONS_RATE_LIMITS and not consume_rate("project-assistant", request.user.pk, limit=4, seconds=60):
+        raise Throttled()
+    return private_response(agent.run(request.user, project_id, **values.validated_data))

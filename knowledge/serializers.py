@@ -48,3 +48,42 @@ class CapabilitiesOutput(serializers.Serializer):
     max_question_length = serializers.IntegerField()
     retrieval = serializers.CharField()
     notice = serializers.CharField()
+
+
+class AssistantInput(StrictFieldsSerializer):
+    question = TextQuestion(max_length=1000, allow_blank=False, trim_whitespace=True)
+
+
+class AssistantCapabilitiesOutput(serializers.Serializer):
+    available = serializers.BooleanField()
+    notice = serializers.CharField()
+    tools = serializers.ListField(child=serializers.CharField())
+    max_question_length = serializers.IntegerField()
+    max_steps = serializers.IntegerField()
+
+
+class AssistantSourceOutput(SourceOutput):
+    kind = serializers.ChoiceField(choices=["file", "meeting", "task"])
+
+
+class DraftOutput(serializers.Serializer):
+    title = serializers.CharField()
+    description = serializers.CharField()
+    source_citations = serializers.ListField(child=serializers.CharField())
+
+
+class AssistantStepOutput(serializers.Serializer):
+    tool = serializers.CharField()
+    summary = serializers.CharField()
+    result_count = serializers.IntegerField()
+
+
+class AssistantOutput(serializers.Serializer):
+    question = serializers.CharField()
+    status = serializers.ChoiceField(choices=["completed", "model_unavailable", "no_evidence", "invalid_response", "limit_reached"])
+    answer = serializers.CharField(allow_null=True)
+    sources = AssistantSourceOutput(many=True)
+    drafts = DraftOutput(many=True)
+    steps = AssistantStepOutput(many=True)
+    warnings = serializers.ListField(child=serializers.CharField())
+    model = serializers.CharField(allow_null=True)

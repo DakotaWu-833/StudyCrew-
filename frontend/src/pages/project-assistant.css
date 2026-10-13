@@ -1,0 +1,50 @@
+.assistant-page { min-width: 0; }
+.assistant-page .section-heading { align-items: center; flex-wrap: wrap; gap: .75rem; }
+.assistant-page .section-heading h3 { margin: 0; }
+.assistant-page a { color: var(--blue, #3454ad); }
+.assistant-page .page-heading > .button { flex: 0 0 auto; }
+.assistant-mode { border-radius: 1rem; padding: .35rem .7rem; background: #edf2ff; color: var(--blue, #3454ad) !important; font-weight: 700; }
+.assistant-notice { padding: .8rem 1rem; border-left: 3px solid #8da4dc; border-radius: .35rem; background: #f3f6fc; color: var(--ink, #23304b); line-height: 1.6; overflow-wrap: anywhere; }
+.assistant-unavailable { line-height: 1.6; color: var(--ink-soft, #57637a); }
+.assistant-form { display: grid; gap: 1rem; margin-top: 1.2rem; }
+.assistant-form textarea { resize: vertical; min-height: 6.5rem; }
+.assistant-form .form-actions { margin: 0; }
+.assistant-scope { margin: 1.2rem 0 0; font-size: .82rem; line-height: 1.6; }
+.assistant-start { display: flex; align-items: center; justify-content: center; gap: 1rem; padding: 1.4rem; color: var(--ink-soft, #57637a); }
+.assistant-start > span { font-size: 1.8rem; }
+.assistant-start p { max-width: 36rem; margin: 0; line-height: 1.6; }
+.assistant-request { font-weight: 700; overflow-wrap: anywhere; }
+.assistant-answer-box { margin-block: 1.2rem; padding: 1rem 1.2rem; border: 1px solid #d8e3f2; border-radius: .75rem; background: #f8faff; }
+.assistant-answer { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.8; }
+.assistant-answer a { font-weight: 700; }
+.assistant-answer-box > .muted { margin-bottom: 0; font-size: .8rem; }
+.assistant-warnings { color: var(--ink-soft, #57637a); font-size: .85rem; line-height: 1.6; }
+.assistant-warnings h4 { margin-bottom: .4rem; }
+.assistant-warnings ul { margin-top: 0; padding-left: 1.2rem; }
+.assistant-steps { margin-top: 1.2rem; border-top: 1px solid var(--line, #dde3ed); padding-top: 1rem; }
+.assistant-steps summary { cursor: pointer; font-weight: 700; }
+.assistant-steps ol { display: grid; gap: 1rem; margin-bottom: 0; padding-left: 1.5rem; }
+.assistant-steps li { padding-left: .35rem; font-size: .9rem; overflow-wrap: anywhere; }
+.assistant-steps li p { margin: .3rem 0; line-height: 1.6; }
+.assistant-steps li > .muted { font-size: .8rem; }
+.assistant-drafts, .assistant-sources { display: grid; gap: 1rem; margin-top: 1.2rem; }
+.assistant-draft, .assistant-source { min-width: 0; padding: 1rem; border: 1px solid var(--line, #dde3ed); border-radius: .75rem; }
+.assistant-draft { background: #fcfcff; }
+.assistant-draft__heading, .assistant-source__heading { display: flex; gap: .75rem; align-items: baseline; }
+.assistant-draft__heading { flex-wrap: wrap; justify-content: space-between; }
+.assistant-draft__heading h4, .assistant-source__heading h4 { margin: 0; overflow-wrap: anywhere; }
+.assistant-unsaved { flex: 0 0 auto; padding: .2rem .55rem; border-radius: .4rem; color: #695420; background: #fff3d8; font-size: .75rem; font-weight: 700; }
+.assistant-draft__description { white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.7; }
+.assistant-draft__references { margin-bottom: 0; color: var(--ink-soft, #57637a); font-size: .85rem; }
+.assistant-source { scroll-margin-top: 1.5rem; }
+.assistant-source:target { border-color: var(--blue, #3454ad); background: #f8faff; }
+.assistant-citation { flex: 0 0 auto; color: var(--blue, #3454ad); font-size: .9rem; font-weight: 750; }
+.assistant-source__location { margin: .5rem 0; color: var(--ink-soft, #57637a); font-size: .8rem; overflow-wrap: anywhere; }
+.assistant-source__excerpt { margin: .8rem 0; padding-left: 1rem; border-left: 2px solid #d3dbea; white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.7; }
+.assistant-source__open { display: inline-flex; gap: .35rem; align-items: center; min-height: 2.4rem; font-size: .85rem; font-weight: 700; }
+@media (max-width: 580px) {
+  .assistant-page .page-heading { align-items: stretch; }
+  .assistant-page .page-heading > .button, .assistant-form .button { width: 100%; }
+  .assistant-draft, .assistant-source, .assistant-answer-box { padding: .85rem; }
+  .assistant-start { align-items: start; padding-inline: .25rem; }
+}

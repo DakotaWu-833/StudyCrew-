@@ -3126,6 +3126,59 @@ paths:
               schema:
                 $ref: '#/components/schemas/AnswerOutput'
           description: ''
+  /api/v1/knowledge/projects/{project_id}/assistant/:
+    get:
+      operationId: knowledge_projects_assistant_retrieve
+      parameters:
+      - in: path
+        name: project_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - knowledge
+      security:
+      - mfaSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AssistantCapabilitiesOutput'
+          description: ''
+    post:
+      operationId: knowledge_projects_assistant_create
+      parameters:
+      - in: path
+        name: project_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - knowledge
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AssistantInput'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/AssistantInput'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/AssistantInput'
+        required: true
+      security:
+      - mfaSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AssistantOutput'
+          description: ''
   /api/v1/knowledge/projects/{project_id}/search/:
     post:
       operationId: knowledge_projects_search_create
@@ -6666,6 +6719,146 @@ components:
             format: uuid
       required:
       - assignee_ids
+    AssistantCapabilitiesOutput:
+      type: object
+      properties:
+        available:
+          type: boolean
+        notice:
+          type: string
+        tools:
+          type: array
+          items:
+            type: string
+        max_question_length:
+          type: integer
+        max_steps:
+          type: integer
+      required:
+      - available
+      - max_question_length
+      - max_steps
+      - notice
+      - tools
+    AssistantInput:
+      type: object
+      description: Reject undeclared and read-only input instead of silently ignoring
+        it.
+      properties:
+        question:
+          type: string
+          maxLength: 1000
+      required:
+      - question
+    AssistantOutput:
+      type: object
+      properties:
+        question:
+          type: string
+        status:
+          $ref: '#/components/schemas/AssistantOutputStatusEnum'
+        answer:
+          type: string
+          nullable: true
+        sources:
+          type: array
+          items:
+            $ref: '#/components/schemas/AssistantSourceOutput'
+        drafts:
+          type: array
+          items:
+            $ref: '#/components/schemas/DraftOutput'
+        steps:
+          type: array
+          items:
+            $ref: '#/components/schemas/AssistantStepOutput'
+        warnings:
+          type: array
+          items:
+            type: string
+        model:
+          type: string
+          nullable: true
+      required:
+      - answer
+      - drafts
+      - model
+      - question
+      - sources
+      - status
+      - steps
+      - warnings
+    AssistantOutputStatusEnum:
+      enum:
+      - completed
+      - model_unavailable
+      - no_evidence
+      - invalid_response
+      - limit_reached
+      type: string
+      description: |-
+        * `completed` - completed
+        * `model_unavailable` - model_unavailable
+        * `no_evidence` - no_evidence
+        * `invalid_response` - invalid_response
+        * `limit_reached` - limit_reached
+    AssistantSourceOutput:
+      type: object
+      properties:
+        citation:
+          type: string
+        kind:
+          $ref: '#/components/schemas/AssistantSourceOutputKindEnum'
+        source_id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        version:
+          type: integer
+          nullable: true
+        page:
+          type: integer
+          nullable: true
+        excerpt:
+          type: string
+        url:
+          type: string
+        locator:
+          type: string
+      required:
+      - citation
+      - excerpt
+      - kind
+      - locator
+      - page
+      - source_id
+      - title
+      - url
+      - version
+    AssistantSourceOutputKindEnum:
+      enum:
+      - file
+      - meeting
+      - task
+      type: string
+      description: |-
+        * `file` - file
+        * `meeting` - meeting
+        * `task` - task
+    AssistantStepOutput:
+      type: object
+      properties:
+        tool:
+          type: string
+        summary:
+          type: string
+        result_count:
+          type: integer
+      required:
+      - result_count
+      - summary
+      - tool
     AttendanceWrite:
       type: object
       description: Reject undeclared and read-only input instead of silently ignoring
@@ -7287,6 +7480,21 @@ components:
           minimum: 1
       required:
       - expected_revision
+    DraftOutput:
+      type: object
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+        source_citations:
+          type: array
+          items:
+            type: string
+      required:
+      - description
+      - source_citations
+      - title
     EmailChangeConfirm:
       type: object
       description: Reject undeclared and read-only input instead of silently ignoring

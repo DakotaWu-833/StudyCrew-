@@ -29,6 +29,7 @@ const projectSections = [
   ["resources", "Resources", "Resources"],
   ["files", "Files", "Files"],
   ["knowledge", "Project knowledge", "Knowledge"],
+  ["assistant", "Project assistant", "Assistant"],
   ["learning", "Assignment import", "Import"],
   ["updates", "Discussions", "Discussions"],
   ["chat", "Chat", "Chat"],
