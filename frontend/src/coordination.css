@@ -1,0 +1,31 @@
+.coordination-page .coord-calendar-scroll,.coord-heatmap-scroll,.coord-table-scroll{overflow-x:auto}
+.coord-calendar{display:grid;grid-template-columns:repeat(7,minmax(125px,1fr));gap:1px;min-width:875px;background:var(--border,#dce2e8);border:1px solid var(--border,#dce2e8);border-radius:10px;overflow:hidden;margin-top:20px}
+.coord-calendar-dayname{padding:10px;background:var(--surface,#fff);font-weight:600;text-align:center}
+.coord-calendar--week .coord-calendar-cell{min-height:330px}.coord-calendar-navigation{justify-content:space-between;margin-top:18px}.coord-calendar-navigation strong{text-align:center}
+.coord-calendar-cell,.coord-calendar-blank{min-height:150px;background:var(--surface,#fff);padding:10px}
+.coord-calendar-cell{max-height:22rem;overflow-y:auto}
+.coord-calendar-blank{background:var(--background,#f6f7f9)}
+.coord-calendar-event{display:block;margin:7px 0;padding:6px 8px;border-left:3px solid #3867be;background:#edf3ff;color:#183653;font-size:.85rem;text-decoration:none;border-radius:4px;overflow-wrap:anywhere}
+.coord-calendar-event span,.coord-calendar-event small{display:block;font-size:.75rem}
+.coord-calendar-event--task{border-color:#bc7527;background:#fff4e6;color:#5b390f}
+.coord-calendar-event--task_official,.coord-calendar-event--submission_official{border-color:#b35161;background:#fff0f3;color:#6b2331}
+.coord-calendar-event--submission_internal,.coord-calendar-event--milestone{border-color:#bc7527;background:#fff4e6;color:#5b390f}
+.coord-calendar-event--project{border-color:#7358aa;background:#f3edfc;color:#42275f}
+.coord-calendar-event--cancelled{text-decoration:line-through;opacity:.75}
+.coord-list{display:grid;gap:14px;margin-top:18px}
+.coord-card{border:1px solid var(--border,#dce2e8);border-radius:10px;padding:18px;background:var(--surface,#fff)}
+.coord-card h3{margin-top:0}.coord-card p{overflow-wrap:anywhere}
+.coord-options{display:grid;gap:12px}.coord-option{padding:14px;border:1px solid var(--border,#dce2e8);border-radius:8px}
+.coord-editor{padding:14px 0;border-top:1px solid var(--border,#dce2e8);margin-top:16px}.coord-editor summary{font-weight:600;cursor:pointer;margin-bottom:12px}
+.coord-participants{border:1px solid var(--border,#dce2e8);border-radius:8px;padding:14px;display:flex;flex-wrap:wrap;gap:12px}.coord-participants legend{font-weight:600;padding:0 5px}.coord-participant{display:flex;min-width:0;max-width:100%;flex-wrap:wrap;gap:16px;align-items:center;border:1px solid var(--border,#dce2e8);padding:8px;border-radius:6px}
+.coord-participants label,.checkbox-row{display:flex;align-items:center;gap:7px}.coord-participants label{min-width:0;max-width:100%;overflow-wrap:anywhere}.coord-participants input[type=checkbox],.checkbox-row input[type=checkbox]{width:auto;min-height:0}
+.coord-blocks{list-style:none;padding:0}.coord-blocks li{display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border,#dce2e8);padding:6px 0}
+.coord-heatmap,.coord-evidence-table{width:100%;border-collapse:collapse;min-width:620px;margin:16px 0}.coord-heatmap caption,.coord-evidence-table caption{text-align:left;margin-bottom:10px;color:var(--muted,#596474);font-size:.88rem}
+.coord-heatmap th,.coord-heatmap td,.coord-evidence-table th,.coord-evidence-table td{padding:8px;border:1px solid #dce2e8;text-align:left}.coord-heatmap td{text-align:center}.coord-heatmap th{font-size:.85rem;background:#f7f8fa}
+.coord-heatmap-all{background:#ccefe0;color:#144d34;font-weight:700}.coord-heatmap-some{background:#ecf6f0;color:#234c39}.coord-heatmap-none{background:#f8f9fa;color:#636f7e}
+.coord-heatmap-scroll{min-width:0;max-width:100%;max-height:450px;contain:paint;border:1px solid var(--border,#dce2e8);margin-top:16px}.coord-heatmap thead{position:sticky;top:0;z-index:1}
+.coord-evidence-table small{display:block;font-weight:400;color:var(--muted,#596474)}.coord-evidence-table td{text-align:center}
+.coord-private-link{border:1px solid #bf9139;background:#fff8e8;padding:14px;border-radius:8px;margin:16px 0}.coord-prewrap{white-space:pre-wrap}
+.coord-meeting-editor{margin-top:20px;border-top:1px solid var(--border,#dce2e8);padding-top:18px}.coord-meeting-editor li{margin:12px 0}.coord-meeting-editor li small{display:block}
+.coord-evidence-state{font-size:.82rem;padding:5px 10px;border-radius:20px;background:#eef1f6;color:#35465c}.coord-evidence-state--team_confirmed{background:#ddf1e5;color:#225236}.coord-evidence-state--changes_requested{background:#fff0d4;color:#775013}
+@media(max-width:650px){.coord-card{padding:14px}.coord-participant{width:100%;justify-content:space-between}.coord-options .form-actions{flex-wrap:wrap}.coord-calendar-cell{padding:8px}.coord-evidence-state{display:inline-block}}

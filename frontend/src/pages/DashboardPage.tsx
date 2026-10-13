@@ -2,6 +2,7 @@ import { useState, type FormEvent } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate } from "react-router-dom";
 import { invitationApi, projectApi } from "../api/resources";
+import { campusApi } from "../api/campus";
 import { errorMessage } from "../api/client";
 import { formatDate, parseOptionalDateTime } from "../app/format";
 import { Button, EmptyState, ErrorState, Field, FloatingPanel, Loading, StatusBadge } from "../components/UI";
@@ -11,6 +12,7 @@ export default function DashboardPage() {
   const navigate = useNavigate();
   const projects = useQuery({ queryKey: ["projects", "all"], queryFn: projectApi.listAll });
   const invitations = useQuery({ queryKey: ["invitations", "mine"], queryFn: invitationApi.listMine });
+  const todos = useQuery({ queryKey: ["personal-todos", "dashboard"], queryFn: () => campusApi.todos() });
   const [showCreate, setShowCreate] = useState(false);
   const [formError, setFormError] = useState("");
   const createProject = useMutation({
@@ -46,6 +48,9 @@ export default function DashboardPage() {
         <div><p className="eyebrow">Overview</p><h2>Keep the group moving</h2><p>Projects, invitations and the next pieces of work in one place.</p></div>
         <Button onClick={() => setShowCreate(true)} aria-expanded={showCreate}>New project</Button>
       </div>
+
+      {!activeProjects.length && <section className="panel" aria-labelledby="getting-started"><h3 id="getting-started">Set up your study group</h3><ol><li><Link to="/app/campus/">Add your course and semester</Link>.</li><li>Create a project and invite your team.</li><li>Open Project plan to choose a template, agree responsibilities and set deadlines.</li><li>Use Calendar and Meeting tools to find a time and record decisions.</li></ol><Link to="/app/security/">Set a recovery email before you rely on the account</Link></section>}
+      <section aria-labelledby="personal-work"><div className="section-heading"><h2 id="personal-work">My next tasks</h2><Link to="/app/campus/">All personal tasks</Link></div>{todos.isLoading ? <Loading label="Checking your tasks…" /> : todos.error ? <ErrorState error={todos.error} retry={() => void todos.refetch()} /> : todos.data?.results.length ? <div className="compact-list">{todos.data.results.slice(0, 5).map(task => <Link className="compact-row" key={task.id} to={`/app/projects/${task.project}/tasks/${task.id}/`}><span><strong>{task.title}</strong><small>{task.project_name}</small></span><span>Due {formatDate(task.internal_due_at)}</span></Link>)}</div> : <p className="muted">You have no open assigned tasks.</p>}</section>
 
       {showCreate && (
         <FloatingPanel title="Create a project" onDismiss={() => setShowCreate(false)}>

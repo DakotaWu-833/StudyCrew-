@@ -10,6 +10,16 @@ source =
     projects
     tasks
     web
+    campus
+    coordination
+    operations
+    recruiting
+    documents_store
+    learning_exchange
+    project_chat
+    offline_sync
+    productivity
+    knowledge
 omit =
     */migrations/*
     */tests/*

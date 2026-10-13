@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block title %}{{ title }} · StudyCrew{% endblock %}
+{% block content %}
+<div class="auth-shell">
+  <section class="auth-card" aria-labelledby="security-link-heading">
+    <p class="eyebrow">Account security</p>
+    <h1 id="security-link-heading">{{ title }}</h1>
+    <p>{{ description }}</p>
+    <form method="post" novalidate>
+      {% csrf_token %}
+      {% include "accounts/_form_fields.html" with form=form %}
+      <button class="button" type="submit">{{ button }}</button>
+    </form>
+    <p><a href="{% url 'accounts:login' %}">Back to sign in</a></p>
+    <p><a href="/help/">Contact support</a></p>
+    {% if request_page %}<p><a href="{% url 'accounts:password_reset' %}">Reset password</a> · <a href="{% url 'accounts:email_recovery' %}">Recover unavailable email</a></p>{% endif %}
+  </section>
+</div>
+{% endblock %}

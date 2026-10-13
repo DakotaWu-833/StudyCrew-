@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}Privacy and retention · StudyCrew{% endblock %}
+{% block content %}
+<div class="page-shell information-page information-page--reading">
+  <header class="information-page__header">
+    <p class="eyebrow">Your information</p>
+    <h1>Privacy and data retention</h1>
+    <p>Notice version {{ privacy.version }}</p>
+  </header>
+  <article class="panel information-panel information-content" aria-label="Account privacy and retention">
+    <section>
+      <h2>Who can see your information?</h2>
+      <ul>{% for item in privacy.visibility %}<li>{{ item }}</li>{% endfor %}</ul>
+    </section>
+    <section>
+      <h2>What happens when you close your account?</h2>
+      <ul>{% for item in privacy.retention %}<li>{{ item }}</li>{% endfor %}</ul>
+    </section>
+    <section>
+      <h2>Your data download</h2>
+      <p>{{ privacy.download }}</p>
+      <nav class="information-related" aria-label="Account privacy actions">
+        <a class="button" href="/app/security/">Open account security</a>
+        <a href="/help/">Contact support or request a privacy review</a>
+      </nav>
+    </section>
+  </article>
+</div>
+{% endblock %}

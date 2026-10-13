@@ -7,6 +7,8 @@ from config import views as error_views
 
 
 urlpatterns = [
+    path("", include("web.browser_urls")),
+    path("", include("operations.public_urls")),
     path("", include("web.urls")),
     path("account/", include("accounts.urls")),
     path("api/v1/", include("api.urls")),

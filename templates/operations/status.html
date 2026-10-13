@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}Status · StudyCrew{% endblock %}
+{% block content %}
+<div class="page-shell information-page information-page--reading">
+  <header class="information-page__header">
+    <h1>Service status</h1>
+  </header>
+  <section class="panel information-panel information-content" aria-label="Current service status">
+    <p>{% if maintenance %}Changes are paused for maintenance.{% else %}Workspace changes are available.{% endif %}</p>
+    <p>{% if worker_ok %}Reminder processing is running.{% else %}Reminder processing has not reported recently. Operators should check delivery before relying on reminders.{% endif %}</p>
+  </section>
+  <div class="information-notices">
+    {% for notice in notices %}
+      <article class="panel information-panel">
+        <h2>{{ notice.title }}</h2>
+        <p>{{ notice.body|linebreaksbr }}</p>
+        <p class="information-meta">{{ notice.get_severity_display }} · {{ notice.starts_at }}</p>
+      </article>
+    {% empty %}<p>No current service notices.</p>{% endfor %}
+  </div>
+  <nav class="information-related" aria-label="Status support"><a class="button button--secondary" href="/help/">Report a problem</a></nav>
+</div>
+{% endblock %}

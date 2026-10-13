@@ -1,0 +1,13 @@
+.recruit-suggestion {
+  border-top: 1px solid var(--border, #d9dfe5);
+  margin-top: 1rem;
+  padding-top: 1rem;
+  overflow-wrap: anywhere;
+}
+
+.recruit-suggestion ul {
+  margin: .6rem 0;
+  padding-left: 1.4rem;
+}
+
+.recruit-suggestion li + li { margin-top: .3rem; }

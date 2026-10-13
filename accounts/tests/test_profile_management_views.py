@@ -3,6 +3,7 @@
 import re
 import tempfile
 from io import BytesIO
+from html.parser import HTMLParser
 
 from PIL import Image
 from django.core import mail
@@ -14,6 +15,49 @@ from django.utils import timezone
 from accounts.forms import EmailChangeStartForm
 from accounts.models import PendingEmailChange, User
 from accounts.session_security import MFA_VERIFIED_SESSION_KEY
+
+
+class RenderedProfileForm(HTMLParser):
+    """Collect successful controls from the actual rendered profile form."""
+
+    def __init__(self):
+        super().__init__()
+        self.values = {}
+        self.in_profile_form = False
+        self.select_name = None
+        self.textarea_name = None
+
+    def handle_starttag(self, tag, attributes):
+        attrs = dict(attributes)
+        if tag == "form":
+            self.in_profile_form = attrs.get("action") == reverse("accounts:profile")
+        if not self.in_profile_form:
+            return
+        if tag == "input" and attrs.get("name") and "disabled" not in attrs:
+            self.values[attrs["name"]] = attrs.get("value", "")
+        elif tag == "select":
+            self.select_name = attrs.get("name")
+        elif tag == "option" and self.select_name:
+            value = attrs.get("value", "")
+            self.values.setdefault(self.select_name, value)
+            if "selected" in attrs:
+                self.values[self.select_name] = value
+        elif tag == "textarea":
+            self.textarea_name = attrs.get("name")
+            self.values[self.textarea_name] = ""
+
+    def handle_data(self, data):
+        if self.in_profile_form and self.textarea_name:
+            self.values[self.textarea_name] += data
+
+    def handle_endtag(self, tag):
+        if tag == "form":
+            self.in_profile_form = False
+        elif tag == "select":
+            self.select_name = None
+        elif tag == "textarea":
+            self.textarea_name = None
+
 
 def image_upload():
     output = BytesIO()
@@ -87,6 +131,30 @@ class ProfileManagementViewTests(TestCase):
         self.assertNotContains(response, 'name="email"')
         self.assertNotContains(response, 'name="course_code"')
         self.assertNotContains(response, 'name="avatar_url"')
+
+    def test_editing_rendered_profile_preserves_existing_collaboration_details(self):
+        profile = self.user.profile
+        profile.major = "Computer Science"
+        profile.skills = ["Python", "Research"]
+        profile.communication_languages = ["English", "Mandarin"]
+        profile.collaboration_preference = "hybrid"
+        profile.save()
+
+        response = self.client.get(reverse("accounts:profile"))
+        controls = RenderedProfileForm()
+        controls.feed(response.content.decode())
+        for field in ("major", "skills", "communication_languages", "collaboration_preference"):
+            self.assertIn(field, controls.values, f"The profile page must submit its current {field} value.")
+        controls.values["display_name"] = "Updated Classic Member"
+        saved = self.client.post(reverse("accounts:profile"), controls.values)
+        self.assertRedirects(saved, reverse("accounts:profile"), fetch_redirect_response=False)
+
+        profile.refresh_from_db()
+        self.assertEqual(profile.display_name, "Updated Classic Member")
+        self.assertEqual(profile.major, "Computer Science")
+        self.assertEqual(profile.skills, ["Python", "Research"])
+        self.assertEqual(profile.communication_languages, ["English", "Mandarin"])
+        self.assertEqual(profile.collaboration_preference, "hybrid")
 
     def test_photo_upload_and_email_rebinding(self):
         with tempfile.TemporaryDirectory() as media_root, override_settings(MEDIA_ROOT=media_root):

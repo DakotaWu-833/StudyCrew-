@@ -1,4 +1,5 @@
 import type { Page } from "./types";
+import { clearOffline } from "../app/offlineTasks";
 
 export interface APIErrorPayload {
   error?: {
@@ -6,12 +7,14 @@ export interface APIErrorPayload {
     message?: string;
     fields?: Record<string, string[] | string>;
   };
+  current?: import("./types").Task;
 }
 
 export class APIError extends Error {
   readonly status: number;
   readonly code: string;
   readonly fields: Record<string, string[] | string>;
+  readonly current?: import("./types").Task;
 
   constructor(status: number, payload: APIErrorPayload) {
     super(payload.error?.message ?? "The request could not be completed.");
@@ -19,6 +22,7 @@ export class APIError extends Error {
     this.status = status;
     this.code = payload.error?.code ?? "request_failed";
     this.fields = payload.error?.fields ?? {};
+    this.current = payload.current;
   }
 }
 
@@ -41,6 +45,8 @@ export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise
 
   const response = await fetch(path, { ...init, method, headers, credentials: "same-origin" });
   if (response.status === 401) {
+    await clearOffline().catch(() => undefined);
+    window.dispatchEvent(new Event("studycrew:session-expired"));
     window.location.assign(`/account/login/?next=${encodeURIComponent(window.location.pathname)}`);
     throw new APIError(401, { error: { code: "not_authenticated", message: "Please sign in again." } });
   }
@@ -51,6 +57,25 @@ export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise
   }
   if (response.status === 204) return undefined as T;
   return await response.json() as T;
+}
+
+export async function apiFetchBlob(path: string, init: RequestInit = {}): Promise<{ blob: Blob; truncated: boolean }> {
+  const headers = new Headers(init.headers);
+  // The authenticated endpoint also returns JSON errors through DRF negotiation.
+  headers.set("Accept", "*/*");
+  const response = await fetch(path, { ...init, method: "GET", headers, credentials: "same-origin", cache: "no-store" });
+  if (response.status === 401) {
+    await clearOffline().catch(() => undefined);
+    window.dispatchEvent(new Event("studycrew:session-expired"));
+    window.location.assign(`/account/login/?next=${encodeURIComponent(window.location.pathname)}`);
+    throw new APIError(401, { error: { code: "not_authenticated", message: "Please sign in again." } });
+  }
+  if (!response.ok) {
+    let payload: APIErrorPayload = {};
+    try { payload = await response.json() as APIErrorPayload; } catch { /* safe fallback */ }
+    throw new APIError(response.status, payload);
+  }
+  return { blob: await response.blob(), truncated: response.headers.get("X-Preview-Truncated") === "true" };
 }
 
 export async function apiFetchAll<T>(path: string): Promise<Page<T>> {

@@ -33,9 +33,35 @@ artifacts remain under `design/`, `database/` and `deliverables/`.
 - A custom `/control/` site panel. Django's developer admin is deliberately not
   exposed.
 
-The application has 18 meaningful domain/security tables, including one-to-one,
-one-to-many and explicit many-to-many relationships. Django's built-in session,
-permission and content-type tables are not included in that count.
+The `advance` branch extends this baseline with account recovery and privacy,
+private courses and terms, assignment planning and reviews, availability polls,
+meeting minutes and actual action tasks, discussions and mentions, broad search,
+notification preferences, reliable queues, support and operational tooling.
+It also includes consent-based team recruiting, private project file versions,
+and previewed assignment CSV exchange. The latest local enhancements add private
+file previews and text-version comparisons, a 30-day recycle bin, recurring tasks,
+explainable team recommendations, task time records and factual workload views,
+polling project chat, and explicitly selected offline task edits with field-by-field
+conflict resolution. The UI remains in English; interface language switching is
+outside this change. See [local expansion details](docs/advance-local-expansion.md).
+See [the advance feature and acceptance checklist](docs/advance-readiness.md)
+and [local operation and deployment instructions](docs/launch-operations.md).
+
+For the local version using PowerShell 7 after dependencies and the
+frontend build are available:
+
+```powershell
+.\scripts\Start-Advance.ps1 -Port 8003
+.\scripts\Start-Advance.ps1 -Demo -Port 8002
+```
+
+The first command serves existing local accounts and data at
+`http://127.0.0.1:8003/app/`, with sign-in codes under `var/emails/`. The second
+runs an isolated demo at `http://127.0.0.1:8002/app/`, with sign-in codes under
+`var/advance-preview-emails/`. Each runs the web app and independent worker;
+choose one for the intended dataset. These commands do not publish a public
+service or configure real SMTP. The `advance` implementation is developed and
+verified locally. Publishing its Git history does not deploy a public service.
 
 ## Architecture
 
@@ -153,6 +179,8 @@ The versioned base is `/api/v1/`; the generated OpenAPI contract is
 - `/meetings/`
 - `/notifications/`, `/exports/`
 - `/projects/{id}/activity/` and `/projects/{id}/insights/`
+- `/recruiting/`, `/files/`, `/learning-exchange/`
+- `/productivity/`, `/chat/` and `/offline/`
 
 Normal resources use `GET`, `POST`, `PUT`, `PATCH` and `DELETE` as applicable.
 Deletes soft-archive collaboration records rather than destroying evidence;
@@ -173,6 +201,70 @@ All JSON errors use one stable shape:
 ```
 
 See `docs/assignment-2/api.md` for endpoint and request examples.
+
+## Project knowledge (local advance)
+
+Open a project and choose **Knowledge** to search its latest private files and
+meeting notes. Source search works immediately without a model or API key.
+Install the updated `requirements/dev.txt` before running the application.
+
+This first release uses local BM25 keyword retrieval with English words and
+Chinese character bigrams. It parses TXT, CSV, text-bearing PDF and DOCX, chunks
+the text, and returns labelled excerpts with file versions and PDF page numbers.
+It does not use embeddings or a vector database. Each request reads current
+sources rather than retaining private text in a separate index.
+
+The backend supports optional Ollama and compatible chat-completion services.
+Generation is disabled by default; the UI clearly distinguishes source search
+from generated answers. To enable an already-installed local Ollama model, set
+these variables in the server process before starting the app:
+
+```powershell
+$env:RAG_PROVIDER = 'ollama'
+$env:RAG_BASE_URL = 'http://127.0.0.1:11434'
+$env:RAG_MODEL = 'your-installed-model'
+.\scripts\Start-Advance.ps1 -Port 8003
+```
+
+For a compatible service, set `RAG_PROVIDER=compatible`, `RAG_BASE_URL` to its
+API base including `/v1`, `RAG_MODEL` to the served model, and `RAG_API_KEY` if
+required. Non-loopback endpoints require HTTPS. A configured remote service
+receives the question and selected private excerpts; the key, endpoint and
+credentials stay on the server. Configuration does not install a model or
+provision inference hardware. `.env.example` is a reference, not auto-loaded.
+
+The project API exposes:
+
+- `GET /api/v1/knowledge/projects/{id}/` for available capabilities.
+- `POST /api/v1/knowledge/projects/{id}/search/` for source excerpts.
+- `POST /api/v1/knowledge/projects/{id}/ask/` for retrieval plus optional generation.
+
+Both POST requests accept `question` (1–1000 characters) and optional
+`max_sources` (1–6, default 5). Ask responses explicitly distinguish `answered`,
+`no_evidence`, `model_unavailable` and `unverified_answer`. Missing/unavailable
+models retain useful source excerpts. Answers with missing or unknown citation
+labels are withheld. Valid citation labels establish which excerpts were used;
+they do not prove every generated claim is correct. Check the original sources.
+
+Every request rechecks the current account and project membership. File integrity
+and scan requirements remain enforced. Selected sources and access are checked
+again before model egress and after generation; changed or withdrawn sources
+require a fresh question. Responses are private/no-store, and questions and
+results are not saved to browser storage or a model history table. This feature
+only reads material and does not execute project actions.
+
+Default coverage is the latest 20 files and 40 active meeting notes, with a
+5 MiB per-file / 20 MiB aggregate file budget, 32,000 characters per file and
+the first 30 PDF pages. PDF/DOCX parsing runs in a separate process with a
+3-second per-file timeout and an 8-second retrieval budget. The model request
+has a 15-second total deadline. Warnings identify partial searches, unreadable
+files and formats without extractable text; OCR is not included. Uploaded
+spreadsheets, slide decks and archives are not searched in this first release.
+
+RAG tests use actual local files and stub model responses. They verify retrieval,
+permissions, current-source checks, citations and transport failures without
+calling an external model. Real answer quality still needs evaluation after a
+model is configured.
 
 ## Quality gates
 
@@ -197,12 +289,19 @@ tests and framework bootstrap files rather than inflating results with generated
 code. See `docs/assignment-2/test-plan.md` for the access matrix and evidence
 plan.
 
-Verified locally on 1 October 2026: 374 Django tests, 96.2% combined statement/branch
+Historical baseline verified locally on 1 October 2026: 374 Django tests, 96.2% combined statement/branch
 coverage (86.7% minimum among reported files), 15 files/91 Vitest cases, zero-warning OpenAPI
 validation, TypeScript checking and a production build all passed. An executable
 architecture test also prevents domain-to-HTTP imports,
 external HTTP outside `integrations/` and direct frontend API calls outside the
 shared client.
+
+The latest `advance` checks passed 836 backend tests, 36 frontend files/213 tests,
+type checking, production build and strict zero-warning schema validation.
+Combined coverage with branch measurement enabled is 91.8% (93.6% statements,
+83.9% branches). Integrated browser and isolated SQLite recovery evidence are
+tracked separately in [the local acceptance document](docs/advance-local-expansion.md);
+the historical counts above do not cover the seven latest enhancements.
 
 Task serialization stays at four database queries, including membership checks,
 for 1, 5 and 10 records with identical output. The Meetings screen uses filtered
@@ -241,6 +340,12 @@ team must still capture the real hostname, certificate, EC2 reboot, firewall,
 | `meetings/` | bounded scheduling, lifecycle, attendance and reminders |
 | `activity/` | append-only evidence, insights, notifications and exports |
 | `integrations/` | resilient Nager.Date cache and private email-delivery boundaries |
+| `recruiting/` | consent-based discovery, bounded applications and admission |
+| `documents_store/` | private file uploads, version history, quotas and scanner boundary |
+| `learning_exchange/` | explicit CSV preview/import and source-aware deduplication |
+| `productivity/` | bounded recurring task generation, personal time records and factual workload |
+| `project_chat/` | private polling conversations, bounded presence and message withdrawal |
+| `offline_sync/` | account-bound, revision-checked and idempotent selected-task synchronization |
 | `api/` | REST authentication, serializers, views, errors and schema |
 | `web/` | public shell and custom moderation centre |
 | `frontend/` | React/TypeScript source and tests |
@@ -253,6 +358,13 @@ team must still capture the real hostname, certificate, EC2 reboot, firewall,
 - Contribution figures are factual counts, never grades or quality scores.
 - Public-holiday advice is Australian and advisory; meeting creation still works
   when the provider or cache is unavailable.
-- CSV/PDF export is synchronous and limited to a 366-day course-scale dataset.
-- Modern Web option 1 is used; WebSocket functionality is intentionally absent.
-- Account recovery and LMS integration are outside the approved scope.
+- Evidence export supports the advance asynchronous worker and bounded course-scale datasets.
+- Modern Web option 1 is used. Project chat polls every 2 seconds while visible
+  and every 10 seconds in the background; it uses no WebSocket transport.
+- Private offline task copies require explicit selection and stay in this
+  browser's IndexedDB for at most 24 hours: up to 200 copies and 50 pending edits.
+  Service Worker caching covers public code and the generic offline shell only,
+  never API responses or the rest of a private workspace.
+- Account recovery is implemented on `advance`. Assignment CSV exchange is
+  manual; university OAuth, institution SSO and live LMS data synchronisation
+  remain outside the implemented local scope.

@@ -46,3 +46,21 @@ class ComplexityPasswordValidator:
 
     def get_help_text(self) -> str:
         return _("Your password must include uppercase, lowercase, numeric, and symbol characters.")
+def _validate_profile_list(value, maximum: int) -> None:
+    if not isinstance(value, list) or len(value) > maximum:
+        raise ValidationError(f"Provide a list of up to {maximum} entries.")
+    normalised = []
+    for entry in value:
+        if not isinstance(entry, str) or not 1 <= len(entry.strip()) <= 40:
+            raise ValidationError("Each entry must contain 1 to 40 characters.")
+        normalised.append(entry.strip().casefold())
+    if len(set(normalised)) != len(normalised):
+        raise ValidationError("Remove duplicate entries.")
+
+
+def validate_skills_list(value) -> None:
+    _validate_profile_list(value, 12)
+
+
+def validate_languages_list(value) -> None:
+    _validate_profile_list(value, 8)

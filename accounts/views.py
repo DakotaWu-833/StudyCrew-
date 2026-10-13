@@ -337,6 +337,8 @@ def password_change_view(request: HttpRequest) -> HttpResponse:
         # Rotate the current session and update only its auth hash. Other active
         # sessions retain the old hash and are rejected on their next request.
         update_session_auth_hash(request, user)
+        from accounts.readiness_services import revoke_all_sessions
+        revoke_all_sessions(user, except_key=request.session.session_key)
         messages.success(request, "Your password was changed securely.")
         return redirect("accounts:profile")
     return render(request, "accounts/password_change.html", {"form": form})

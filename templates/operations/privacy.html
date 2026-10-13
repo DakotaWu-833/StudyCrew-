@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}Privacy · StudyCrew{% endblock %}
+{% block content %}
+<div class="page-shell information-page information-page--reading">
+  <header class="information-page__header">
+    <p class="eyebrow">Privacy and data retention</p>
+    <h1>Your information in StudyCrew</h1>
+    <p>StudyCrew is an independent collaboration workspace. A self-entered course or a verified email address does not establish university endorsement or current enrolment.</p>
+  </header>
+  <article class="panel information-panel information-content" aria-label="How StudyCrew handles your information">
+    <section aria-labelledby="privacy-visibility-heading">
+      <h2 id="privacy-visibility-heading">Who can see your information</h2>
+      <p>Current project members can see the shared tasks, meetings, resources and contribution records of their project. Your recovery email, account sessions and notification preferences are private. Site moderators may access support cases and moderation records to operate the service; their changes are recorded.</p>
+    </section>
+    <section aria-labelledby="privacy-choices-heading">
+      <h2 id="privacy-choices-heading">Your choices</h2>
+      <p>You can update your profile, mute a project, change notification preferences, leave a project, download your personal records and close your account in <a href="/app/security/">Security and privacy</a>.</p>
+      <p>Transfer projects you own before closing your account. Closing an account immediately disables access and removes editable profile information and current memberships.</p>
+    </section>
+    <section aria-labelledby="privacy-retention-heading">
+      <h2 id="privacy-retention-heading">Shared work and retention</h2>
+      <p>Account closure does not erase other members' shared work or immutable collaboration and moderation evidence. These records are retained for project accountability and dispute handling under the operator's retention policy. Contact support for a reviewed deletion or de-identification request. Existing audit identifiers are not claimed to be anonymous.</p>
+      <ul>
+        <li>Evidence export files expire after 24 hours and are removed by the maintenance worker.</li>
+        <li>Non-security mail content is cleared after {{ mail_retention }} days.</li>
+        <li>Unconfirmed support requests expire after 24 hours.</li>
+        <li>Backups require a separate retention schedule; deletion is applied again when a backup is restored.</li>
+      </ul>
+    </section>
+    <section aria-labelledby="privacy-services-heading">
+      <h2 id="privacy-services-heading">External services</h2>
+      <p>Emails use the configured mail provider. External document links remain controlled by their owners and providers. The app does not send your project materials to an AI provider or connect to a university learning system automatically.</p>
+    </section>
+    <section aria-labelledby="privacy-operations-heading">
+      <h2 id="privacy-operations-heading">Operational records</h2>
+      <p>Rate limits use keyed account or network digests. Request metrics record route groups, status and duration, without request bodies. Security and support records are available only to authorised operators.</p>
+      <p>The operator must publish its contact details, hosting location, suppliers and actual retention schedule before accepting public users. These deployment-specific facts cannot be established by the local app.</p>
+    </section>
+  </article>
+  <nav class="information-related" aria-label="Privacy support"><a class="button button--secondary" href="/help/">Ask a privacy question</a></nav>
+</div>
+{% endblock %}

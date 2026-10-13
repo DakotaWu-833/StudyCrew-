@@ -1,0 +1,16 @@
+[Unit]
+Description=StudyCrew runtime and backup freshness monitor
+After=postgresql.service
+
+[Service]
+Type=oneshot
+User=studycrew
+Group=www-data
+WorkingDirectory=/srv/studycrew/app
+EnvironmentFile=/etc/studycrew/studycrew.env
+ExecStart=/srv/studycrew/venv/bin/python manage.py check_runtime_health --require-worker --require-backup
+UMask=0077
+NoNewPrivileges=true
+ProtectHome=true
+ProtectSystem=strict
+PrivateTmp=true

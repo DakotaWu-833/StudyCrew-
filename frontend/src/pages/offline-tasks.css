@@ -1,0 +1,6 @@
+.offline-page { max-width:80rem; margin:0 auto; padding:1rem; }
+.offline-conflict { padding:1rem; background:#fff8e8; border:1px solid #e3cfa5; border-radius:.75rem; margin:1rem 0; }
+.offline-conflict table { width:100%; border-collapse:collapse; }
+.offline-conflict td, .offline-conflict th { text-align:left; vertical-align:top; padding:.5rem; border-bottom:1px solid #e3cfa5; overflow-wrap:anywhere; max-width:20rem; }
+.offline-conflict input[type=checkbox] { width:1rem; height:1rem; }
+@media(max-width:600px) { .offline-page { padding:.7rem; } .offline-conflict { padding:.6rem; } }

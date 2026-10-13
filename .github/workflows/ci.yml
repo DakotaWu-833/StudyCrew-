@@ -32,6 +32,11 @@ jobs:
           python manage.py spectacular --file docs/assignment-2/openapi.yml --validate
           git diff --exit-code -- docs/assignment-2/openapi.yml
 
+      - name: Install scanner executable for production configuration checks
+        run: |
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends -y clamav
+
       - name: Validate fail-closed production settings
         env:
           DJANGO_ENVIRONMENT: production
@@ -49,6 +54,7 @@ jobs:
           EMAIL_HOST_USER: studycrew
           EMAIL_HOST_PASSWORD: ci-only
           USE_X_ACCEL_REDIRECT: "true"
+          PROJECT_FILES_CLAMSCAN: /usr/bin/clamscan
         run: python manage.py check --deploy
 
       - name: Validate deployment helpers
@@ -58,6 +64,9 @@ jobs:
           bash -n deploy/scripts/reload-nginx-after-cert-renewal.sh
           bash -n deploy/studycrew.env.example
           python -m py_compile deploy/scripts/verify_deployment.py
+          python -m py_compile scripts/studycrew_recovery.py scripts/rehearse_sqlite_restore.py
+          bash -n deployment/studycrew.env.example
+          bash -n deployment/scripts/backup-offhost.sh
 
       - name: Run backend tests with coverage gate
         run: |

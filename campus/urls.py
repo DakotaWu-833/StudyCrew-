@@ -1,0 +1,36 @@
+from django.urls import path
+from . import views
+
+app_name = "campus"
+urlpatterns = [
+    path("overview/", views.overview), path("terms/", views.terms), path("courses/", views.courses),
+    path("terms/<uuid:term_id>/archive/", views.archive_term), path("terms/<uuid:term_id>/copy/", views.copy_term),
+    path("todos/", views.todos), path("search/", views.search), path("join/", views.request_join),
+    path("projects/<uuid:project_id>/", views.project_plan),
+    path("projects/<uuid:project_id>/course-links/", views.course_link),
+    path("projects/<uuid:project_id>/course-links/<uuid:link_id>/", views.unlink_course),
+    path("projects/<uuid:project_id>/template/", views.template),
+    path("projects/<uuid:project_id>/task-create/", views.create_subtask),
+    path("projects/<uuid:project_id>/tasks/bulk/", views.bulk_tasks),
+    path("projects/<uuid:project_id>/tasks/<uuid:task_id>/copy/", views.copy_task),
+    path("projects/<uuid:project_id>/milestones/", views.milestone),
+    path("projects/<uuid:project_id>/milestones/<uuid:milestone_id>/", views.milestone_detail),
+    path("projects/<uuid:project_id>/tasks/<uuid:task_id>/", views.task_plan),
+    path("projects/<uuid:project_id>/tasks/<uuid:task_id>/request-review/", views.request_review),
+    path("projects/<uuid:project_id>/tasks/<uuid:task_id>/review/", views.review),
+    path("projects/<uuid:project_id>/tasks/<uuid:task_id>/checklist/", views.checklist),
+    path("projects/<uuid:project_id>/tasks/<uuid:task_id>/checklist/<uuid:item_id>/", views.checklist_detail),
+    path("projects/<uuid:project_id>/agreement/", views.agreement),
+    path("projects/<uuid:project_id>/agreement/confirm/", views.confirm_agreement),
+    path("projects/<uuid:project_id>/resources/", views.resources),
+    path("projects/<uuid:project_id>/resources/<uuid:resource_id>/", views.resource_detail),
+    path("projects/<uuid:project_id>/submission/", views.submission),
+    path("projects/<uuid:project_id>/submission/items/", views.submission_item),
+    path("projects/<uuid:project_id>/submission/items/<uuid:item_id>/", views.submission_item_detail),
+    path("projects/<uuid:project_id>/submission/confirm/", views.confirm_submission),
+    path("projects/<uuid:project_id>/submission/receipt/", views.receipt),
+    path("projects/<uuid:project_id>/leave/", views.leave),
+    path("projects/<uuid:project_id>/join-links/", views.join_links),
+    path("projects/<uuid:project_id>/join-links/<uuid:link_id>/revoke/", views.revoke_join),
+    path("projects/<uuid:project_id>/join-requests/<uuid:request_id>/resolve/", views.resolve_join),
+]

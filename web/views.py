@@ -119,6 +119,7 @@ def control_user_status(request: HttpRequest, user_id) -> HttpResponse:
             actor=request.user,
             target_type="user",
             target_id=target.id,
+            action=SiteAuditEvent.Action.USER_ENABLED if target.is_active else SiteAuditEvent.Action.USER_DISABLED,
         ).first()
     return _action_response(
         request,

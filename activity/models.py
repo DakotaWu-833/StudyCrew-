@@ -11,36 +11,7 @@ from django.db import models
 from django.utils import timezone
 
 from config.models import TimestampedModel, UUIDPrimaryKeyModel
-
-
-class ImmutableRecordError(TypeError):
-    """Raised when application code attempts to mutate audit evidence."""
-
-
-class ImmutableQuerySet(models.QuerySet):
-    def update(self, **kwargs):
-        raise ImmutableRecordError("Append-only records cannot be updated.")
-
-    def delete(self):
-        raise ImmutableRecordError("Append-only records cannot be deleted.")
-
-    def bulk_update(self, objs, fields, batch_size=None):
-        raise ImmutableRecordError("Append-only records cannot be updated.")
-
-
-class ImmutableModelMixin(models.Model):
-    """Application-level guard for evidence rows after their first insert."""
-
-    class Meta:
-        abstract = True
-
-    def save(self, *args, **kwargs):
-        if not self._state.adding:
-            raise ImmutableRecordError("Append-only records cannot be updated.")
-        return super().save(*args, **kwargs)
-
-    def delete(self, *args, **kwargs):
-        raise ImmutableRecordError("Append-only records cannot be deleted.")
+from config.immutable import ImmutableModelMixin, ImmutableQuerySet, ImmutableRecordError
 
 
 def validate_metadata(value: Any) -> None:

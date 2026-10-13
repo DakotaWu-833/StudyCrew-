@@ -91,6 +91,11 @@ def send_meeting_reminder(
         subject="[StudyCrew] Meeting reminder",
         message=message,
         recipient_emails=recipient_emails,
+        project=current.project,
+        target_type="meeting",
+        target_id=current.id,
+        target_revision=current.starts_at.isoformat(),
+        category="meeting_reminder",
     )
     record_event(
         project=current.project,
@@ -98,6 +103,6 @@ def send_meeting_reminder(
         event_type=ActivityEvent.Type.MEETING_REMINDER_SENT,
         target_type=ActivityEvent.TargetType.MEETING,
         target_id=current.id,
-        metadata={"recipient_count": delivery.recipient_count},
+        metadata={"recipient_count": delivery.recipient_count, **({"delivery_status": "queued"} if delivery.delivery_status == "queued" else {})},
     )
     return delivery

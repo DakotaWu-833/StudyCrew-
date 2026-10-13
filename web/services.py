@@ -30,6 +30,8 @@ def set_user_active(*, actor, target, active: bool):
         raise ValidationError("You cannot change your own account status.")
     if target.is_superuser:
         raise PermissionDenied("Superuser accounts cannot be managed here.")
+    if active and getattr(target, "closed_at", None):
+        raise ValidationError("Closed accounts cannot be restored through moderation controls.")
     if target.is_active == active:
         return target
     target.is_active = active

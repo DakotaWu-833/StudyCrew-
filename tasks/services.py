@@ -35,8 +35,27 @@ def _require_writable_task(task: Task) -> None:
         raise ValidationError("Archived tasks cannot be changed.")
 
 
+def _lock_actor(actor):
+    from accounts.models import User
+    current = User.objects.select_for_update().filter(pk=actor.pk, is_active=True, closed_at__isnull=True).first()
+    if current is None:
+        raise PermissionDenied("An active account is required.")
+    return current
+
+
+def _lock_task(task, actor):
+    from projects.models import Project
+    actor = _lock_actor(actor)
+    Project.objects.select_for_update().get(pk=task.project_id)
+    task.refresh_from_db(from_queryset=Task.objects.select_for_update().select_related("project"))
+    return task, actor
+
+
 @transaction.atomic
 def create_task(*, project, actor, data: Mapping) -> Task:
+    from projects.models import Project
+    actor = _lock_actor(actor)
+    project = Project.objects.select_for_update().get(pk=project.pk)
     active_membership(project=project, user=actor)
     _require_writable_project(project)
     task = Task(
@@ -62,8 +81,16 @@ def create_task(*, project, actor, data: Mapping) -> Task:
 
 @transaction.atomic
 def update_task(*, task: Task, actor, data: Mapping) -> Task:
+    task, actor = _lock_task(task, actor)
     active_membership(project=task.project, user=actor)
     _require_writable_task(task)
+    if "expected_updated_at" in data and data["expected_updated_at"] != task.updated_at:
+        raise ValidationError("This task changed while you were editing. Reload it before saving; your local draft is retained.")
+    if data.get("due_at"):
+        from campus.models import TaskPlan
+        official = TaskPlan.objects.filter(task=task).values_list("official_due_at", flat=True).first()
+        if official and data["due_at"] > official:
+            raise ValidationError({"due_at": "The internal deadline cannot be after the official deadline."})
     allowed = {"title", "description", "priority", "due_at"}
     changed: list[str] = []
     for field in allowed:
@@ -87,6 +114,7 @@ def update_task(*, task: Task, actor, data: Mapping) -> Task:
 
 @transaction.atomic
 def archive_task(*, task: Task, actor) -> Task:
+    task, actor = _lock_task(task, actor)
     active_membership(project=task.project, user=actor)
     _require_writable_project(task.project)
     if task.archived_at:
@@ -105,6 +133,7 @@ def archive_task(*, task: Task, actor) -> Task:
 
 @transaction.atomic
 def replace_assignees(*, task: Task, actor, assignee_ids: Iterable) -> Task:
+    task, actor = _lock_task(task, actor)
     active_membership(project=task.project, user=actor)
     _require_writable_task(task)
     requested_ids = set(assignee_ids)
@@ -128,6 +157,7 @@ def replace_assignees(*, task: Task, actor, assignee_ids: Iterable) -> Task:
     TaskAssignment.objects.bulk_create(
         [TaskAssignment(task=task, user_id=user_id, assigned_by=actor) for user_id in added_ids]
     )
+    task.save(update_fields=["updated_at"])
     event = _activity_services().record_event(
         project=task.project,
         actor=actor,
@@ -158,6 +188,7 @@ def replace_assignees(*, task: Task, actor, assignee_ids: Iterable) -> Task:
 
 @transaction.atomic
 def transition_task(*, task: Task, actor, status: str, blocker_note: str = "") -> Task:
+    task, actor = _lock_task(task, actor)
     require_task_transition_permission(task=task, user=actor)
     _require_writable_task(task)
     if status not in Task.Status.values:
@@ -168,6 +199,9 @@ def transition_task(*, task: Task, actor, status: str, blocker_note: str = "") -
     if task.status == status and (status != Task.Status.BLOCKED or task.blocker_note == blocker_note):
         return task
 
+    if status == Task.Status.DONE:
+        from campus.services import validate_task_completion
+        validate_task_completion(task)
     previous_status = task.status
     task.status = status
     task.blocker_note = blocker_note if status == Task.Status.BLOCKED else ""

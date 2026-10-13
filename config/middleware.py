@@ -18,7 +18,7 @@ class SecurityHeadersMiddleware:
         response.headers.setdefault(
             "Content-Security-Policy",
             "default-src 'self'; base-uri 'self'; form-action 'self'; "
-            "frame-ancestors 'none'; object-src 'none'; img-src 'self' data:; "
+            "frame-ancestors 'none'; object-src 'none'; img-src 'self' data: blob:; "
             "font-src 'self'; style-src 'self'; script-src 'self'; "
             "connect-src 'self'",
         )
@@ -27,4 +27,10 @@ class SecurityHeadersMiddleware:
             "camera=(), microphone=(), geolocation=(), payment=(), usb=()",
         )
         response.headers.setdefault("Cross-Origin-Resource-Policy", "same-origin")
+        if request.path.startswith(("/api/", "/app/", "/account/", "/control/", "/help/")):
+            response.headers.setdefault("Cache-Control", "no-store, private")
+        if request.path.startswith(("/account/", "/help/verify/", "/api/v1/coordination/subscriptions/feed/")):
+            # Origin-only referrers exclude bearer paths/query strings while
+            # preserving a same-origin Origin header on real browser form posts.
+            response.headers["Referrer-Policy"] = "strict-origin"
         return response

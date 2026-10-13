@@ -1,0 +1,17 @@
+[Unit]
+Description=StudyCrew verified database and media backup
+After=network-online.target postgresql.service
+
+[Service]
+Type=oneshot
+User=studycrew
+Group=www-data
+WorkingDirectory=/srv/studycrew/app
+EnvironmentFile=/etc/studycrew/studycrew.env
+ExecStart=/srv/studycrew/venv/bin/python manage.py scheduled_backup
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict
+ReadWritePaths=/srv/studycrew/app/var/backups

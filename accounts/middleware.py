@@ -12,6 +12,8 @@ class UserTimezoneMiddleware:
     def __call__(self, request):
         active_zone = None
         if request.user.is_authenticated:
+            from accounts.readiness_services import track_device_session
+            track_device_session(request)
             try:
                 active_zone = ZoneInfo(request.user.profile.time_zone)
             except (AttributeError, ZoneInfoNotFoundError):

@@ -2,10 +2,9 @@
 
 from __future__ import annotations
 
-from collections.abc import Mapping
-
 from django.urls import reverse
 from rest_framework import serializers
+from config.serializers import StrictFieldsMixin, StrictFieldsSerializer, EmptyActionSerializer
 
 from accounts.models import Profile, User
 from activity.models import ActivityEvent, ExportJob, Notification
@@ -16,6 +15,7 @@ from tasks.models import ContentReport, Task, TaskComment
 
 INVITATION_STATUS_CHOICES = ProjectInvitation.Status.choices
 TASK_STATUS_CHOICES = Task.Status.choices
+TASK_PRIORITY_CHOICES = Task.Priority.choices
 MEMBERSHIP_ROLE_CHOICES = ProjectMembership.Role.choices
 MUTABLE_MEMBERSHIP_ROLE_CHOICES = (
     ProjectMembership.Role.MEMBER,
@@ -23,32 +23,10 @@ MUTABLE_MEMBERSHIP_ROLE_CHOICES = (
 )
 
 
-class StrictFieldsMixin:
-    """Reject undeclared and read-only input instead of silently discarding it."""
-
-    def to_internal_value(self, data):
-        if not isinstance(data, Mapping):
-            return super().to_internal_value(data)
-        writable_fields = {field.field_name for field in self._writable_fields}
-        unexpected = set(data) - writable_fields
-        if unexpected:
-            raise serializers.ValidationError(
-                {field: "This field is not accepted." for field in sorted(unexpected)}
-            )
-        return super().to_internal_value(data)
-
-
-class StrictFieldsSerializer(StrictFieldsMixin, serializers.Serializer):
-    pass
-
-
-class EmptyActionSerializer(StrictFieldsSerializer):
-    """Explicitly empty action body; unknown client fields are rejected."""
-
-
 class ReminderDeliverySerializer(serializers.Serializer):
     recipient_count = serializers.IntegerField(min_value=1, read_only=True)
-    sent_at = serializers.DateTimeField(read_only=True)
+    sent_at = serializers.DateTimeField(read_only=True, allow_null=True)
+    delivery_status = serializers.CharField(read_only=True)
 
 
 class UserSummarySerializer(serializers.ModelSerializer):
@@ -85,6 +63,22 @@ class PermissionSummarySerializer(serializers.Serializer):
 class ProfileSerializer(StrictFieldsMixin, serializers.ModelSerializer):
     email = serializers.EmailField(source="user.email", read_only=True)
     avatar_image_url = serializers.SerializerMethodField()
+    email_verified = serializers.SerializerMethodField()
+    skills = serializers.ListField(child=serializers.CharField(max_length=40), max_length=12, required=False)
+    communication_languages = serializers.ListField(child=serializers.CharField(max_length=40), max_length=8, required=False)
+
+    def get_email_verified(self, profile: Profile) -> bool:
+        return bool(profile.user.email_verified_at)
+
+    def validate_skills(self, value):
+        from accounts.validators import validate_skills_list
+        validate_skills_list(value)
+        return value
+
+    def validate_communication_languages(self, value):
+        from accounts.validators import validate_languages_list
+        validate_languages_list(value)
+        return value
 
     def get_avatar_image_url(self, profile: Profile) -> str:
         return reverse("api:user-avatar", kwargs={"user_id": profile.user_id}) if profile.avatar else ""
@@ -97,6 +91,11 @@ class ProfileSerializer(StrictFieldsMixin, serializers.ModelSerializer):
             "course_code",
             "time_zone",
             "biography",
+            "major",
+            "skills",
+            "communication_languages",
+            "collaboration_preference",
+            "email_verified",
             "avatar_url",
             "avatar_image_url",
             "updated_at",
@@ -320,6 +319,7 @@ class TaskSerializer(serializers.ModelSerializer):
 
 
 class TaskWriteSerializer(StrictFieldsSerializer):
+    expected_updated_at = serializers.DateTimeField(required=False)
     title = serializers.CharField(min_length=3, max_length=120, trim_whitespace=True, required=False)
     description = serializers.CharField(max_length=4000, allow_blank=True, required=False)
     priority = serializers.ChoiceField(choices=Task.Priority.choices, required=False)

@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block title %}Help · StudyCrew{% endblock %}
+{% block content %}
+<div class="page-shell information-page">
+  <header class="information-page__header">
+    <p class="eyebrow">StudyCrew support</p>
+    <h1>Help and support</h1>
+    <p>Get help with your account, a suspension appeal, or a privacy request.</p>
+  </header>
+
+  <div class="support-layout">
+    <section class="panel information-panel" aria-labelledby="support-request-heading">
+      <h2 id="support-request-heading">Send a support request</h2>
+      <p>We will ask you to confirm your email before our support team can read your request.</p>
+      <p class="support-note" id="support-safety-note">Do not include passwords, verification codes, student IDs or private course materials.</p>
+      {% if contact_email %}<p>Service contact: <a href="mailto:{{ contact_email }}">{{ contact_email }}</a></p>{% endif %}
+      {% if message %}<p class="support-feedback" role="status">{{ message }}</p>{% endif %}
+      <form method="post" action="/help/" class="support-form" aria-describedby="support-safety-note" novalidate>
+        {% csrf_token %}
+        {% if form.non_field_errors %}<div class="form-alert" role="alert">{{ form.non_field_errors }}</div>{% endif %}
+        {% for hidden in form.hidden_fields %}{{ hidden }}{% endfor %}
+        {% for field in form.visible_fields %}
+          <div class="form-field{% if field.errors %} form-field--invalid{% endif %}">
+            <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+            {{ field }}
+            {% if field.help_text %}<div class="form-help" id="{{ field.id_for_label }}_helptext">{{ field.help_text }}</div>{% endif %}
+            {% if field.errors %}<div class="form-errors" role="alert">{{ field.errors }}</div>{% endif %}
+          </div>
+        {% endfor %}
+        <button type="submit" class="button">Send confirmation email</button>
+      </form>
+    </section>
+    <aside class="information-aside" aria-label="Other ways to get help">
+      <section class="panel information-panel" aria-labelledby="account-help-heading">
+        <h2 id="account-help-heading">Account help</h2>
+        <ul class="support-links">
+          <li><a href="/account/password/reset/">Reset a forgotten password</a></li>
+          <li><a href="/account/recovery/">Recover an account when you cannot access your email</a></li>
+        </ul>
+        <p>If you can sign in, <a href="/app/support/">track your requests in the workspace</a>.</p>
+      </section>
+      <section class="panel information-panel" aria-labelledby="getting-started-heading">
+        <h2 id="getting-started-heading">Getting started</h2>
+        <ol class="support-steps">
+          <li>Create a project or accept an invitation.</li>
+          <li>Add your course and assessment in Project plan.</li>
+          <li>Assign tasks, agree on a meeting time, and save your decisions.</li>
+          <li>Review deliverables together before submitting through your university's official system.</li>
+        </ol>
+      </section>
+      <nav class="information-related" aria-label="Related information">
+        <a href="/privacy/">Privacy and data retention</a>
+        <a href="/status/">Service status</a>
+      </nav>
+    </aside>
+  </div>
+</div>
+{% endblock %}

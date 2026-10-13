@@ -16,7 +16,7 @@ from django.db import models, transaction
 from django.db.models.functions import Lower
 from django.utils import timezone
 
-from accounts.validators import validate_iana_timezone
+from accounts.validators import validate_iana_timezone, validate_languages_list, validate_skills_list
 
 
 class UserManager(BaseUserManager["User"]):
@@ -76,6 +76,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     email = models.EmailField(max_length=254, unique=True)
     email_verified_at = models.DateTimeField(null=True, blank=True)
+    closed_at = models.DateTimeField(null=True, blank=True)
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -127,6 +128,12 @@ class Profile(models.Model):
         validators=[validate_iana_timezone],
     )
     biography = models.CharField(max_length=500, blank=True)
+    major = models.CharField(max_length=120, blank=True)
+    skills = models.JSONField(default=list, blank=True, validators=[validate_skills_list])
+    communication_languages = models.JSONField(default=list, blank=True, validators=[validate_languages_list])
+    collaboration_preference = models.CharField(max_length=16, blank=True, choices=[
+        ("", "No preference"), ("online", "Online"), ("in_person", "In person"), ("hybrid", "Online and in person"),
+    ])
     avatar_url = models.URLField(max_length=2048, blank=True)
     avatar = models.ImageField(upload_to="avatars/", blank=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -233,3 +240,57 @@ class EmailOTPChallenge(models.Model):
 
     def __str__(self) -> str:
         return f"{self.get_purpose_display()} for {self.user_id}"
+
+
+class RecoveryEmail(models.Model):
+    """A separately verified fallback address, never a substitute for a password."""
+
+    user = models.OneToOneField(User, on_delete=models.CASCADE, primary_key=True, related_name="recovery_email")
+    email = models.EmailField(max_length=254)
+    verified_at = models.DateTimeField()
+
+
+class AccountSecurityToken(models.Model):
+    """Only digests of high-entropy single-use security links are persisted."""
+
+    class Purpose(models.TextChoices):
+        PASSWORD_RESET = "password_reset", "Password reset"
+        RECOVERY_EMAIL = "recovery_email", "Verify recovery address"
+        EMAIL_RECOVERY = "email_recovery", "Recover unavailable sign-in address"
+        RECOVERY_NEW_EMAIL = "recovery_new", "Verify recovered sign-in address"
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="security_tokens")
+    purpose = models.CharField(max_length=24, choices=Purpose.choices)
+    token_digest = models.CharField(max_length=64, unique=True)
+    auth_digest = models.CharField(max_length=64)
+    destination = models.EmailField(max_length=254)
+    expires_at = models.DateTimeField()
+    consumed_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        indexes = [models.Index(fields=("user", "purpose", "created_at"), name="account_security_token_idx")]
+
+
+class AccountSecurityThrottle(models.Model):
+    """Persistent, secret-keyed fixed-window counters for security actions."""
+
+    key_digest = models.CharField(max_length=64, primary_key=True)
+    count = models.PositiveIntegerField(default=0)
+    window_started_at = models.DateTimeField(default=timezone.now)
+
+
+class AccountDeviceSession(models.Model):
+    """User-visible devices map opaque IDs to private server-side sessions."""
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="device_sessions")
+    session_key = models.CharField(max_length=40, unique=True)
+    browser = models.CharField(max_length=120, blank=True)
+    first_seen_at = models.DateTimeField(default=timezone.now)
+    last_seen_at = models.DateTimeField(default=timezone.now)
+    expires_at = models.DateTimeField()
+
+    class Meta:
+        ordering = ("-last_seen_at",)

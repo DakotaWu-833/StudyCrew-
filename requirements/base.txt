@@ -6,3 +6,4 @@ httpx==0.28.1
 Pillow==12.1.1
 psycopg[binary]==3.3.5
 reportlab==5.0.1
+pypdf==6.20.0

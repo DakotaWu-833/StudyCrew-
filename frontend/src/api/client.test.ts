@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { APIError, apiFetch, apiFetchAll, cookie, errorMessage, fieldErrors } from "./client";
+import { APIError, apiFetch, apiFetchAll, apiFetchBlob, cookie, errorMessage, fieldErrors } from "./client";
 
 describe("API client", () => {
   afterEach(() => vi.restoreAllMocks());
@@ -30,6 +30,20 @@ describe("API client", () => {
       code: "validation_error",
       message: "Check fields",
     });
+  });
+
+  it("accepts authenticated binary previews and JSON permission errors without caching", async () => {
+    const fetchMock = vi.spyOn(globalThis, "fetch")
+      .mockResolvedValueOnce(new Response("preview", { headers: { "Content-Type": "text/plain", "X-Preview-Truncated": "true" } }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ error: { code: "not_found", message: "File unavailable." } }), { status: 404 }));
+    const result = await apiFetchBlob("/api/v1/files/preview/");
+    expect(await result.blob.text()).toBe("preview");
+    expect(result.truncated).toBe(true);
+    const options = fetchMock.mock.calls[0]?.[1];
+    expect(new Headers(options?.headers).get("Accept")).toBe("*/*");
+    expect(options?.cache).toBe("no-store");
+    expect(options?.credentials).toBe("same-origin");
+    await expect(apiFetchBlob("/api/v1/files/preview/")).rejects.toMatchObject({ status: 404, message: "File unavailable." });
   });
 
   it("loads every same-origin result page without hiding later records", async () => {

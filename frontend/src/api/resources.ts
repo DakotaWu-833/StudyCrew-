@@ -118,7 +118,7 @@ export const taskApi = {
     priority: TaskPriority;
     due_at: string | null;
   }) => apiFetch<Task>("/api/v1/tasks/", { method: "POST", ...jsonBody(data) }),
-  update: (id: UUID, data: Partial<Pick<Task, "title" | "description" | "priority" | "due_at">>) =>
+  update: (id: UUID, data: Partial<Pick<Task, "title" | "description" | "priority" | "due_at">> & { expected_updated_at?: string }) =>
     apiFetch<Task>(`/api/v1/tasks/${id}/`, { method: "PATCH", ...jsonBody(data) }),
   archive: (id: UUID) => apiFetch<void>(`/api/v1/tasks/${id}/`, { method: "DELETE" }),
   transition: (id: UUID, status: TaskStatus, blocker_note = "") =>
@@ -156,6 +156,7 @@ export const commentApi = {
 };
 
 export const meetingApi = {
+  get: (id: UUID) => apiFetch<Meeting>(`/api/v1/meetings/${encodeURIComponent(id)}/`, { cache: "no-store" }),
   list: (project: UUID, scope: "active" | "archived" | "all" = "active") =>
     apiFetchAll<Meeting>(`/api/v1/meetings/${query({ project, scope, page_size: "50" })}`),
   listPage: (project: UUID, filters: MeetingListFilters = {}) =>
