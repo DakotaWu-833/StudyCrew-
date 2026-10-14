@@ -215,11 +215,48 @@ class ProjectAssistantTests(APIDomainTestCase):
         for content in ("Review the report.", "Review the report [S99].", "Review it [S1] with invented support [S99]."):
             with self.subTest(content=content):
                 result, _ = self.run_turns([
-                    tool_turn("search_project_sources", {"query": "Nebulawork"}), final_turn(content),
+                    tool_turn("search_project_sources", {"query": "Nebulawork"}), final_turn(content), final_turn(content),
                 ])
                 self.assertEqual(result["status"], "invalid_response")
                 self.assertIsNone(result["answer"])
                 self.assertEqual(result["drafts"], [])
+
+    def test_one_citation_correction_uses_existing_sources_and_retains_turn_budget(self):
+        self.upload()
+        result, chat = self.run_turns([
+            tool_turn("search_project_sources", {"query": "Nebulawork"}),
+            final_turn("An independent review is required."),
+            final_turn("An independent review is required [S1]."),
+        ])
+        self.assertEqual(result["status"], "completed")
+        self.assertEqual(chat.call_count, 3)
+        self.assertEqual(len(result["steps"]), 1)
+        self.assertEqual(len(result["sources"]), 1)
+        correction = chat.call_args.args[0][-1]
+        self.assertIn("[S1]", correction["content"])
+        self.assertEqual(correction["role"], "user")
+
+    def test_citation_correction_cannot_run_additional_tools(self):
+        self.upload()
+        result, _ = self.run_turns([
+            tool_turn("search_project_sources", {"query": "Nebulawork"}),
+            final_turn("An independent review is required."),
+            tool_turn("list_project_tasks", {}, "unexpected-1"),
+        ])
+        self.assertEqual(result["status"], "invalid_response")
+        self.assertEqual(len(result["steps"]), 1)
+        self.assertIsNone(result["answer"])
+
+    def test_invalid_citations_on_fourth_turn_do_not_extend_model_limit(self):
+        self.upload()
+        result, chat = self.run_turns([
+            tool_turn("search_project_sources", {"query": "Nebulawork"}, "one"),
+            tool_turn("search_project_sources", {"query": "Nebulawork"}, "two"),
+            tool_turn("search_project_sources", {"query": "Nebulawork"}, "three"),
+            final_turn("An independent review is required."),
+        ])
+        self.assertEqual(result["status"], "invalid_response")
+        self.assertEqual(chat.call_count, 4)
 
     def test_unknown_tool_is_rejected_without_any_write(self):
         before = self.snapshot()

@@ -7,6 +7,7 @@ from rest_framework.response import Response
 from operations.services import consume_rate
 from . import serializers, services
 from . import agent
+from . import actions
 from .policies import require_project
 
 
@@ -59,3 +60,14 @@ def assistant(request, project_id):
     if settings.OPERATIONS_RATE_LIMITS and not consume_rate("project-assistant", request.user.pk, limit=4, seconds=60):
         raise Throttled()
     return private_response(agent.run(request.user, project_id, **values.validated_data))
+
+
+@extend_schema(request=serializers.ApproveTaskInput, responses=serializers.TaskReceiptOutput)
+@api_view(["POST"])
+def approve_task(request, project_id):
+    require_project(request.user, project_id)
+    values = serializers.ApproveTaskInput(data=request.data)
+    values.is_valid(raise_exception=True)
+    if settings.OPERATIONS_RATE_LIMITS and not consume_rate("assistant-task-approval", request.user.pk, limit=10, seconds=60):
+        raise Throttled()
+    return private_response(actions.approve_task(request.user, project_id, **values.validated_data))

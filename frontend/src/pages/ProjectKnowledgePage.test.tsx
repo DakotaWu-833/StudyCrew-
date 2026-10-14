@@ -131,6 +131,18 @@ it("withholds an unverified answer and retains source excerpts when a configured
   expect(container.querySelector("blockquote")?.textContent).toContain("design rationale");
 });
 
+it("uses a generic withheld-answer notice while preserving the specific credential warning", async () => {
+  vi.mocked(knowledgeApi.settings).mockResolvedValue({ ...settings, generation_available: true, provider: "compatible" });
+  vi.mocked(knowledgeApi.ask).mockResolvedValue({ ...generated, status: "unverified_answer", answer: null,
+    warnings: ["The generated answer repeated a possible credential from a source and was withheld."] });
+  await render(); await compose("Question"); await click("Ask project question");
+  expect(container.textContent).toContain("The generated answer was withheld. Review the notes and original sources.");
+  expect(container.textContent).toContain("repeated a possible credential from a source");
+  expect(container.textContent).not.toContain("did not include valid source citations");
+  expect(container.querySelector(".knowledge-answer")).toBeNull();
+  expect(container.querySelector("blockquote")?.textContent).toContain("design rationale");
+});
+
 it("keeps the question for retry and clears previous results after a request error", async () => {
   vi.mocked(knowledgeApi.search).mockResolvedValueOnce(sources).mockRejectedValueOnce(new Error("Project sources changed while answering. Please ask again."));
   await render(); await compose("Question"); await click("Search project sources");

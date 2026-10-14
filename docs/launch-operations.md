@@ -25,8 +25,9 @@ no automatic installation. The normal local-data entry is
 The isolated demo/test entry is `http://127.0.0.1:8002/app/`, with codes under
 `var/advance-preview-emails/`; choose the command for the intended dataset.
 Older processes on 8000/8001 may run earlier code.
-The `advance` work remains local, uncommitted and unpushed, with no public
-deployment. The seven newest enhancements retain the English UI and do not add
+The `advance` source history has been pushed; source delivery does not establish
+a public deployment. Domain/TLS, SMTP, production database permissions and
+runtime capacity still require acceptance on the real host. The enhancements retain the English UI and do not add
 a language switch. Rebuild the frontend after editing its source:
 
 ```powershell
@@ -48,6 +49,22 @@ The server is always loopback-only; this static option is for local use. This is
 server. Terminating the whole parent terminal or power loss cannot execute
 PowerShell's `finally`; inspect the recorded child processes/logs after such an
 interruption.
+
+## Local models and reviewed assistant tasks
+
+The optional AI launcher uses project-authorised hybrid retrieval and a bounded
+assistant that proposes drafts. Users edit and explicitly confirm each draft
+before its separate signed, idempotent task-creation request. Model tools remain
+read-only. Defaults keep the model disabled and BM25 search available.
+
+After the usual dependencies and frontend build, the selected local models are
+prepared with `scripts/Setup-StudyCrewAI.ps1` and launched with
+`scripts/Start-StudyCrewAI.ps1` (normal data) or its `-Demo` switch (isolated data).
+See [the AI project walkthrough and evaluation steps](ai-project-showcase.md)
+and [local models/GPU deployment](../deployment/ai/README.md) for setup, model
+digest/cache revision, maintenance and verification boundaries. The GPU pack
+adds an inference service alongside the existing school deployment stack;
+its configuration is not public-deployment or model-quality evidence.
 
 ## Health and worker acceptance
 

@@ -17,6 +17,21 @@ export interface AssistantDraft {
   title: string;
   description: string;
   source_citations: string[];
+  approval_token: string;
+  can_create: boolean;
+}
+
+export interface AssistantTaskRequest {
+  approval_token: string;
+  title: string;
+  description: string;
+}
+
+export interface AssistantCreatedTask {
+  task_id: string;
+  title: string;
+  created: boolean;
+  task_url: string;
 }
 
 export interface AssistantStep {
@@ -40,4 +55,5 @@ const projectPath = (project: string) => `/api/v1/knowledge/projects/${encodeURI
 export const assistantApi = {
   settings: (project: string, signal?: AbortSignal) => apiFetch<AssistantSettings>(projectPath(project), { signal, cache: "no-store" }),
   run: (project: string, question: { question: string }, signal?: AbortSignal) => apiFetch<AssistantResult>(projectPath(project), { method: "POST", ...jsonBody(question), signal, cache: "no-store" }),
+  createTask: (project: string, request: AssistantTaskRequest, signal?: AbortSignal) => apiFetch<AssistantCreatedTask>(`${projectPath(project)}tasks/`, { method: "POST", ...jsonBody(request), signal, cache: "no-store" }),
 };

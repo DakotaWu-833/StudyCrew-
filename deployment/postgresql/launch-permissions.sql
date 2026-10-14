@@ -32,7 +32,9 @@ GRANT DELETE ON TABLE
     public.documents_store_uploaddailyusage,
     public.learning_exchange_importpreview,
     public.project_chat_chatpresence,
-    public.offline_sync_tasksyncreceipt
+    public.offline_sync_tasksyncreceipt,
+    public.knowledge_embeddingcache,
+    public.knowledge_assistanttaskreceipt
 TO studycrew_app;
 
 -- Domain history remains retained. The runtime role cannot hard-delete users,

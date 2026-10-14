@@ -43,7 +43,9 @@ file previews and text-version comparisons, a 30-day recycle bin, recurring task
 explainable team recommendations, task time records and factual workload views,
 polling project chat, and explicitly selected offline task edits with field-by-field
 conflict resolution. The UI remains in English; interface language switching is
-outside this change. See [local expansion details](docs/advance-local-expansion.md).
+outside this change. Project knowledge and the assistant add cited retrieval,
+model-selected read tools and task drafts that users explicitly review and
+confirm before saving. See [local expansion details](docs/advance-local-expansion.md).
 See [the advance feature and acceptance checklist](docs/advance-readiness.md)
 and [local operation and deployment instructions](docs/launch-operations.md).
 
@@ -181,6 +183,7 @@ The versioned base is `/api/v1/`; the generated OpenAPI contract is
 - `/projects/{id}/activity/` and `/projects/{id}/insights/`
 - `/recruiting/`, `/files/`, `/learning-exchange/`
 - `/productivity/`, `/chat/` and `/offline/`
+- `/knowledge/` for project retrieval, assistant requests and reviewed task creation
 
 Normal resources use `GET`, `POST`, `PUT`, `PATCH` and `DELETE` as applicable.
 Deletes soft-archive collaboration records rather than destroying evidence;
@@ -208,30 +211,84 @@ Open a project and choose **Knowledge** to search its latest private files and
 meeting notes. Source search works immediately without a model or API key.
 Install the updated `requirements/dev.txt` before running the application.
 
-This first release uses local BM25 keyword retrieval with English words and
-Chinese character bigrams. It parses TXT, CSV, text-bearing PDF and DOCX, chunks
-the text, and returns labelled excerpts with file versions and PDF page numbers.
-It does not use embeddings or a vector database. Each request reads current
-sources rather than retaining private text in a separate index.
+Knowledge parses the latest TXT, CSV, text-bearing PDF and DOCX files and active
+meeting notes, chunks the text, and returns labelled excerpts with file versions
+and PDF page numbers. Default retrieval is local BM25 with English words and
+Chinese character bigrams. Optional `hybrid` retrieval combines BM25 with Qwen
+embeddings, exact cosine similarity and reciprocal-rank fusion.
+
+Embedding vectors are cached in a database JSON field keyed by project, content
+SHA-256 and a hashed namespace of model name, vector dimension and
+`RAG_EMBEDDING_REVISION` (the installed embedding-model weight digest). Retrieval
+rebuilds the current authorised source list
+and uses only vectors matching those current chunks; cached vectors are not a
+source of historical text. This is a bounded small-corpus implementation, without
+pgvector or an approximate-nearest-neighbour index. It checks at most 200 current
+chunks semantically and reports when that window is exceeded. If embedding
+generation or its shared retrieval budget fails, the response uses BM25 and
+includes a fallback warning. A successful hybrid response reports
+`retrieval: "hybrid"`; a fallback reports `"bm25"`.
 
 The backend supports optional Ollama and compatible chat-completion services.
-Generation is disabled by default; the UI clearly distinguishes source search
-from generated answers. To enable an already-installed local Ollama model, set
-these variables in the server process before starting the app:
+Generation is disabled by default (`RAG_PROVIDER=disabled`,
+`RAG_RETRIEVAL_MODE=bm25`); the UI distinguishes source search from generated
+answers. After completing the backend/frontend setup above, use PowerShell 7
+for the selected local chat and embedding models:
+
+```powershell
+.\scripts\Setup-StudyCrewAI.ps1
+.\scripts\Start-StudyCrewAI.ps1 -Port 8003
+# Or choose the separate demonstration dataset:
+.\scripts\Start-StudyCrewAI.ps1 -Demo -Port 8002
+```
+
+Setup prepares portable Ollama and the tags `qwen3.5:9b-q4_K_M` for chat/tool
+calling and `qwen3-embedding:0.6b` for retrieval. Runtime/model files stay under
+the workspace's ignored `var/ai/` directory. The launcher enables hybrid
+retrieval with 1,024-dimensional embeddings, warms both models with synthetic
+text, reads the installed embedding digest into the cache revision, applies
+migrations and starts the local web app and delivery worker.
+Use one dataset/port for the intended run. Setup and launch do not publish a
+service, establish answer quality or prove GPU residency.
+
+For manual configuration of an already-running local Ollama service:
 
 ```powershell
 $env:RAG_PROVIDER = 'ollama'
 $env:RAG_BASE_URL = 'http://127.0.0.1:11434'
-$env:RAG_MODEL = 'your-installed-model'
+$env:RAG_MODEL = 'qwen3.5:9b-q4_K_M'
+$env:RAG_RETRIEVAL_MODE = 'hybrid'
+$env:RAG_EMBEDDING_MODEL = 'qwen3-embedding:0.6b'
+$env:RAG_EMBEDDING_DIMENSIONS = '1024'
+$studyCrewTags = Invoke-RestMethod -Uri "$env:RAG_BASE_URL/api/tags" -NoProxy -MaximumRedirection 0 -TimeoutSec 5
+$studyCrewEmbedding = @($studyCrewTags.models | Where-Object name -eq $env:RAG_EMBEDDING_MODEL)
+if ($studyCrewEmbedding.Count -ne 1 -or $studyCrewEmbedding[0].digest -notmatch '^[0-9a-f]{64}$') {
+    throw 'Verify the installed embedding model digest before enabling its cache.'
+}
+$env:RAG_EMBEDDING_REVISION = $studyCrewEmbedding[0].digest
 .\scripts\Start-Advance.ps1 -Port 8003
 ```
 
+For manual/production configuration, verify the installed digest and update
+`RAG_EMBEDDING_REVISION` whenever weights change, including when a model tag is
+reused. Changing the dimension or revision selects a different cache namespace.
+
 For a compatible service, set `RAG_PROVIDER=compatible`, `RAG_BASE_URL` to its
 API base including `/v1`, `RAG_MODEL` to the served model, and `RAG_API_KEY` if
-required. Non-loopback endpoints require HTTPS. A configured remote service
-receives the question and selected private excerpts; the key, endpoint and
-credentials stay on the server. Configuration does not install a model or
-provision inference hardware. `.env.example` is a reference, not auto-loaded.
+required. Set `RAG_RETRIEVAL_MODE=bm25` for a compatible chat endpoint; the current
+embedding adapter supports Ollama's embedding API. Non-loopback
+endpoints require HTTPS. A configured remote service receives the question and
+selected private excerpts, and hybrid embedding requests also send candidate
+chunk text. Keys, endpoints and credentials stay on the server. Environment
+configuration alone does not install models or provision hardware.
+`.env.example` is a reference, not auto-loaded.
+
+See [local setup and GPU deployment](deployment/ai/README.md) for model storage,
+process ownership, GPU/CPU checks and the separate inference deployment pack.
+The existing [school deployment runbook](docs/assignment-3/deployment-runbook.md)
+still governs the web application's production controls. A short architecture
+walkthrough and demonstration sequence are in
+[the AI project showcase](docs/ai-project-showcase.md).
 
 The project API exposes:
 
@@ -246,25 +303,57 @@ models retain useful source excerpts. Answers with missing or unknown citation
 labels are withheld. Valid citation labels establish which excerpts were used;
 they do not prove every generated claim is correct. Check the original sources.
 
+`knowledge/output_guardrails.py` also withholds RAG/Agent answers and generated
+drafts that repeat recognizable credential literals from the selected source
+excerpts, including labelled passwords and common API-token formats. Authorised
+source previews retain the original text. This is limited source-derived pattern
+matching, not complete data-loss prevention or comprehensive prompt-injection
+protection.
+
 Every request rechecks the current account and project membership. File integrity
 and scan requirements remain enforced. Selected sources and access are checked
 again before model egress and after generation; changed or withdrawn sources
 require a fresh question. Responses are private/no-store, and questions and
 results are not saved to browser storage or a model history table. This feature
-only reads material and does not execute project actions.
+only reads material. Hybrid mode persists private embedding vectors in the
+application database; it does not persist questions, generated answers or raw
+retrieval chunks as a separate document index.
 
 Default coverage is the latest 20 files and 40 active meeting notes, with a
 5 MiB per-file / 20 MiB aggregate file budget, 32,000 characters per file and
 the first 30 PDF pages. PDF/DOCX parsing runs in a separate process with a
-3-second per-file timeout and an 8-second retrieval budget. The model request
-has a 15-second total deadline. Warnings identify partial searches, unreadable
+3-second per-file timeout and an 8-second retrieval budget. A RAG question shares
+a 24-second overall retrieval/generation budget. Model transport is capped at
+15 seconds by default, or 20 seconds with the AI launcher, and also respects the
+remaining question budget. Timed-out or truncated generation is withheld while
+source excerpts remain available. These budgets leave intended headroom under
+the existing 30-second web-worker timeout; verify actual queueing and runtime
+overhead on the deployment host. Warnings identify partial searches, unreadable
 files and formats without extractable text; OCR is not included. Uploaded
 spreadsheets, slide decks and archives are not searched in this first release.
 
-RAG tests use actual local files and stub model responses. They verify retrieval,
-permissions, current-source checks, citations and transport failures without
-calling an external model. Real answer quality still needs evaluation after a
-model is configured.
+Automated RAG tests use local files and stub model/embedding responses to verify
+retrieval, finite vectors, fusion/fallback, permissions, current-source checks,
+citations and transport failures. Those checks do not establish real model
+quality. Record real model digests, retrieval outcomes, answer checks and actual
+timings separately.
+
+With the local model service running, a separate terminal can run the disposable
+synthetic evaluation:
+
+```powershell
+.\.venv\Scripts\python.exe scripts\evaluate_project_ai.py
+```
+
+The default report is `var/ai/evaluation-latest.json`; use `--output` with another
+path to retain a separate run. The script creates a temporary SQLite database,
+media and accounts, compares BM25/hybrid retrieval, calls the real models, and
+exercises read-only Agent proposals plus an explicit approval/replay on synthetic
+tasks. It does not use existing project data. This is a small smoke evaluation,
+not a general accuracy estimate, load test or browser/deployment acceptance test.
+Factual-term matches do not prove semantic correctness; manually inspect the
+recorded answers, citations and missing-evidence/injection cases. No result is
+claimed here.
 
 ### Project assistant
 
@@ -283,10 +372,34 @@ The model can select three server-authorised tools:
 No tool accepts a project ID from the model. The server binds every tool to the
 signed-in user's selected project, validates every argument and rechecks access
 and source currency before each model turn and before returning the result.
-The assistant cannot create or change tasks, execute commands, open external URLs
-or send messages. Task drafts are explicitly unsaved, and existing task titles
-are omitted from the proposals. Questions, tool histories and proposals are not
-persisted to the database or browser storage.
+These model tools only read evidence and propose drafts: they cannot create or
+change tasks, execute commands, open external URLs or send messages. Drafts are
+explicitly unsaved, and existing task titles are omitted from proposals.
+Questions, model answers, tool histories and unapproved draft text stay in
+request/component memory.
+
+Each eligible draft has a short-lived signed approval token. The user can edit
+its title (3–120 characters) and description (up to 2,000 characters), select
+**Create task**, then confirm the named task in a separate dialog. Only this
+user-operated endpoint creates a real task through the existing task service:
+
+`POST /api/v1/knowledge/projects/{id}/assistant/tasks/`
+
+It accepts `approval_token`, `title` and `description`. The token expires after
+600 seconds and binds the current user, project, proposal nonce and cited source
+snapshots. The server rechecks account access, project archival state, source
+currency and duplicate active task titles before creating the task. Archived
+project drafts have `can_create=false`. Expired or changed-source drafts require
+a fresh assistant request.
+
+Creation and its unique user/project/token receipt are committed in one
+transaction. Identical retries within the valid approval window return the
+existing task with `created=false`; a different edited payload for the same
+receipt is rejected. The UI retains the original confirmed token/payload after
+failure, blocks concurrent duplicate confirmation and shows the created task
+link. Approved task text and source references are stored as a normal task;
+the database receipt stores token/payload digests and the resulting task ID.
+This is explicit task creation by the user, separate from the model's tool loop.
 
 `GET /api/v1/knowledge/projects/{id}/assistant/` returns available capabilities.
 `POST` to the same endpoint accepts only `question` (1–1000 text characters).
@@ -294,15 +407,39 @@ Results include labelled source excerpts, a short tool-use trace, optional
 unsaved drafts, and one of `completed`, `model_unavailable`, `no_evidence`,
 `invalid_response` or `limit_reached`. Unknown tools, invalid arguments and
 fabricated citations are stopped; partial runs withhold answers and task drafts.
+For a final answer with missing/incorrect citation labels, the assistant may
+make one citation-format correction using evidence it has already read. The
+correction consumes an existing model turn and the same overall deadline;
+it cannot call additional tools. If it still fails, the answer and drafts are
+withheld.
 
 Limits are four model turns, six tool calls, twelve retained source excerpts,
 and at most twenty matching current tasks (the source budget may retain fewer).
 `RAG_AGENT_TIMEOUT_SECONDS` defaults to 22 seconds, shared by retrieval and model
-turns; a setting between 1 and 24 seconds is allowed. These limits keep the
-assistant within the existing web-worker timeout. Source and task snapshots are
+turns; a setting between 1 and 24 seconds is allowed. The AI launcher uses 24
+seconds. These are application budgets, not measured latency guarantees; verify
+upstream timeouts and queueing on the deployment host. Source and task snapshots are
 rechecked after model calls; withdrawn or edited evidence requires a new request.
 Tool labels and citation checks establish provenance, not factual accuracy.
 Evaluate real model responses after configuring a provider.
+
+### Derived-data maintenance
+
+In the intended instance's database environment, inspect expired private
+embedding vectors and approval receipts before deleting them:
+
+```powershell
+.\.venv\Scripts\python.exe manage.py purge_knowledge_data
+# After reviewing the reported candidates:
+.\.venv\Scripts\python.exe manage.py purge_knowledge_data --execute
+```
+
+The default dry run changes no data. Defaults retain vectors for 14 days and
+receipts for 30 days from their creation time, with at most 1,000 deletions per
+table in one execution. `--embedding-days`, `--receipt-days` and `--limit` override
+the bounded settings. Created project tasks remain retained, and missing vectors
+can be rebuilt when needed. Operators should run this maintenance explicitly or
+configure and verify its schedule; backup retention is a separate policy.
 
 ## Quality gates
 
@@ -334,7 +471,7 @@ architecture test also prevents domain-to-HTTP imports,
 external HTTP outside `integrations/` and direct frontend API calls outside the
 shared client.
 
-The latest `advance` checks passed 836 backend tests, 36 frontend files/213 tests,
+Historical `advance` checks before the AI additions passed 836 backend tests, 36 frontend files/213 tests,
 type checking, production build and strict zero-warning schema validation.
 Combined coverage with branch measurement enabled is 91.8% (93.6% statements,
 83.9% branches). Integrated browser and isolated SQLite recovery evidence are
@@ -377,7 +514,8 @@ team must still capture the real hostname, certificate, EC2 reboot, firewall,
 | `tasks/` | tasks, assignments, comments and reports |
 | `meetings/` | bounded scheduling, lifecycle, attendance and reminders |
 | `activity/` | append-only evidence, insights, notifications and exports |
-| `integrations/` | resilient Nager.Date cache and private email-delivery boundaries |
+| `integrations/` | Nager.Date, private email and bounded chat/tool/embedding HTTP adapters |
+| `knowledge/` | authorised corpus, BM25/hybrid retrieval, assistant tools, signed approvals and receipts |
 | `recruiting/` | consent-based discovery, bounded applications and admission |
 | `documents_store/` | private file uploads, version history, quotas and scanner boundary |
 | `learning_exchange/` | explicit CSV preview/import and source-aware deduplication |
@@ -388,6 +526,7 @@ team must still capture the real hostname, certificate, EC2 reboot, firewall,
 | `web/` | public shell and custom moderation centre |
 | `frontend/` | React/TypeScript source and tests |
 | `deploy/` | Nginx, uWSGI, systemd, PostgreSQL and verification assets |
+| `deployment/ai/` | optional GPU inference container and local-model setup/deployment guidance |
 | `docs/assignment-2/` | rubric, API, testing and demo evidence |
 | `docs/assignment-3/` | deployment and security evidence |
 

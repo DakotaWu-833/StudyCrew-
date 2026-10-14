@@ -1,0 +1,9 @@
+SYNTHETIC DEMO MATERIAL — no real school deployment or assessment claim.
+
+The project must complete a malware-scan rehearsal before public launch.
+Public launch also requires MFA enforcement and sign-off by Dr Mei Lin.
+The rehearsal evidence must be included in the engineering presentation.
+The fictional monthly infrastructure budget is 120 Australian dollars.
+
+Suggested Knowledge question: 上线前需要满足什么条件？
+Suggested Assistant request: Read the project evidence and current tasks. Suggest one new task for the malware-scan rehearsal using the proposal tool. Do not create or assign tasks.

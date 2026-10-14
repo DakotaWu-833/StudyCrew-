@@ -70,6 +70,21 @@ class DraftOutput(serializers.Serializer):
     title = serializers.CharField()
     description = serializers.CharField()
     source_citations = serializers.ListField(child=serializers.CharField())
+    approval_token = serializers.CharField()
+    can_create = serializers.BooleanField()
+
+
+class ApproveTaskInput(StrictFieldsSerializer):
+    approval_token = TextQuestion(max_length=16384, allow_blank=False)
+    title = TextQuestion(min_length=3, max_length=120, allow_blank=False)
+    description = TextQuestion(max_length=2000, allow_blank=True)
+
+
+class TaskReceiptOutput(serializers.Serializer):
+    task_id = serializers.UUIDField()
+    title = serializers.CharField()
+    created = serializers.BooleanField()
+    task_url = serializers.CharField()
 
 
 class AssistantStepOutput(serializers.Serializer):

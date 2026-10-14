@@ -11,10 +11,10 @@ from django.db import transaction
 from django.utils import timezone
 from rest_framework.exceptions import NotFound, Throttled
 
-from meetings.models import MeetingAttendance, latest_allowed_meeting_datetime
+from meetings.models import Meeting, MeetingAttendance, latest_allowed_meeting_datetime
 from meetings.policies import require_meeting_manager
 from meetings.services import create_meeting
-from projects.models import ProjectMembership
+from projects.models import Project, ProjectMembership
 from projects.policies import require_project_member
 from tasks.services import create_task, replace_assignees
 
@@ -161,14 +161,44 @@ def cancel_poll(*, actor, poll):
     return poll
 
 
+def _lock_notes_project(actor, project_id):
+    """Use the same account -> project lock order as reviewed task approval."""
+    from django.contrib.auth import get_user_model
+    current = get_user_model().objects.select_for_update(of=("self",)).filter(
+        pk=getattr(actor, "pk", None), is_active=True, closed_at__isnull=True).first()
+    if current is None:
+        raise PermissionDenied("An active account is required.")
+    project = Project.objects.select_for_update(of=("self",)).get(pk=project_id)
+    require_writable(current, project)
+    return current, project
+
+
+def _lock_notes_record(actor, record):
+    # Resolve project identity without taking a record/meeting lock first.
+    metadata = MeetingRecord.objects.values("meeting_id", "meeting__project_id").get(pk=record.pk)
+    actor, project = _lock_notes_project(actor, metadata["meeting__project_id"])
+    record = MeetingRecord.objects.select_for_update(of=("self",)).get(
+        pk=record.pk, meeting_id=metadata["meeting_id"])
+    # Meeting lifecycle writers serialize on the project. Read the fresh
+    # meeting without expanding this mutator's row-lock scope.
+    meeting = Meeting.objects.get(pk=record.meeting_id, project_id=project.pk)
+    meeting.project = project
+    record.meeting = meeting
+    return actor, record
+
+
 @transaction.atomic
 def save_meeting_record(*, actor, meeting, participants=None, minutes=None, decisions=None, expected_version=None):
-    require_writable(actor, meeting.project)
+    project_id = Meeting.objects.values_list("project_id", flat=True).get(pk=meeting.pk)
+    actor, project = _lock_notes_project(actor, project_id)
+    meeting = Meeting.objects.get(pk=meeting.pk, project_id=project.pk)
+    meeting.project = project
     require_meeting_manager(user=actor, meeting=meeting)
     if meeting.is_archived or meeting.is_cancelled:
         raise ValidationError("Cancelled and archived meetings are read-only.")
     record, _ = MeetingRecord.objects.get_or_create(meeting=meeting)
-    record = MeetingRecord.objects.select_for_update().get(pk=record.pk)
+    record = MeetingRecord.objects.select_for_update(of=("self",)).get(pk=record.pk)
+    record.meeting = meeting
     if expected_version is not None and expected_version != record.version:
         raise ValidationError("This meeting record changed. Reload it before saving; your local draft is retained.")
     if participants is not None:
@@ -192,8 +222,7 @@ def save_meeting_record(*, actor, meeting, participants=None, minutes=None, deci
 
 @transaction.atomic
 def confirm_minutes(*, actor, record, version):
-    record = MeetingRecord.objects.select_for_update().select_related("meeting__project").get(pk=record.pk)
-    require_writable(actor, record.meeting.project)
+    actor, record = _lock_notes_record(actor, record)
     if record.meeting.is_cancelled or record.meeting.is_archived:
         raise ValidationError("Cancelled and archived meetings are read-only.")
     if version != record.version or not (record.minutes or record.decisions):
@@ -205,8 +234,7 @@ def confirm_minutes(*, actor, record, version):
 
 @transaction.atomic
 def record_attendance(*, actor, record, user_id, attended, note):
-    record = MeetingRecord.objects.select_for_update().select_related("meeting__project").get(pk=record.pk)
-    require_writable(actor, record.meeting.project)
+    actor, record = _lock_notes_record(actor, record)
     require_meeting_manager(user=actor, meeting=record.meeting)
     if record.meeting.starts_at > timezone.now() or record.meeting.is_cancelled or record.meeting.is_archived:
         raise ValidationError("Record actual attendance only for a started, non-cancelled, unarchived meeting.")

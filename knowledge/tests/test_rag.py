@@ -334,6 +334,52 @@ class ProjectRAGTests(APIDomainTestCase):
         self.assertEqual(question, "Nebulawork")
         self.assertEqual(sources, result["sources"])
 
+    def test_answer_generation_receives_only_remaining_shared_request_budget(self):
+        self.upload()
+        clock = [0.0]
+        retrieve = services._retrieve
+
+        def delayed_retrieve(*args):
+            result = retrieve(*args)
+            clock[0] = 7.5
+            return result
+
+        with self.configured(), patch("knowledge.services.time.monotonic", side_effect=lambda: clock[0]), patch("knowledge.services._retrieve", side_effect=delayed_retrieve), patch("knowledge.providers.generate", return_value="A security review is required [S1].") as generate:
+            result = self.ask()
+        self.assertEqual(result["status"], "answered")
+        self.assertEqual(generate.call_args.kwargs["timeout"], 16.5)
+
+    def test_exhausted_shared_budget_has_no_generation_egress(self):
+        self.upload()
+        clock = [0.0]
+        retrieve = services._retrieve
+
+        def delayed_retrieve(*args):
+            result = retrieve(*args)
+            clock[0] = 24.0
+            return result
+
+        with self.configured(), patch("knowledge.services.time.monotonic", side_effect=lambda: clock[0]), patch("knowledge.services._retrieve", side_effect=delayed_retrieve), patch("knowledge.providers.generate") as generate:
+            result = self.ask()
+        generate.assert_not_called()
+        self.assertEqual(result["status"], "model_unavailable")
+        self.assertIsNone(result["answer"])
+        self.assertTrue(result["sources"])
+
+    def test_late_model_answer_is_withheld_after_shared_deadline(self):
+        self.upload()
+        clock = [0.0]
+
+        def late_answer(*args, **kwargs):
+            clock[0] = 25.0
+            return "A security review is required [S1]."
+
+        with self.configured(), patch("knowledge.services.time.monotonic", side_effect=lambda: clock[0]), patch("knowledge.providers.generate", side_effect=late_answer):
+            result = self.ask()
+        self.assertEqual(result["status"], "model_unavailable")
+        self.assertIsNone(result["answer"])
+        self.assertTrue(result["sources"])
+
     def test_unknown_or_absent_citation_withholds_generated_answer(self):
         self.upload()
         for answer in ("Security review required [S99].", "Security review required.", "Security review required [S1] and invented [S99]."):
@@ -345,7 +391,7 @@ class ProjectRAGTests(APIDomainTestCase):
 
     def test_membership_revocation_during_model_call_withholds_response(self):
         self.upload()
-        def revoke(*args):
+        def revoke(*args, **kwargs):
             ProjectMembership.objects.filter(project=self.project, user=self.member).update(removed_at=timezone.now())
             return "A security review is required [S1]."
         with self.configured(), patch("knowledge.providers.generate", side_effect=revoke), self.assertRaises(Http404):
@@ -353,7 +399,7 @@ class ProjectRAGTests(APIDomainTestCase):
 
     def test_account_closure_during_model_call_withholds_response(self):
         self.upload()
-        def close(*args):
+        def close(*args, **kwargs):
             get_user_model().objects.filter(pk=self.member.pk).update(closed_at=timezone.now())
             return "A security review is required [S1]."
         with self.configured(), patch("knowledge.providers.generate", side_effect=close), self.assertRaises(Http404):
@@ -361,7 +407,7 @@ class ProjectRAGTests(APIDomainTestCase):
 
     def test_document_deletion_during_model_call_requires_fresh_question(self):
         document = self.upload()
-        def remove(*args):
+        def remove(*args, **kwargs):
             ProjectDocument.objects.filter(pk=document.pk).update(removed_at=timezone.now())
             return "A security review is required [S1]."
         with self.configured(), patch("knowledge.providers.generate", side_effect=remove), self.assertRaises(ValidationError):
@@ -369,7 +415,7 @@ class ProjectRAGTests(APIDomainTestCase):
 
     def test_new_file_version_during_model_call_requires_fresh_question(self):
         document = self.upload()
-        def update(*args):
+        def update(*args, **kwargs):
             self.upload("Nebulawork now requires a different review", document=document)
             return "A security review is required [S1]."
         with self.configured(), patch("knowledge.providers.generate", side_effect=update), self.assertRaises(ValidationError):
@@ -377,7 +423,7 @@ class ProjectRAGTests(APIDomainTestCase):
 
     def test_meeting_edit_during_model_call_requires_fresh_question(self):
         record = self.record()
-        def update(*args):
+        def update(*args, **kwargs):
             MeetingRecord.objects.filter(pk=record.pk).update(minutes="Nebulawork revised decision", version=2)
             return "A security review is required [S1]."
         with self.configured(), patch("knowledge.providers.generate", side_effect=update), self.assertRaises(ValidationError):
@@ -385,7 +431,7 @@ class ProjectRAGTests(APIDomainTestCase):
 
     def test_blob_tampering_during_model_call_requires_fresh_question(self):
         document = self.upload()
-        def tamper(*args):
+        def tamper(*args, **kwargs):
             blob_path(document.versions.get().storage_key).write_bytes(b"Corrupted after retrieval")
             return "A security review is required [S1]."
         with self.configured(), patch("knowledge.providers.generate", side_effect=tamper), self.assertRaises(ValidationError):
@@ -393,7 +439,7 @@ class ProjectRAGTests(APIDomainTestCase):
 
     def test_cancelled_meeting_during_model_call_requires_fresh_question(self):
         record = self.record()
-        def cancel(*args):
+        def cancel(*args, **kwargs):
             Meeting.objects.filter(pk=record.meeting_id).update(cancelled_at=timezone.now())
             return "A security review is required [S1]."
         with self.configured(), patch("knowledge.providers.generate", side_effect=cancel), self.assertRaises(ValidationError):

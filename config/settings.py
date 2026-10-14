@@ -228,6 +228,22 @@ RAG_PARSE_TIMEOUT_SECONDS = float(env("RAG_PARSE_TIMEOUT_SECONDS", "3"))
 RAG_MAX_FILES = int(env("RAG_MAX_FILES", "20"))
 RAG_MAX_MEETINGS = int(env("RAG_MAX_MEETINGS", "40"))
 RAG_AGENT_TIMEOUT_SECONDS = float(env("RAG_AGENT_TIMEOUT_SECONDS", "22"))
+RAG_RETRIEVAL_MODE = env("RAG_RETRIEVAL_MODE", "bm25").strip().lower()
+RAG_EMBEDDING_MODEL = env("RAG_EMBEDDING_MODEL", "")
+RAG_EMBEDDING_REVISION = env("RAG_EMBEDDING_REVISION", "").strip().lower()
+RAG_EMBEDDING_DIMENSIONS = int(env("RAG_EMBEDDING_DIMENSIONS", "1024"))
+RAG_EMBEDDING_BATCH_SIZE = int(env("RAG_EMBEDDING_BATCH_SIZE", "16"))
+RAG_DISABLE_THINKING = env_bool("RAG_DISABLE_THINKING", True)
+RAG_NUM_CTX = int(env("RAG_NUM_CTX", "8192"))
+RAG_MAX_OUTPUT_TOKENS = int(env("RAG_MAX_OUTPUT_TOKENS", "900"))
+RAG_KEEP_ALIVE = env("RAG_KEEP_ALIVE", "10m")
+if (RAG_RETRIEVAL_MODE not in {"bm25", "hybrid"}
+        or (RAG_EMBEDDING_REVISION and (len(RAG_EMBEDDING_REVISION) != 64
+            or any(char not in "0123456789abcdef" for char in RAG_EMBEDDING_REVISION)))
+        or not 128 <= RAG_EMBEDDING_DIMENSIONS <= 4096
+        or not 1 <= RAG_EMBEDDING_BATCH_SIZE <= 16 or not 2048 <= RAG_NUM_CTX <= 32768
+        or not 128 <= RAG_MAX_OUTPUT_TOKENS <= 2048 or RAG_KEEP_ALIVE not in {"0", "5m", "10m", "30m"}):
+    raise ImproperlyConfigured("Invalid bounded RAG retrieval or generation settings.")
 if not 1 <= RAG_AGENT_TIMEOUT_SECONDS <= 24:
     raise ImproperlyConfigured("RAG_AGENT_TIMEOUT_SECONDS must be between 1 and 24.")
 if not (1 <= RAG_PARSE_TIMEOUT_SECONDS <= 5 and 1 <= RAG_MAX_FILES <= 50 and 1 <= RAG_MAX_MEETINGS <= 100):

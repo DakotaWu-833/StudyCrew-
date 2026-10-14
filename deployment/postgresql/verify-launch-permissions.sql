@@ -13,7 +13,8 @@ DECLARE
         'public.recruiting_bookmark', 'public.documents_store_projectdocument',
         'public.documents_store_documentversion', 'public.documents_store_documenttag',
         'public.documents_store_uploaddailyusage', 'public.learning_exchange_importpreview',
-        'public.project_chat_chatpresence', 'public.offline_sync_tasksyncreceipt'
+        'public.project_chat_chatpresence', 'public.offline_sync_tasksyncreceipt',
+        'public.knowledge_embeddingcache', 'public.knowledge_assistanttaskreceipt'
     ];
     audit_tables constant text[] := ARRAY[
         'public.activity_activityevent', 'public.activity_siteauditevent',

@@ -182,6 +182,12 @@ class AgentProviderTests(SimpleTestCase):
             result = rag_agent.agent_chat(self.messages, self.tools)
         self.assertEqual(result["tool_calls"][0]["name"], "unknown_tool")
 
+    def test_ollama_length_stop_cannot_return_partial_content_or_tool_calls(self):
+        for message in ({"content": "Partial response."}, {"content": "", "tool_calls": [self.ollama_call()]}):
+            _, _, mocked = self.transport({"done": True, "done_reason": "length", "message": message})
+            with self.subTest(message=message), mocked, self.assertRaises(ProviderUnavailable):
+                rag_agent.agent_chat(self.messages, self.tools)
+
     def test_disabled_configuration_and_invalid_deadlines_never_open_network(self):
         with override_settings(RAG_PROVIDER="disabled"), patch("integrations.rag_agent.httpx.AsyncClient") as client, self.assertRaises(ProviderUnavailable):
             rag_agent.agent_chat(self.messages, self.tools)

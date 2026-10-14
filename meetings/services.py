@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from django.core.exceptions import ValidationError
+from django.core.exceptions import PermissionDenied, ValidationError
 from django.db import transaction
 from django.utils import timezone
 
@@ -21,6 +21,28 @@ class _Unset:
 
 
 UNSET = _Unset()
+
+
+def _lock_meeting(actor, meeting):
+    """Lock current identity, project and meeting in the shared write order.
+
+    Read the real project ID rather than trusting a previously loaded meeting.
+    The final query locks only the meeting on PostgreSQL; the project is already
+    locked explicitly, matching task approval and coordination record writers.
+    """
+    from accounts.models import User
+    from projects.models import Project
+
+    current_actor = User.objects.select_for_update().filter(
+        pk=actor.pk, is_active=True, closed_at__isnull=True
+    ).first()
+    if current_actor is None:
+        raise PermissionDenied("An active account is required.")
+    project_id = Meeting.objects.values_list("project_id", flat=True).get(pk=meeting.pk)
+    project = Project.objects.select_for_update().get(pk=project_id)
+    current = Meeting.objects.select_for_update(of=("self",)).get(pk=meeting.pk, project_id=project.pk)
+    current.project = project
+    return current_actor, current
 
 
 def _require_writable_project(project) -> None:
@@ -140,11 +162,7 @@ def update_meeting(
 ) -> Meeting:
     """Update allowed meeting fields after locking the current database row."""
 
-    current = (
-        Meeting.objects.select_for_update()
-        .select_related("project")
-        .get(pk=meeting.pk)
-    )
+    actor, current = _lock_meeting(actor, meeting)
     require_meeting_manager(user=actor, meeting=current)
     _require_writable_meeting(current)
     if current.is_cancelled:
@@ -195,11 +213,7 @@ def update_meeting(
 def cancel_meeting(*, meeting: Meeting, actor) -> Meeting:
     """Soft-cancel a meeting while retaining its attendance evidence."""
 
-    current = (
-        Meeting.objects.select_for_update()
-        .select_related("project")
-        .get(pk=meeting.pk)
-    )
+    actor, current = _lock_meeting(actor, meeting)
     require_meeting_manager(user=actor, meeting=current)
     _require_writable_meeting(current)
     if current.is_cancelled:
@@ -222,11 +236,7 @@ def cancel_meeting(*, meeting: Meeting, actor) -> Meeting:
 def archive_meeting(*, meeting: Meeting, actor) -> Meeting:
     """Archive a cancelled or ended meeting while retaining all evidence."""
 
-    current = (
-        Meeting.objects.select_for_update()
-        .select_related("project")
-        .get(pk=meeting.pk)
-    )
+    actor, current = _lock_meeting(actor, meeting)
     require_meeting_manager(user=actor, meeting=current)
     _require_writable_project(current.project)
     if current.is_archived:
@@ -251,11 +261,7 @@ def archive_meeting(*, meeting: Meeting, actor) -> Meeting:
 def restore_meeting(*, meeting: Meeting, actor) -> Meeting:
     """Restore a previously archived record to the current meeting list."""
 
-    current = (
-        Meeting.objects.select_for_update()
-        .select_related("project")
-        .get(pk=meeting.pk)
-    )
+    actor, current = _lock_meeting(actor, meeting)
     require_meeting_manager(user=actor, meeting=current)
     _require_writable_project(current.project)
     if not current.is_archived:
@@ -282,11 +288,7 @@ def set_rsvp(
 ) -> MeetingAttendance:
     """Create or update exactly one RSVP for an active project member."""
 
-    current = (
-        Meeting.objects.select_for_update()
-        .select_related("project")
-        .get(pk=meeting.pk)
-    )
+    actor, current = _lock_meeting(actor, meeting)
     require_active_member(user=actor, project=current.project)
     _require_writable_meeting(current)
     if current.is_cancelled:

@@ -123,7 +123,7 @@ def _response(result, *, compatible):
             raise ValueError("Incomplete model response")
         message = choices[0].get("message")
     else:
-        if result.get("done") is not True:
+        if result.get("done") is not True or result.get("done_reason") == "length":
             raise ValueError("Incomplete model response")
         message = result.get("message")
     if not isinstance(message, dict) or message.get("role", "assistant") != "assistant":
@@ -180,7 +180,11 @@ def agent_chat(messages, tools, timeout=None):
                 payload["tool_choice"] = "auto"
         else:
             endpoint = config["base"] + "/api/chat"
-            payload["options"] = {"temperature": 0, "num_predict": 900}
+            payload["options"] = {"temperature": 0, "num_predict": settings.RAG_MAX_OUTPUT_TOKENS,
+                                  "num_ctx": settings.RAG_NUM_CTX}
+            payload["keep_alive"] = settings.RAG_KEEP_ALIVE
+            if settings.RAG_DISABLE_THINKING:
+                payload["think"] = False
         headers = {"Accept": "application/json", "Accept-Encoding": "identity"}
         key = getattr(settings, "RAG_API_KEY", "")
         if key:

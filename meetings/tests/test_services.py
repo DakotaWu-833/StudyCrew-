@@ -594,3 +594,108 @@ class MeetingServiceTests(TestCase):
 
         self.assertTrue(Meeting.objects.filter(pk=meeting.pk).exists())
         holiday_lookup.assert_not_called()
+
+    def mutation_cases(self):
+        archived = self.ended_meeting(title="Archived record for restoration")
+        archived.archived_at = timezone.now()
+        archived.save(update_fields=("archived_at", "updated_at"))
+        return [
+            ("update", self.persisted_meeting(), lambda row: update_meeting(meeting=row, actor=self.organiser, title="Updated planning")),
+            ("cancel", self.persisted_meeting(), lambda row: cancel_meeting(meeting=row, actor=self.organiser)),
+            ("archive", self.ended_meeting(), lambda row: archive_meeting(meeting=row, actor=self.organiser)),
+            ("restore", archived, lambda row: restore_meeting(meeting=row, actor=self.organiser)),
+            ("rsvp", self.persisted_meeting(), lambda row: set_rsvp(meeting=row, actor=self.organiser, response=MeetingAttendance.Response.ACCEPTED)),
+        ]
+
+    @patch("meetings.services._notify_active_members")
+    @patch("meetings.services._record_meeting_event", return_value=Mock())
+    def test_all_existing_meeting_writes_recheck_inactive_or_closed_actor(self, record_event, notify):
+        cases = self.mutation_cases()
+        original = {row.pk: (row.title, row.cancelled_at, row.archived_at) for _, row, _ in cases}
+        for fields in ({"is_active": False}, {"closed_at": timezone.now()}):
+            User.objects.filter(pk=self.organiser.pk).update(**fields)
+            self.assertTrue(self.organiser.is_active)
+            self.assertIsNone(self.organiser.closed_at)
+            for name, row, mutate in cases:
+                with self.subTest(state=fields, mutation=name), self.assertRaises(PermissionDenied):
+                    mutate(row)
+            User.objects.filter(pk=self.organiser.pk).update(is_active=True, closed_at=None)
+        for _, row, _ in cases:
+            row.refresh_from_db()
+            self.assertEqual((row.title, row.cancelled_at, row.archived_at), original[row.pk])
+        self.assertFalse(MeetingAttendance.objects.exists())
+        record_event.assert_not_called()
+        notify.assert_not_called()
+
+    @patch("meetings.services._notify_active_members")
+    @patch("meetings.services._record_meeting_event", return_value=Mock())
+    def test_all_existing_meeting_writes_recheck_removed_membership(self, record_event, notify):
+        cases = self.mutation_cases()
+        ProjectMembership.objects.filter(project=self.project, user=self.organiser).update(removed_at=timezone.now())
+        for name, row, mutate in cases:
+            with self.subTest(mutation=name), self.assertRaises(PermissionDenied):
+                mutate(row)
+        self.assertFalse(MeetingAttendance.objects.exists())
+        record_event.assert_not_called()
+        notify.assert_not_called()
+
+    @patch("meetings.services._notify_active_members")
+    @patch("meetings.services._record_meeting_event", return_value=Mock())
+    def test_all_existing_meeting_writes_recheck_archived_project_from_database(self, record_event, notify):
+        cases = self.mutation_cases()
+        Project.objects.filter(pk=self.project.pk).update(archived_at=timezone.now())
+        self.assertIsNone(cases[0][1].project.archived_at)
+        for name, row, mutate in cases:
+            with self.subTest(mutation=name), self.assertRaises(ValidationError):
+                mutate(row)
+        self.assertFalse(MeetingAttendance.objects.exists())
+        record_event.assert_not_called()
+        notify.assert_not_called()
+
+    @patch("meetings.services._notify_active_members")
+    @patch("meetings.services._record_meeting_event", return_value=Mock())
+    def test_stale_meeting_object_cannot_bypass_current_cancellation(self, record_event, notify):
+        meeting = self.persisted_meeting()
+        Meeting.objects.filter(pk=meeting.pk).update(cancelled_at=timezone.now())
+        self.assertIsNone(meeting.cancelled_at)
+        for name, mutate in (
+            ("update", lambda: update_meeting(meeting=meeting, actor=self.organiser, title="Changed cancellation")),
+            ("cancel", lambda: cancel_meeting(meeting=meeting, actor=self.organiser)),
+            ("rsvp", lambda: set_rsvp(meeting=meeting, actor=self.organiser, response=MeetingAttendance.Response.ACCEPTED)),
+        ):
+            with self.subTest(mutation=name), self.assertRaises(ValidationError):
+                mutate()
+        record_event.assert_not_called()
+        notify.assert_not_called()
+
+    @patch("meetings.services._notify_active_members")
+    @patch("meetings.services._record_meeting_event", return_value=Mock())
+    def test_real_meeting_project_is_used_instead_of_modified_caller_object(self, record_event, _notify):
+        meeting = self.persisted_meeting()
+        actual_project_id = meeting.project_id
+        meeting.project = self.other_project
+        updated = update_meeting(meeting=meeting, actor=self.organiser, title="Authorized actual project edit")
+        self.assertEqual(updated.project_id, actual_project_id)
+        self.assertEqual(updated.project.pk, self.project.pk)
+        self.assertEqual(updated.title, "Authorized actual project edit")
+        record_event.assert_called_once()
+
+    @patch("meetings.services._notify_active_members")
+    @patch("meetings.services._record_meeting_event", return_value=Mock())
+    def test_meeting_write_lock_contract_is_user_project_then_only_meeting(self, _record_event, _notify):
+        # SQLite does not reproduce PostgreSQL row-lock contention. This verifies
+        # the service protocol and its explicit PostgreSQL OF self contract only.
+        meeting = self.persisted_meeting()
+        order = []
+
+        def tracking(domain, original):
+            def locked(*args, **kwargs):
+                order.append((domain, kwargs.get("of")))
+                return original(*args, **kwargs)
+            return locked
+
+        with patch.object(User.objects, "select_for_update", side_effect=tracking("user", User.objects.select_for_update)), \
+             patch.object(Project.objects, "select_for_update", side_effect=tracking("project", Project.objects.select_for_update)), \
+             patch.object(Meeting.objects, "select_for_update", side_effect=tracking("meeting", Meeting.objects.select_for_update)):
+            update_meeting(meeting=meeting, actor=self.organiser, title="Consistent writer order")
+        self.assertEqual(order, [("user", None), ("project", None), ("meeting", ("self",))])

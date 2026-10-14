@@ -6,7 +6,7 @@ export interface KnowledgeSettings {
   source_types: string[];
   supported_files: string[];
   max_question_length: number;
-  retrieval: "bm25";
+  retrieval: "bm25" | "hybrid";
   notice: string;
 }
 
@@ -26,7 +26,7 @@ export interface KnowledgeSearch {
   question: string;
   sources: KnowledgeSource[];
   warnings: string[];
-  retrieval: "bm25";
+  retrieval: "bm25" | "hybrid";
   limited: boolean;
 }
 

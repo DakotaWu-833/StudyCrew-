@@ -67,6 +67,9 @@ jobs:
           python -m py_compile scripts/studycrew_recovery.py scripts/rehearse_sqlite_restore.py
           bash -n deployment/studycrew.env.example
           bash -n deployment/scripts/backup-offhost.sh
+          bash -n deployment/ai/provision-models.sh
+          bash -n deployment/ai/studycrew-ai.env.example
+          python -m py_compile scripts/evaluate_project_ai.py
 
       - name: Run backend tests with coverage gate
         run: |

@@ -3179,6 +3179,39 @@ paths:
               schema:
                 $ref: '#/components/schemas/AssistantOutput'
           description: ''
+  /api/v1/knowledge/projects/{project_id}/assistant/tasks/:
+    post:
+      operationId: knowledge_projects_assistant_tasks_create
+      parameters:
+      - in: path
+        name: project_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - knowledge
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ApproveTaskInput'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ApproveTaskInput'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ApproveTaskInput'
+        required: true
+      security:
+      - mfaSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskReceiptOutput'
+          description: ''
   /api/v1/knowledge/projects/{project_id}/search/:
     post:
       operationId: knowledge_projects_search_create
@@ -6707,6 +6740,25 @@ components:
           maxLength: 1500
       required:
       - message
+    ApproveTaskInput:
+      type: object
+      description: Reject undeclared and read-only input instead of silently ignoring
+        it.
+      properties:
+        approval_token:
+          type: string
+          maxLength: 16384
+        title:
+          type: string
+          maxLength: 120
+          minLength: 3
+        description:
+          type: string
+          maxLength: 2000
+      required:
+      - approval_token
+      - description
+      - title
     AssigneeUpdate:
       type: object
       description: Reject undeclared and read-only input instead of silently ignoring
@@ -7491,7 +7543,13 @@ components:
           type: array
           items:
             type: string
+        approval_token:
+          type: string
+        can_create:
+          type: boolean
       required:
+      - approval_token
+      - can_create
       - description
       - source_citations
       - title
@@ -10275,6 +10333,23 @@ components:
         * `medium` - Medium
         * `high` - High
         * `urgent` - Urgent
+    TaskReceiptOutput:
+      type: object
+      properties:
+        task_id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        created:
+          type: boolean
+        task_url:
+          type: string
+      required:
+      - created
+      - task_id
+      - task_url
+      - title
     TaskReplace:
       type: object
       description: Reject undeclared and read-only input instead of silently ignoring

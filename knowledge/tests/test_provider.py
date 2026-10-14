@@ -140,6 +140,32 @@ class ModelProviderTests(SimpleTestCase):
             rag_model.generate("Which review?", self.sources)
         self.assertNotIn("server-secret", str(error.exception))
 
+    def test_deeply_nested_json_is_a_safe_provider_failure(self):
+        _, mocked = self.transport({}, blocks=[b"[" * 10000 + b"]" * 10000])
+        with mocked, self.assertRaises(rag_model.ProviderUnavailable):
+            rag_model.generate("Which review?", self.sources)
+
+    def test_truncated_ollama_and_compatible_answers_are_withheld(self):
+        _, mocked = self.transport({"done": True, "done_reason": "length", "message": {"content": "Partial answer [S1]."}})
+        with mocked, self.assertRaises(rag_model.ProviderUnavailable):
+            rag_model.generate("Which review?", self.sources)
+        for choice in ({"finish_reason": "length", "message": {"content": "Partial answer [S1]."}}, None, 123):
+            _, mocked = self.transport({"choices": [choice]})
+            with self.subTest(choice=choice), override_settings(RAG_PROVIDER="compatible", RAG_BASE_URL="https://model.example/v1"), mocked, self.assertRaises(rag_model.ProviderUnavailable):
+                rag_model.generate("Which review?", self.sources)
+
+    def test_remaining_budget_is_fractional_capped_and_validated_before_network(self):
+        for budget, expected in ((0.25, 0.25), (30, 15)):
+            _, mocked = self.transport({"done": True, "message": {"content": "Review required [S1]."}})
+            with self.subTest(budget=budget), mocked as factory:
+                rag_model.generate("Which review?", self.sources, timeout=budget)
+                self.assertEqual(factory.call_args.kwargs["timeout"], expected)
+        with patch("integrations.rag_model.httpx.AsyncClient") as client:
+            for invalid in (0, -1, True, float("nan"), float("inf"), "15"):
+                with self.subTest(budget=invalid), self.assertRaises(rag_model.ProviderUnavailable):
+                    rag_model.generate("Which review?", self.sources, timeout=invalid)
+            client.assert_not_called()
+
     def test_compressed_response_is_rejected_without_decompression(self):
         _, mocked = self.transport({}, headers={"Content-Encoding": "gzip"})
         with mocked, self.assertRaises(rag_model.ProviderUnavailable):
@@ -164,3 +190,19 @@ class ModelProviderTests(SimpleTestCase):
                 rag_model.generate("Which review?", self.sources)
         self.assertTrue(response.cancelled)
         self.assertLess(time.monotonic() - started, 3)
+
+    def test_remaining_fractional_budget_cancels_stalled_stream(self):
+        class StalledResponse(StubResponse):
+            cancelled = False
+
+            async def aiter_raw(self):
+                try:
+                    yield b"{"
+                    await asyncio.Event().wait()
+                finally:
+                    self.cancelled = True
+
+        response = StalledResponse(200, [])
+        with patch("integrations.rag_model.httpx.AsyncClient", return_value=StubClient(response)), self.assertRaises(rag_model.ProviderUnavailable):
+            rag_model.generate("Which review?", self.sources, timeout=0.05)
+        self.assertTrue(response.cancelled)

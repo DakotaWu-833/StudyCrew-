@@ -49,7 +49,7 @@ function Results({ result }: { result: KnowledgeSearch | KnowledgeAnswer }) {
     <p className="knowledge-question">{result.question}</p>
     {answer?.status === "answered" && answer.answer && <div className="knowledge-answer-box"><CitedAnswer answer={answer.answer} sources={result.sources} /><p className="muted">Check the cited sources before using this answer.</p></div>}
     {answer?.status === "model_unavailable" && <p className="knowledge-notice" role="status">An answer could not be generated. You can still review the matching sources below.</p>}
-    {answer?.status === "unverified_answer" && <p className="knowledge-notice" role="status">The generated answer did not include valid source citations and was withheld. Review the project sources below.</p>}
+    {answer?.status === "unverified_answer" && <p className="knowledge-notice" role="status">The generated answer was withheld. Review the notes and original sources.</p>}
     {result.limited && <p className="knowledge-notice" role="status">Only part of this project's material was searched. Review the warnings and original sources.</p>}
     {result.warnings.length > 0 && <div className="knowledge-warnings" role="status"><h4>Search notes</h4><ul>{result.warnings.map((warning, index) => <li key={index}>{warning}</li>)}</ul></div>}
     {!result.sources.length ? <EmptyState title="No matching project sources">Try a specific phrase from your files or meeting notes. Add relevant documents in Files if the project has no searchable material.</EmptyState> : <div className="knowledge-sources">{result.sources.map(source => <SourceCard key={source.citation} source={source} />)}</div>}

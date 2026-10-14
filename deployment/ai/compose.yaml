@@ -1,0 +1,81 @@
+name: studycrew-ai
+
+x-model-environment: &model-environment
+  OLLAMA_MODELS: /models
+  OLLAMA_CONTEXT_LENGTH: "8192"
+  OLLAMA_NUM_PARALLEL: "1"
+  OLLAMA_MAX_LOADED_MODELS: "2"
+  OLLAMA_MAX_QUEUE: "8"
+  OLLAMA_KEEP_ALIVE: 10m
+  OLLAMA_NO_CLOUD: "true"
+  OLLAMA_NOHISTORY: "true"
+  OLLAMA_DEBUG: "false"
+  OLLAMA_DEBUG_LOG_REQUESTS: "false"
+  HOME: /tmp
+
+services:
+  ollama:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: studycrew-ollama:0.40.3
+    init: true
+    restart: unless-stopped
+    environment:
+      <<: *model-environment
+      OLLAMA_HOST: 0.0.0.0:11434
+    # Host Django accesses loopback. There is no public inference listener.
+    ports:
+      - "127.0.0.1:11434:11434"
+    volumes:
+      - "${OLLAMA_MODEL_DIR:?Set OLLAMA_MODEL_DIR to a dedicated data-drive directory}:/models"
+    networks:
+      - inference
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    read_only: true
+    tmpfs:
+      - /tmp:size=256m,mode=1777
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    healthcheck:
+      test: [CMD, ollama, list]
+      interval: 20s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
+  # Pulling models is an explicit provisioning operation with temporary egress.
+  # The regular inference service stays on an internal network afterward.
+  model-download:
+    profiles: [setup]
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: studycrew-ollama:0.40.3
+    init: true
+    entrypoint: [/bin/sh, /provision-models.sh]
+    environment:
+      <<: *model-environment
+      OLLAMA_HOST: 127.0.0.1:11434
+      STUDYCREW_CHAT_MODEL: "qwen3.5:9b-q4_K_M"
+      STUDYCREW_EMBEDDING_MODEL: "qwen3-embedding:0.6b"
+    volumes:
+      - "${OLLAMA_MODEL_DIR:?Set OLLAMA_MODEL_DIR to a dedicated data-drive directory}:/models"
+    networks:
+      - downloads
+    read_only: true
+    tmpfs:
+      - /tmp:size=256m,mode=1777
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+
+networks:
+  inference:
+    internal: true
+  downloads: {}
