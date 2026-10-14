@@ -142,4 +142,3 @@ class EmbeddingProviderTests(SimpleTestCase):
         with patch("integrations.rag_embeddings.httpx.AsyncClient", return_value=client), self.assertRaises(ProviderUnavailable):
             rag_embeddings.embed(["Excerpt"], timeout=0.05)
         self.assertTrue(response.cancelled)
-

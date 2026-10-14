@@ -143,4 +143,3 @@ class KnowledgeCleanupPermissionTests(SimpleTestCase):
         self.assertIn("REVOKE DELETE ON ALL TABLES IN SCHEMA public FROM studycrew_app;", grants_sql)
         self.assertIn("BEGIN READ ONLY;", verifier_sql)
         self.assertNotRegex(grants_sql, r"(?i)GRANT\s+DELETE\s+ON\s+ALL TABLES")
-

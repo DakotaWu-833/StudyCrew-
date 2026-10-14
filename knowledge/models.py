@@ -27,4 +27,3 @@ class AssistantTaskReceipt(UUIDPrimaryKeyModel):
 
     class Meta:
         constraints = [models.UniqueConstraint(fields=("user", "project", "token_digest"), name="knowledge_receipt_unique")]
-

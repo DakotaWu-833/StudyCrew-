@@ -89,4 +89,3 @@ def embed(texts, timeout=None):
         return [normalize(vector, expected) for vector in vectors]
     except (httpx.HTTPError, httpx.InvalidURL, TimeoutError, ValueError, TypeError, KeyError, IndexError, OverflowError, RecursionError):
         raise ProviderUnavailable("The embedding service is unavailable. Keyword search remains available.") from None
-

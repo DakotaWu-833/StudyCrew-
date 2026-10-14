@@ -251,4 +251,3 @@ class HybridRetrievalTests(APIDomainTestCase):
         self.assertEqual(len(selected), 3)
         self.assertEqual([row["citation"] for row in selected], ["S1", "S2", "S3"])
         self.assertEqual(sum(row["source_id"] == "one" for row in selected), 2)
-

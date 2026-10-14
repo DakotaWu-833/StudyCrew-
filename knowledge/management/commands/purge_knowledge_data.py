@@ -54,4 +54,3 @@ class Command(BaseCommand):
             f"eligible before cleanup vectors={eligible_vectors}, receipts={eligible_receipts}. "
             f"Limit={limit} per table; project tasks remain retained."
         )
-

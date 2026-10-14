@@ -354,4 +354,3 @@ class AssistantTaskApprovalTests(APIDomainTestCase):
                 response = self.client.post(self.url(), payload, format="json")
                 self.assertEqual(response.status_code, 400, response.content)
         self.assert_no_created_task()
-

@@ -120,4 +120,3 @@ class MinutesWriteBoundaryTests(CoordinationFixture):
             services.confirm_minutes(actor=self.member, record=self.record, version=1)
         self.assertEqual(CoordinationEvent.objects.count(), 0)
         self.assertEqual(MinutesConfirmation.objects.count(), 0)
-
