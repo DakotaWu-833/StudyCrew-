@@ -217,8 +217,8 @@ Install the updated `requirements/dev.txt` before running the application.
 Knowledge parses the latest TXT, CSV, text-bearing PDF and DOCX files and active
 meeting notes, chunks the text, and returns labelled excerpts with file versions
 and PDF page numbers. Default retrieval is local BM25 with English words and
-Chinese character bigrams. Optional `hybrid` retrieval combines BM25 with Qwen
-embeddings, exact cosine similarity and reciprocal-rank fusion.
+Chinese character bigrams. Optional `hybrid` retrieval combines BM25 with the
+configured embedding model, exact cosine similarity and reciprocal-rank fusion.
 
 Embedding vectors are cached in a database JSON field keyed by project, content
 SHA-256 and a hashed namespace of model name, vector dimension and
@@ -254,6 +254,12 @@ migrations and starts the local web app and delivery worker.
 Use one dataset/port for the intended run. Setup and launch do not publish a
 service, establish answer quality or prove GPU residency.
 
+This Qwen setup is the separate local desktop/GPU profile. The small AWS Learner
+Lab deployment uses Groq `openai/gpt-oss-20b` for chat/tools and local
+`all-minilm:l6-v2` with 384-dimensional embeddings. See the
+[split chat and embedding configuration](deployment/ai/compatible-local-embeddings.md)
+for that profile and its English/context limitations.
+
 For manual configuration of an already-running local Ollama service:
 
 ```powershell
@@ -278,12 +284,14 @@ reused. Changing the dimension or revision selects a different cache namespace.
 
 For a compatible service, set `RAG_PROVIDER=compatible`, `RAG_BASE_URL` to its
 API base including `/v1`, `RAG_MODEL` to the served model, and `RAG_API_KEY` if
-required. Set `RAG_RETRIEVAL_MODE=bm25` for a compatible chat endpoint; the current
-embedding adapter supports Ollama's embedding API. Non-loopback
-endpoints require HTTPS. A configured remote service receives the question and
-selected private excerpts, and hybrid embedding requests also send candidate
-chunk text. Keys, endpoints and credentials stay on the server. Environment
-configuration alone does not install models or provision hardware.
+required. For hybrid retrieval alongside compatible chat, independently select
+the Ollama embedding provider/base as described in the
+[split configuration](deployment/ai/compatible-local-embeddings.md). Use
+`RAG_RETRIEVAL_MODE=bm25` when no embedding service is configured. Non-loopback
+endpoints require HTTPS. The configured chat service receives the question and
+selected private excerpts; embedding requests send candidate chunk text to the
+separately selected embedding endpoint. Keys and credentials stay on the server.
+Environment configuration alone does not install models or provision hardware.
 `.env.example` is a reference, not auto-loaded.
 
 See [local setup and GPU deployment](deployment/ai/README.md) for model storage,

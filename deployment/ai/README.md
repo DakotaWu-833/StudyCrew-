@@ -6,6 +6,10 @@ on `127.0.0.1`; Docker configuration needs validation on the actual deployment
 host. A public school launch still needs the domain, server, SMTP, TLS,
 PostgreSQL and access checks described in [launch operations](../../docs/launch-operations.md).
 
+The Qwen chat/embedding models below belong to the local desktop/GPU profile.
+The small AWS Learner Lab instead uses the separate
+[compatible chat with local MiniLM embeddings profile](compatible-local-embeddings.md).
+
 ## Windows local setup
 
 Use PowerShell 7 after installing the documented Python dependencies and

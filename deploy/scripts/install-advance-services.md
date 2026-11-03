@@ -14,6 +14,13 @@ must already exist under `/etc/letsencrypt/live/HOST/` and match the DNS name or
 IPv4 address passed to the installer. Move the stock Nginx `sites-enabled/default`
 link outside `sites-enabled` first, preserving it for rollback.
 
+The deployed Learner Lab IP certificate uses Certbot 5.9.0 at
+`/opt/certbot/bin/certbot` and `studycrew-certbot-renew.timer`, which checks every
+six hours and reloads Nginx after successful renewal. This differs from the
+generic domain-based runbook's system `certbot` and `certbot.timer` examples.
+The IP certificate is short-lived; HTTP port 80 must remain reachable for
+webroot renewal while the instance is running.
+
 Before installation, migrate with the migration identity, collect static files,
 apply `deploy/postgresql/permissions.sql` followed by
 `deployment/postgresql/launch-permissions.sql`, and run the launch permissions
@@ -39,5 +46,9 @@ service failures stop the installer for investigation.
 After installation, check actual HTTPS `/health/`, inbox OTP delivery, file
 scanning, model-backed features when enabled, five simultaneous authenticated
 users, and recovery after a real reboot. Successful configuration checks alone
-do not establish these outcomes. This installer has only been checked locally
-for shell syntax; execution still requires acceptance on the Ubuntu host.
+do not establish these outcomes. On 3 November 2026 this installer was executed
+on the Ubuntu 24.04 Learner Lab host. Observed external, host-security and reboot
+results are retained locally under `var/asm3-deployment/` in
+`external-deployment-acceptance.json`, `host-security-acceptance.json` and
+`reboot-acceptance.json`. These results describe that configured host; they do
+not establish that every command in the generic tutorials was rerun unchanged.
