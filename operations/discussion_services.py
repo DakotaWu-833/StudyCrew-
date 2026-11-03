@@ -112,7 +112,8 @@ def report_content(actor, post, reason, reply=None):
 @transaction.atomic
 def moderate_report(actor, report, hide, reason):
     require_site_moderator(actor)
-    report = PostReport.objects.select_for_update().select_related("post__author", "reply", "ticket").get(pk=report.pk)
+    # A report may concern the post itself, leaving the reply outer join null.
+    report = PostReport.objects.select_for_update(of=("self",)).select_related("post__author", "reply", "ticket").get(pk=report.pk)
     if report.ticket.status == "resolved":
         raise ValidationError("This report is already resolved.")
     if hide:

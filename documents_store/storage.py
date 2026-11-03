@@ -43,7 +43,10 @@ def scan_required():
 def root():
     media = Path(settings.MEDIA_ROOT).resolve()
     path = media / "private-project-files"
-    path.mkdir(parents=True, exist_ok=True, mode=0o700)
+    # The production service runs with Nginx's group. Only its internal location
+    # may read these files after Django authorizes a download.
+    mode = 0o750 if settings.USE_X_ACCEL_REDIRECT else 0o700
+    path.mkdir(parents=True, exist_ok=True, mode=mode)
     if path.is_symlink() or path.resolve().parent != media:
         raise ValidationError("Private file storage is unavailable.")
     return path

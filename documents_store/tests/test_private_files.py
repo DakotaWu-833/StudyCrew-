@@ -239,6 +239,68 @@ class PrivateFilesTests(OperationsTestCase):
         self.assertTrue(response["Content-Disposition"].startswith("attachment;"))
         self.assertEqual(response["X-Content-Type-Options"], "nosniff")
         self.assertIn("no-store", response["Cache-Control"])
+        self.assertNotIn("X-Accel-Redirect", response)
+
+    @override_settings(USE_X_ACCEL_REDIRECT=True)
+    def test_production_download_hands_verified_file_to_internal_nginx_and_closes_stream(self):
+        document = services.upload(actor=self.member, project_id=self.project.pk,
+            upload=file("资料 (final).txt"), values={})
+        version = document.versions.get()
+        opened = []
+        original_open = services._open_version
+
+        def verified(value):
+            stream, checked = original_open(value)
+            opened.append(stream)
+            return stream, checked
+
+        self.signin()
+        with patch("documents_store.services._open_version", side_effect=verified):
+            response = self.client.get(self.url(document, "download/"))
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(response.streaming)
+        self.assertEqual(response.content, b"")
+        self.assertEqual(response["X-Accel-Redirect"], f"/protected-media/private-project-files/{version.storage_key}")
+        self.assertEqual(response["Content-Type"], "application/octet-stream")
+        self.assertTrue(response["Content-Disposition"].startswith("attachment; filename*=utf-8''"))
+        self.assertEqual(response["X-Content-Type-Options"], "nosniff")
+        self.assertIn("no-store", response["Cache-Control"])
+        self.assertIn("sandbox", response["Content-Security-Policy"])
+        self.assertTrue(opened[0].closed)
+
+    @override_settings(USE_X_ACCEL_REDIRECT=True)
+    def test_production_download_denies_nonmember_and_corrupt_blob_without_handoff(self):
+        document = self.upload()
+        self.signin(self.outsider)
+        response = self.client.get(self.url(document, "download/"))
+        self.assertEqual(response.status_code, 404)
+        self.assertNotIn("X-Accel-Redirect", response)
+        self.assertNotIn(b"Project notes", response.content)
+        self.signin()
+        blob_path(document.versions.get().storage_key).write_bytes(b"Tampered file")
+        response = self.client.get(self.url(document, "download/"))
+        self.assertEqual(response.status_code, 404)
+        self.assertNotIn("X-Accel-Redirect", response)
+        self.assertNotIn(b"Tampered file", response.content)
+
+    @override_settings(USE_X_ACCEL_REDIRECT=True)
+    def test_membership_revoked_during_integrity_check_prevents_handoff_and_closes_stream(self):
+        document = self.upload()
+        self.signin()
+        opened = []
+        original_open = services._open_version
+
+        def revoke_after_check(value):
+            stream, checked = original_open(value)
+            opened.append(stream)
+            ProjectMembership.objects.filter(pk=self.membership.pk).update(removed_at=timezone.now())
+            return stream, checked
+
+        with patch("documents_store.services._open_version", side_effect=revoke_after_check):
+            response = self.client.get(self.url(document, "download/"))
+        self.assertEqual(response.status_code, 404)
+        self.assertNotIn("X-Accel-Redirect", response)
+        self.assertTrue(opened[0].closed)
 
     def test_unauthenticated_premfa_and_outsider_download_are_404(self):
         document = self.upload()

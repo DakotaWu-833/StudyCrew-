@@ -332,7 +332,8 @@ def revoke_subscription(*, actor, subscription):
 def consume_subscription(raw):
     if not isinstance(raw, str) or not 30 <= len(raw) <= 100:
         raise NotFound("Calendar subscription not found.")
-    subscription = CalendarSubscription.objects.select_for_update().select_related("user", "user__profile", "project").filter(token_hash=token_digest(raw), revoked_at__isnull=True, expires_at__gt=timezone.now(), user__is_active=True).first()
+    # Lock the rate-limit counter, not nullable project/profile joins.
+    subscription = CalendarSubscription.objects.select_for_update(of=("self",)).select_related("user", "user__profile", "project").filter(token_hash=token_digest(raw), revoked_at__isnull=True, expires_at__gt=timezone.now(), user__is_active=True).first()
     if not subscription:
         raise NotFound("Calendar subscription not found.")
     if subscription.project:

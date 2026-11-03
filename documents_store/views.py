@@ -1,6 +1,9 @@
 import json
+from urllib.parse import quote
 
-from django.http import FileResponse, Http404
+from django.conf import settings
+from django.http import FileResponse, Http404, HttpResponse
+from django.utils.http import content_disposition_header
 from django.utils import timezone
 from drf_spectacular.utils import extend_schema, OpenApiTypes, OpenApiParameter
 from rest_framework.decorators import api_view, parser_classes, permission_classes, authentication_classes
@@ -86,7 +89,17 @@ def download(request, project_id, document_id):
         except ValueError:
             raise Http404
     stream, version = services.open_download(user=request.user, project_id=project_id, document_id=document_id, version_id=version_id)
-    response = FileResponse(stream, as_attachment=True, filename=version.filename, content_type="application/octet-stream")
+    if settings.USE_X_ACCEL_REDIRECT:
+        try:
+            # The service has verified the blob digest and rechecked current
+            # membership/deletion state before handing these bytes to Nginx.
+            response = HttpResponse(content_type="application/octet-stream")
+            response["Content-Disposition"] = content_disposition_header(True, version.filename)
+            response["X-Accel-Redirect"] = "/protected-media/private-project-files/" + quote(version.storage_key, safe="/")
+        finally:
+            stream.close()
+    else:
+        response = FileResponse(stream, as_attachment=True, filename=version.filename, content_type="application/octet-stream")
     response["X-Content-Type-Options"] = "nosniff"
     response["Cache-Control"] = "private, no-store"
     response["Content-Security-Policy"] = "sandbox; default-src 'none'"

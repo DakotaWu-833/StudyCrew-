@@ -29,7 +29,9 @@ def synchronize(*, actor, task_id, mutation_id, expected_updated_at, changes):
         raise Http404
     project = Project.objects.select_for_update().get(pk=project_id)
     require_project_member(user, project)
-    task = Task.objects.select_for_update().select_related("project", "created_by__profile").get(pk=task_id)
+    # The project is already locked; PostgreSQL cannot lock the nullable
+    # reverse profile join included for response serialization.
+    task = Task.objects.select_for_update(of=("self",)).select_related("project", "created_by__profile").get(pk=task_id)
     if project.archived_at or task.archived_at:
         raise ValidationError("Archived projects and tasks are read-only.")
     digest = hashlib.sha256(json.dumps({"task": str(task_id), "base": expected_updated_at, "changes": changes}, cls=DjangoJSONEncoder, sort_keys=True).encode()).hexdigest()

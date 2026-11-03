@@ -10,6 +10,7 @@ from pathlib import Path
 import uuid
 
 from django.contrib.auth import get_user_model
+from django.conf import settings
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.db import transaction
 from django.db.models import Sum
@@ -113,10 +114,13 @@ def upload(*, actor, project_id, upload, values=None, document_id=None):
                 raise ValidationError({"file": "Your daily upload quota is full. Try again after the next UTC day."})
             key = f"{project.pk}/{uuid.uuid4()}.blob"
             destination = blob_path(key)
-            destination.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+            mode = 0o750 if settings.USE_X_ACCEL_REDIRECT else 0o700
+            destination.parent.mkdir(parents=True, exist_ok=True, mode=mode)
             # Exclusive destination creation prevents accidental replacement.
             with destination.open("xb") as output:
                 created_destination = True
+                if settings.USE_X_ACCEL_REDIRECT:
+                    os.chmod(destination, 0o640)
                 with prepared["path"].open("rb") as source:
                     for block in iter(lambda: source.read(65536), b""):
                         output.write(block)
@@ -203,7 +207,17 @@ def open_download(*, user, project_id, document_id, version_id=None):
     version = versions.filter(pk=version_id).first() if version_id else versions.first()
     if not consume_rate("private-file-download", str(user.pk), limit=120, seconds=3600):
         raise ValidationError("Downloads are temporarily limited. Try again later.")
-    return _open_version(version)
+    stream, version = _open_version(version)
+    try:
+        # Integrity verification may take time. Recheck access and deletion state
+        # immediately before either Django or Nginx receives the verified file.
+        project_access(user, project_id)
+        if not ProjectDocument.objects.filter(pk=document.pk, project=project, removed_at__isnull=True).exists():
+            raise Http404
+        return stream, version
+    except BaseException:
+        stream.close()
+        raise
 
 
 def open_preview(*, user, project_id, document_id, version_id=None):

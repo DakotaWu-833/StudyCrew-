@@ -9,6 +9,9 @@ This repository contains the complete Assignment 2 implementation and the
 reviewed Assignment 3 deployment/security configuration. Assignment 1 design
 artifacts remain under `design/`, `database/` and `deliverables/`.
 
+**Assignment 3 final submission branch: `advance`.** The AWS deployment uses the
+reviewed release from this branch. Assess `advance` for the A3 code submission.
+
 ## Implemented functionality
 
 - Email registration and login with 12-character password rules, Argon2 hashes,
