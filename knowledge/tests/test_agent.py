@@ -372,8 +372,98 @@ class ProjectAssistantTests(APIDomainTestCase):
         result, chat = self.run_turns([tool_turn("search_project_sources", {"query": "Nebulawork"}, f"call-{index}") for index in range(4)])
         self.assertEqual(result["status"], "limit_reached")
         self.assertEqual(chat.call_count, 4)
+        self.assertEqual(chat.call_args.args[1], [])
         self.assertIsNone(result["answer"])
         self.assertEqual(result["drafts"], [])
+
+    def test_final_model_turn_is_reserved_for_a_cited_answer(self):
+        self.upload()
+        requests = []
+
+        def model(messages, tools, **kwargs):
+            requests.append((list(messages), tools))
+            if tools:
+                return tool_turn("search_project_sources", {"query": "Nebulawork"}, f"read-{len(requests)}")
+            return final_turn("An independent security review is required [S1].")
+
+        with self.configured(), patch("knowledge.agent.providers.agent_chat", side_effect=model):
+            result = self.assist()
+        self.assertEqual(result["status"], "completed")
+        self.assertEqual(len(requests), 4)
+        self.assertEqual(len(result["steps"]), 3)
+        self.assertEqual(requests[-1][1], [])
+        self.assertIn("[S1]", requests[-1][0][-1]["content"])
+        self.assertIn("final answer", requests[-1][0][-1]["content"])
+
+    def test_successful_proposal_finishes_without_exposing_tools_again(self):
+        self.upload()
+        before = self.snapshot()
+        requests = []
+
+        def model(messages, tools, **kwargs):
+            requests.append(tools)
+            if len(requests) == 1:
+                return tool_turn("search_project_sources", {"query": "Nebulawork"}, "read-1")
+            if tools:
+                return tool_turn("propose_tasks", {"tasks": [{"title": "Arrange a security review",
+                    "description": "Review the stated requirements.", "source_citations": ["S1"]}]},
+                    f"draft-{len(requests)}")
+            return final_turn("Review the unsaved draft card based on the requirements [S1].")
+
+        with self.configured(), patch("knowledge.agent.providers.agent_chat", side_effect=model):
+            result = self.assist()
+        self.assertEqual(result["status"], "completed")
+        self.assertEqual(len(requests), 3)
+        self.assertEqual(requests[-1], [])
+        self.assertEqual([step["tool"] for step in result["steps"]], ["search_project_sources", "propose_tasks"])
+        self.assertEqual(len(result["drafts"]), 1)
+        self.assertEqual(self.snapshot(), before)
+
+    def test_provider_cannot_run_a_tool_after_proposals_enter_finalization(self):
+        self.upload()
+        result, chat = self.run_turns([
+            tool_turn("search_project_sources", {"query": "Nebulawork"}, "read-1"),
+            tool_turn("propose_tasks", {"tasks": [{"title": "Arrange a security review",
+                "description": "Review the requirements.", "source_citations": ["S1"]}]}, "draft-1"),
+            tool_turn("list_project_tasks", {}, "unexpected-1"),
+            final_turn("Review the requirements [S1]."),
+        ])
+        self.assertEqual(result["status"], "invalid_response")
+        self.assertEqual(chat.call_count, 3)
+        self.assertEqual(chat.call_args.args[1], [])
+        self.assertEqual(len(result["steps"]), 2)
+        self.assertIsNone(result["answer"])
+        self.assertEqual(result["drafts"], [])
+
+    def test_a_second_proposal_in_the_same_tool_batch_is_not_executed(self):
+        self.upload()
+        draft = {"tasks": [{"title": "Arrange a security review", "description": "Review the requirements.",
+                            "source_citations": ["S1"]}]}
+        result, _ = self.run_turns([
+            tool_turn("search_project_sources", {"query": "Nebulawork"}, "read-1"),
+            {"content": "", "tool_calls": [
+                tool_turn("propose_tasks", draft, "draft-1")["tool_calls"][0],
+                tool_turn("propose_tasks", draft, "draft-2")["tool_calls"][0],
+            ]},
+        ])
+        self.assertEqual(result["status"], "invalid_response")
+        self.assertEqual([step["tool"] for step in result["steps"]], ["search_project_sources", "propose_tasks"])
+        self.assertEqual(result["drafts"], [])
+
+    def test_finalization_still_withholds_invented_citations_and_source_credentials(self):
+        self.upload("Nebulawork password is BLUE-MOON-SECRET. The report needs a security review.")
+        for text in ("Review the report [S99].", "Use BLUE-MOON-SECRET [S1]."):
+            with self.subTest(answer=text):
+                result, chat = self.run_turns([
+                    tool_turn("search_project_sources", {"query": "Nebulawork"}, "read-1"),
+                    tool_turn("propose_tasks", {"tasks": [{"title": "Arrange a security review",
+                        "description": "Review the report requirements.", "source_citations": ["S1"]}]}, "draft-1"),
+                    final_turn(text), final_turn(text),
+                ])
+                self.assertEqual(result["status"], "invalid_response")
+                self.assertEqual(chat.call_args.args[1], [])
+                self.assertIsNone(result["answer"])
+                self.assertEqual(result["drafts"], [])
 
     def test_total_deadline_withholds_late_model_answer(self):
         self.task()

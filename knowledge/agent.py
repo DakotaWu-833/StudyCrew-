@@ -222,6 +222,7 @@ def run(user, project_id, question):
     call_count = 0
     seen_ids = set()
     citation_retry = False
+    proposal_prepared = False
 
     def finish(status, answer=None):
         context.check()
@@ -237,8 +238,15 @@ def run(user, project_id, question):
         if remaining <= 0:
             context.warn("The assistant reached its time limit. Try a narrower project question.")
             return finish("limit_reached")
+        finalizing = turn == MAX_STEPS - 1 or proposal_prepared
+        if finalizing and not citation_retry:
+            messages.append({"role": "user", "content":
+                "Give your concise final answer now using only evidence already read and any existing unsaved draft cards. "
+                "Do not call tools, read more sources or propose more tasks. Cite project facts with exact available labels: "
+                + " ".join(f"[{row['citation']}]" for row in context.sources)
+                + ". Do not invent evidence. Drafts have not been saved; ask the user to review any existing draft cards."})
         try:
-            response = providers.agent_chat(messages, TOOLS, timeout=remaining)
+            response = providers.agent_chat(messages, [] if finalizing else TOOLS, timeout=remaining)
         except providers.ProviderUnavailable:
             context.warn("The model service is unavailable. No project actions were performed.")
             return finish("model_unavailable")
@@ -273,6 +281,9 @@ def run(user, project_id, question):
         if citation_retry:
             context.warn("Citation correction requested an unexpected tool. No additional actions were performed.")
             return finish("invalid_response")
+        if proposal_prepared and turn < MAX_STEPS - 1:
+            context.warn("The assistant requested a tool after preparing its drafts. No additional actions were performed.")
+            return finish("invalid_response")
         if call_count + len(calls) > MAX_CALLS or turn == MAX_STEPS - 1:
             context.warn("The assistant reached its tool limit. Try a narrower project question.")
             return finish("limit_reached")
@@ -290,6 +301,9 @@ def run(user, project_id, question):
             normalized.append({**call, "id": identity})
         messages.append({"role": "assistant", "content": response["content"], "tool_calls": normalized})
         for call in normalized:
+            if proposal_prepared:
+                context.warn("The assistant requested a tool after preparing its drafts. No additional actions were performed.")
+                return finish("invalid_response")
             if time.monotonic() >= deadline:
                 return finish("limit_reached")
             try:
@@ -301,6 +315,8 @@ def run(user, project_id, question):
                 context.warn("The assistant requested an unsupported tool or invalid arguments. Its request was stopped.")
                 return finish("invalid_response")
             call_count += 1
+            if call["name"] == "propose_tasks":
+                proposal_prepared = True
             result["steps"].append({"tool": call["name"], "summary": SUMMARIES[call["name"]], "result_count": count})
             messages.append({"role": "tool", "tool_call_id": call["id"], "tool_name": call["name"],
                              "content": json.dumps(output, ensure_ascii=False)})
