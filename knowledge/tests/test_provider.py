@@ -109,6 +109,13 @@ class ModelProviderTests(SimpleTestCase):
         self.assertEqual(client.stream.call_args.kwargs["headers"]["Authorization"], "Bearer server-secret")
         self.assertNotIn("server-secret", json.dumps(client.stream.call_args.kwargs["json"]))
 
+    def test_fullwidth_citation_brackets_are_normalized_without_rewriting_labels(self):
+        answer = "Review 【S1】 and ［S99］; retain [S2], 【other】 and 【S1］."
+        _, mocked = self.transport({"choices": [{"message": {"content": answer}}]})
+        with override_settings(RAG_PROVIDER="compatible", RAG_BASE_URL="https://model.example/v1"), mocked:
+            result = rag_model.generate("Which review?", self.sources)
+        self.assertEqual(result, "Review [S1] and [S99]; retain [S2], 【other】 and 【S1］.")
+
     def test_upstream_http_failure_has_no_response_body_or_secret(self):
         _, mocked = self.transport({"error": "server-secret private upstream diagnostic"}, status=500)
         with mocked, self.assertRaises(rag_model.ProviderUnavailable) as error:

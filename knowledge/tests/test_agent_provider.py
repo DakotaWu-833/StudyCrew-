@@ -113,6 +113,16 @@ class AgentProviderTests(SimpleTestCase):
         self.assertEqual(client.stream.call_args.kwargs["json"]["tool_choice"], "auto")
         self.assertNotIn("server-secret", json.dumps(client.stream.call_args.kwargs["json"]))
 
+    def test_citation_brackets_in_assistant_text_do_not_rewrite_tool_arguments(self):
+        _, _, mocked = self.transport({"choices": [{"finish_reason": "tool_calls", "message": {
+            "content": "Review 【S1】 and ［S99］.",
+            "tool_calls": [self.compatible_call(arguments='{"query":"Find literal 【S1】"}')],
+        }}]})
+        with self.configured_compatible(), mocked:
+            result = rag_agent.agent_chat(self.messages, self.tools)
+        self.assertEqual(result["content"], "Review [S1] and [S99].")
+        self.assertEqual(result["tool_calls"][0]["arguments"], {"query": "Find literal 【S1】"})
+
     def test_compatible_tool_history_serializes_arguments_and_links_result_to_id(self):
         client, _, mocked = self.transport({"choices": [{"message": {"content": "Review required [S1].", "tool_calls": None}}]})
         history = self.messages + [

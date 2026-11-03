@@ -6,11 +6,17 @@ approved HTTPS compatible API; embedding requests use the independently selected
 Ollama endpoint. This avoids loading the chat model on a small web host. Actual
 memory, latency, provider quotas and five-user operation still require testing.
 
-Keep Ollama bound to `127.0.0.1:11434`, with only the embedding model installed.
+Keep Ollama bound to `127.0.0.1:11434`, running only the selected embedding model.
 Do not expose its port through the security group or host firewall. Warm an
 embedding request and record the installed model's digest from `/api/tags` in
 `RAG_EMBEDDING_REVISION`; changing model weights requires updating that value.
 Use bounded batches suitable for the measured host capacity.
+
+The small Learner Lab profile uses `all-minilm:l6-v2` with 384 dimensions. This
+lightweight model targets English sentence retrieval. Its 256-token context can
+reject long or CJK inputs, which visibly fall back to keyword search. Select and
+measure a larger multilingual model before claiming multilingual semantic
+coverage; changing dimensions also changes the vector-cache namespace.
 
 Merge the example into the existing protected application environment. Store the
 chat API key there, never in source, command arguments, browser code or logs.

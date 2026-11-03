@@ -389,6 +389,36 @@ class ProjectRAGTests(APIDomainTestCase):
             self.assertIsNone(result["answer"])
             self.assertTrue(result["sources"])
 
+    def test_transport_bracket_normalization_accepts_known_labels_but_withholds_unknown_ones(self):
+        from knowledge.tests.test_provider import StubClient, StubResponse
+        self.upload()
+        cases = (
+            ("A security review is required 【S1】.", "answered", "A security review is required [S1]."),
+            ("A security review is required ［S1］.", "answered", "A security review is required [S1]."),
+            ("Review 【S1】 with invented support ［S99］.", "unverified_answer", None),
+        )
+        for answer, status, expected in cases:
+            payload = json.dumps({"done": True, "message": {"content": answer}}).encode()
+            client = StubClient(StubResponse(200, [payload]))
+            with self.subTest(answer=answer), self.configured(), \
+                    patch("integrations.rag_model.httpx.AsyncClient", return_value=client):
+                result = self.ask()
+            self.assertEqual(result["status"], status)
+            self.assertEqual(result["answer"], expected)
+            self.assertTrue(result["sources"])
+
+    def test_transport_bracket_normalization_preserves_credential_withholding(self):
+        from knowledge.tests.test_provider import StubClient, StubResponse
+        self.upload("Nebulawork password is BLUE-MOON-SECRET.")
+        payload = json.dumps({"done": True, "message": {
+            "content": "The password is BLUE-MOON-SECRET 【S1】."}}).encode()
+        client = StubClient(StubResponse(200, [payload]))
+        with self.configured(), patch("integrations.rag_model.httpx.AsyncClient", return_value=client):
+            result = self.ask()
+        self.assertEqual(result["status"], "unverified_answer")
+        self.assertIsNone(result["answer"])
+        self.assertNotIn("BLUE-MOON-SECRET", " ".join(result["warnings"]))
+
     def test_membership_revocation_during_model_call_withholds_response(self):
         self.upload()
         def revoke(*args, **kwargs):

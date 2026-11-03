@@ -12,7 +12,7 @@ import re
 import httpx
 from django.conf import settings
 
-from .rag_model import ProviderUnavailable, configuration
+from .rag_model import ProviderUnavailable, canonicalize_citations, configuration
 
 
 MAX_CALLS = 6
@@ -154,7 +154,7 @@ def _response(result, *, compatible):
         canonical.append({"id": identifier, "name": _name(function.get("name")), "arguments": arguments})
     if not content.strip() and not canonical:
         raise ValueError("Empty model response")
-    return {"content": content.strip(), "tool_calls": canonical}
+    return {"content": canonicalize_citations(content.strip()), "tool_calls": canonical}
 
 
 def agent_chat(messages, tools, timeout=None):

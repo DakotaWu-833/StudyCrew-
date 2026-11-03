@@ -3,6 +3,7 @@ import asyncio
 import ipaddress
 import json
 import math
+import re
 from urllib.parse import urlsplit
 
 import httpx
@@ -11,6 +12,18 @@ from django.conf import settings
 
 class ProviderUnavailable(Exception):
     """A safe failure with no upstream response, prompt, or credentials attached."""
+
+
+_CITATION_DELIMITERS = re.compile(r"【(S[0-9]+)】|［(S[0-9]+)］")
+
+
+def canonicalize_citations(text):
+    """Normalize only supported citation brackets; keep every label unchanged.
+
+    The domain still validates these labels against the current authorized
+    sources and applies its credential guard. This does not repair invented IDs.
+    """
+    return _CITATION_DELIMITERS.sub(lambda match: "[" + (match.group(1) or match.group(2)) + "]", text)
 
 
 def transport_configuration(*, provider, base, model, timeout, key=""):
@@ -125,6 +138,6 @@ def generate(question, sources, timeout=None):
             answer = choice["message"]["content"]
         if not isinstance(answer, str) or not answer.strip() or len(answer) > 8000:
             raise ValueError("Invalid answer")
-        return answer.strip()
+        return canonicalize_citations(answer.strip())
     except (httpx.HTTPError, httpx.InvalidURL, TimeoutError, ValueError, TypeError, KeyError, IndexError, RecursionError):
         raise ProviderUnavailable("The model service is unavailable. Search project sources or try again later.") from None
