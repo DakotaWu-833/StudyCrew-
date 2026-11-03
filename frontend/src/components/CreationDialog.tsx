@@ -5,9 +5,9 @@ import { Button, FloatingPanel, PanelCancel } from "./UI";
 
 /** The same modal, focus handling and discard guard as New project. */
 export default function CreationDialog({ children, title, triggerLabel, busy = false, disabled = false,
-  completedKey, forceOpen = false, onClose, error,
+  completedKey, forceOpen = false, onClose, error, actionsInside = false,
 }: PropsWithChildren<{ title: string; triggerLabel?: string; busy?: boolean; disabled?: boolean;
-  completedKey?: number; forceOpen?: boolean; onClose?: () => void; error?: unknown }>) {
+  completedKey?: number; forceOpen?: boolean; onClose?: () => void; error?: unknown; actionsInside?: boolean }>) {
   const [opened, setOpened] = useState(false);
   const [dirty, setDirty] = useState(false);
   const visible = forceOpen || opened;
@@ -38,7 +38,7 @@ export default function CreationDialog({ children, title, triggerLabel, busy = f
         {children}
       </fieldset>
       {Boolean(error) && <p className="form-error" role="alert">{typeof error === "string" ? error : errorMessage(error)}</p>}
-      <div className="form-actions creation-dialog__cancel"><PanelCancel busy={busy} /></div>
+      {!actionsInside && <div className="form-actions creation-dialog__cancel"><PanelCancel busy={busy} /></div>}
     </FloatingPanel>, document.body)}
   </>;
 }

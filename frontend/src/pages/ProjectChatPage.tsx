@@ -3,7 +3,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 import { chatApi, type ChatMessage, type ChatState } from "../api/chat";
 import { errorMessage } from "../api/client";
-import { Button, EmptyState, Loading, Panel } from "../components/UI";
+import { Button, EmptyState, Loading, Panel, PanelCancel } from "../components/UI";
 import { formatDate } from "../app/format";
 import "./project-chat.css";
 
@@ -121,6 +121,6 @@ export default function ProjectChatPage() {
         <p className="prose">{row.hidden ? <em>{row.removed ? "Message removed" : "Message hidden by your block settings"}</em> : row.body}</p>
         {!state?.read_only && row.can_remove && <Button variant="quiet" disabled={busy} onClick={() => void remove(row)}>Remove message</Button>}
       </article>)}<div ref={bottom} /></div>}
-      {state?.read_only ? <p className="notice">This project is archived. Chat history is read-only.</p> : <CreationDialog title="New chat message" triggerLabel="New message" busy={busy} completedKey={sentCount} error={sendError || error} key={String(projectId) + ":creation-1"} disabled={loading || Boolean(state?.read_only)} onClose={() => { setBody(""); setSendError(""); }}><form className="chat-compose" onSubmit={event => { event.preventDefault(); void send(); }}><label className="field"><span>Message</span><textarea value={body} onChange={event => setBody(event.target.value)} required maxLength={2000} rows={3} disabled={busy} /></label><Button type="submit" disabled={busy || !body.trim() || loading}>{busy ? "Sending…" : "Send message"}</Button></form></CreationDialog>}
+      {state?.read_only ? <p className="notice">This project is archived. Chat history is read-only.</p> : <CreationDialog title="New chat message" triggerLabel="New message" busy={busy} completedKey={sentCount} error={sendError || error} key={String(projectId) + ":creation-1"} disabled={loading || Boolean(state?.read_only)} onClose={() => { setBody(""); setSendError(""); }} actionsInside><form className="chat-compose" onSubmit={event => { event.preventDefault(); void send(); }}><label className="field"><span>Message</span><textarea value={body} onChange={event => setBody(event.target.value)} required maxLength={2000} rows={3} disabled={busy} /></label><div className="form-actions"><Button type="submit" disabled={busy || !body.trim() || loading}>{busy ? "Sending…" : "Send message"}</Button><PanelCancel busy={busy} /></div></form></CreationDialog>}
     </Panel></div>;
 }

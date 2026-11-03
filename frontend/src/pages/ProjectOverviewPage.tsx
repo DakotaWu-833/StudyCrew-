@@ -7,7 +7,7 @@ import { invitationApi, membershipApi, projectApi } from "../api/resources";
 import type { MemberRole } from "../api/types";
 import { formatDate, parseOptionalDateTime, toDateTimeLocal } from "../app/format";
 import Avatar from "../components/Avatar";
-import { Button, ConfirmAction, EmptyState, ErrorState, Field, FloatingPanel, Loading, Panel, StatusBadge } from "../components/UI";
+import { Button, ConfirmAction, EmptyState, ErrorState, Field, FloatingPanel, Loading, Panel, StatusBadge, PanelCancel } from "../components/UI";
 
 export default function ProjectOverviewPage() {
   const { projectId = "" } = useParams();
@@ -97,7 +97,7 @@ export default function ProjectOverviewPage() {
       {isOwner && !isArchived && (
         <Panel labelledBy="invite-heading">
           <h2 id="invite-heading">Invite a teammate</h2>
-          <CreationDialog key={String(projectId) + ":creation-1"} title="Invite a teammate" triggerLabel="New invitation" busy={invite.isPending} completedKey={invite.isSuccess ? invite.submittedAt : undefined} error={invite.error} ><form className="inline-form" onSubmit={submitInvite}><Field label="Email address"><input name="email" type="email" required autoComplete="email" /></Field><Button type="submit" disabled={invite.isPending}>{invite.isPending ? "Sending…" : "Send invitation"}</Button></form></CreationDialog>
+          <CreationDialog key={String(projectId) + ":creation-1"} title="Invite a teammate" triggerLabel="New invitation" busy={invite.isPending} completedKey={invite.isSuccess ? invite.submittedAt : undefined} error={invite.error}  actionsInside><form className="inline-form" onSubmit={submitInvite}><Field label="Email address"><input name="email" type="email" required autoComplete="email" /></Field><div className="form-actions"><Button type="submit" disabled={invite.isPending}>{invite.isPending ? "Sending…" : "Send invitation"}</Button><PanelCancel busy={invite.isPending} /></div></form></CreationDialog>
           {invites.isLoading ? <Loading label="Loading invitations…" /> : invites.error ? <ErrorState error={invites.error} retry={() => void invites.refetch()} /> : invites.data?.count ? <div className="compact-list">{invites.data.results.map((item) => <div className="compact-row" key={item.id}><span><strong>{item.invited_email}</strong><small>Expires {formatDate(item.expires_at)}</small></span><span className="row-actions"><StatusBadge value={item.status} />{item.status === "pending" && <ConfirmAction triggerLabel="Cancel" triggerVariant="quiet" confirmLabel="Cancel invitation" message={`Cancel the invitation for ${item.invited_email}?`} busy={cancelInvite.isPending} onConfirm={() => cancelInvite.mutate(item.id)} />}</span></div>)}</div> : <EmptyState title="No invitations">New pending invitations will appear here.</EmptyState>}
         </Panel>
       )}
