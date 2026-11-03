@@ -41,6 +41,7 @@ class StubClient:
 
 @override_settings(RAG_PROVIDER="ollama", RAG_BASE_URL="http://127.0.0.1:11434",
                    RAG_MODEL="test-chat", RAG_API_KEY="", RAG_TIMEOUT_SECONDS=15,
+                   RAG_EMBEDDING_PROVIDER="", RAG_EMBEDDING_BASE_URL="", RAG_EMBEDDING_API_KEY=None,
                    RAG_EMBEDDING_MODEL="test-embed", RAG_EMBEDDING_DIMENSIONS=3)
 class EmbeddingProviderTests(SimpleTestCase):
     def transport(self, result, *, status=200, headers=None, blocks=None):
@@ -62,6 +63,66 @@ class EmbeddingProviderTests(SimpleTestCase):
         self.assertFalse(payload["truncate"])
         self.assertEqual(payload["keep_alive"], "5m")
         self.assertEqual(payload["dimensions"], 3)
+
+    def test_compatible_chat_uses_local_embeddings_without_forwarding_chat_key(self):
+        client, mocked = self.transport({"embeddings": [[3, 4, 0]]})
+        with override_settings(
+            RAG_PROVIDER="compatible", RAG_BASE_URL="https://api.groq.com/openai/v1",
+            RAG_MODEL="openai/gpt-oss-20b", RAG_API_KEY="chat-only-secret",
+            RAG_EMBEDDING_PROVIDER="ollama", RAG_EMBEDDING_BASE_URL="http://127.0.0.1:11434",
+        ), mocked:
+            self.assertEqual(rag_embeddings.embed(["Private project excerpt"]), [[0.6, 0.8, 0.0]])
+        self.assertEqual(client.stream.call_args.args[1], "http://127.0.0.1:11434/api/embed")
+        self.assertNotIn("Authorization", client.stream.call_args.kwargs["headers"])
+        self.assertNotIn("chat-only-secret", json.dumps(client.stream.call_args.kwargs))
+
+    def test_shared_ollama_credential_remains_supported(self):
+        client, mocked = self.transport({"embeddings": [[0, 0, 1]]})
+        with override_settings(RAG_API_KEY="shared-gateway-secret"), mocked:
+            rag_embeddings.embed(["Excerpt"])
+        self.assertEqual(client.stream.call_args.kwargs["headers"]["Authorization"], "Bearer shared-gateway-secret")
+
+    def test_separate_embedding_gateway_uses_only_its_own_credential_and_model(self):
+        client, mocked = self.transport({"embeddings": [[0, 0, 1]]})
+        with override_settings(
+            RAG_PROVIDER="compatible", RAG_BASE_URL="https://chat.example/v1", RAG_API_KEY="chat-only-secret",
+            RAG_EMBEDDING_PROVIDER="ollama", RAG_EMBEDDING_BASE_URL="https://embedding.example",
+            RAG_EMBEDDING_API_KEY="embedding-only-secret", RAG_EMBEDDING_MODEL="separate-embed",
+        ), mocked:
+            rag_embeddings.embed(["Excerpt"])
+        self.assertEqual(client.stream.call_args.args[1], "https://embedding.example/api/embed")
+        self.assertEqual(client.stream.call_args.kwargs["headers"]["Authorization"], "Bearer embedding-only-secret")
+        self.assertEqual(client.stream.call_args.kwargs["json"]["model"], "separate-embed")
+
+    def test_embedding_configuration_does_not_depend_on_a_chat_model(self):
+        _, mocked = self.transport({"embeddings": [[0, 0, 1]]})
+        with override_settings(RAG_PROVIDER="disabled", RAG_MODEL="", RAG_EMBEDDING_PROVIDER="ollama",
+                               RAG_EMBEDDING_BASE_URL="http://127.0.0.1:11434"), mocked:
+            self.assertEqual(rag_embeddings.embed(["Excerpt"]), [[0.0, 0.0, 1.0]])
+
+    def test_unsafe_embedding_endpoint_or_credential_fails_before_network(self):
+        invalid = (
+            {"RAG_EMBEDDING_PROVIDER": "compatible"},
+            {"RAG_EMBEDDING_PROVIDER": "unknown"},
+            {"RAG_EMBEDDING_BASE_URL": "http://embedding.example"},
+            {"RAG_EMBEDDING_BASE_URL": "https://user:secret@embedding.example"},
+            {"RAG_EMBEDDING_BASE_URL": "https://embedding.example?key=secret"},
+            {"RAG_EMBEDDING_BASE_URL": "https://embedding.example#secret"},
+            {"RAG_EMBEDDING_BASE_URL": "https://embedding.example:invalid"},
+            {"RAG_EMBEDDING_BASE_URL": "https://embedding.example\n"},
+            {"RAG_EMBEDDING_API_KEY": "secret\r\nX-Injected: header"},
+            {"RAG_EMBEDDING_API_KEY": "secret with spaces"},
+            {"RAG_EMBEDDING_API_KEY": "secret-\u00e9"},
+            {"RAG_EMBEDDING_API_KEY": "x" * 4097},
+            {"RAG_EMBEDDING_API_KEY": 123},
+        )
+        for values in invalid:
+            with self.subTest(setting=list(values)), override_settings(**values), \
+                    patch("integrations.rag_embeddings.httpx.AsyncClient") as client:
+                with self.assertRaises(ProviderUnavailable) as error:
+                    rag_embeddings.embed(["Excerpt"])
+                client.assert_not_called()
+                self.assertNotIn("secret", str(error.exception))
 
     def test_missing_disabled_and_unsupported_embedding_provider_never_contacts_network(self):
         for settings in ({"RAG_PROVIDER": "disabled"}, {"RAG_PROVIDER": "compatible"}, {"RAG_EMBEDDING_MODEL": ""}):

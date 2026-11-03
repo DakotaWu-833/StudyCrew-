@@ -186,7 +186,7 @@ def agent_chat(messages, tools, timeout=None):
             if settings.RAG_DISABLE_THINKING:
                 payload["think"] = False
         headers = {"Accept": "application/json", "Accept-Encoding": "identity"}
-        key = getattr(settings, "RAG_API_KEY", "")
+        key = config["key"]
         if key:
             headers["Authorization"] = "Bearer " + key
 

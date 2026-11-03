@@ -74,6 +74,8 @@ class ModelProviderTests(SimpleTestCase):
             {"RAG_BASE_URL": "https://example.com/v1#secret"},
             {"RAG_BASE_URL": "file:///tmp/model"},
             {"RAG_TIMEOUT_SECONDS": 0}, {"RAG_TIMEOUT_SECONDS": 21},
+            {"RAG_TIMEOUT_SECONDS": True}, {"RAG_TIMEOUT_SECONDS": float("nan")},
+            {"RAG_API_KEY": "secret\r\nX-Injected: header"},
         )
         with patch("integrations.rag_model.httpx.AsyncClient") as client:
             for settings in invalid:

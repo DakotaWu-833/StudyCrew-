@@ -1,0 +1,2 @@
+# Production shell scripts must execute with Unix line endings after archive/SCP.
+*.sh text eol=lf

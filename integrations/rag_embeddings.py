@@ -7,12 +7,35 @@ import math
 import httpx
 from django.conf import settings
 
-from .rag_model import ProviderUnavailable, configuration
+from .rag_model import ProviderUnavailable, transport_configuration
 
 MAX_BATCH = 16
 MAX_DIMENSIONS = 4096
 MAX_TEXT_CHARS = 2000
 MAX_RESPONSE_BYTES = 2 * 1024 * 1024
+
+
+def configuration():
+    """Allow local embeddings beside a separately configured chat service.
+
+    Unset transport settings retain the original shared Ollama configuration.
+    A separately selected endpoint never inherits the chat service's credential.
+    """
+    provider = getattr(settings, "RAG_EMBEDDING_PROVIDER", "")
+    base = getattr(settings, "RAG_EMBEDDING_BASE_URL", "")
+    key = getattr(settings, "RAG_EMBEDDING_API_KEY", None)
+    if key is None:
+        key = "" if provider or base else getattr(settings, "RAG_API_KEY", "")
+    configured = transport_configuration(
+        provider=provider or getattr(settings, "RAG_PROVIDER", "disabled"),
+        base=base or getattr(settings, "RAG_BASE_URL", ""),
+        model=getattr(settings, "RAG_EMBEDDING_MODEL", ""),
+        timeout=getattr(settings, "RAG_TIMEOUT_SECONDS", 15),
+        key=key,
+    )
+    if configured and configured["provider"] != "ollama":
+        raise ProviderUnavailable("An Ollama embedding model has not been configured.")
+    return configured
 
 
 def dimensions():
@@ -47,9 +70,9 @@ def embed(texts, timeout=None):
     """Return finite unit vectors; a disabled/misconfigured provider fails safely."""
     try:
         config = configuration()
-        model = getattr(settings, "RAG_EMBEDDING_MODEL", "").strip()
-        if not config or config["provider"] != "ollama" or not model or len(model) > 160:
+        if not config:
             raise ProviderUnavailable("An Ollama embedding model has not been configured.")
+        model = config["model"]
         expected = dimensions()
         if not isinstance(texts, list) or not 1 <= len(texts) <= MAX_BATCH:
             raise ValueError("Invalid embedding batch")
@@ -62,7 +85,7 @@ def embed(texts, timeout=None):
         timeout = min(timeout, config["timeout"], 20)
         payload = {"model": model, "input": texts, "truncate": False, "keep_alive": "5m", "dimensions": expected}
         headers = {"Accept": "application/json", "Accept-Encoding": "identity"}
-        key = getattr(settings, "RAG_API_KEY", "")
+        key = config["key"]
         if key:
             headers["Authorization"] = "Bearer " + key
 

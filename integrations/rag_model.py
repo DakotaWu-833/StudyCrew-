@@ -13,14 +13,16 @@ class ProviderUnavailable(Exception):
     """A safe failure with no upstream response, prompt, or credentials attached."""
 
 
-def configuration():
-    provider = getattr(settings, "RAG_PROVIDER", "disabled")
+def transport_configuration(*, provider, base, model, timeout, key=""):
+    """Validate server-owned transport settings shared by chat and embeddings."""
     if provider == "disabled":
         return None
     if provider not in {"ollama", "compatible"}:
         raise ProviderUnavailable("Unsupported model provider.")
-    base = getattr(settings, "RAG_BASE_URL", "").rstrip("/")
-    model = getattr(settings, "RAG_MODEL", "").strip()
+    if not isinstance(base, str) or not isinstance(model, str):
+        raise ProviderUnavailable("Configure a model and a valid service URL.")
+    base = base.rstrip("/")
+    model = model.strip()
     try:
         url = urlsplit(base)
         loopback = url.hostname == "localhost" or ipaddress.ip_address(url.hostname or "").is_loopback
@@ -33,10 +35,23 @@ def configuration():
                  and (url.scheme == "https" or loopback))
     except (ValueError, UnboundLocalError):
         valid = False
-    timeout = getattr(settings, "RAG_TIMEOUT_SECONDS", 15)
-    if not valid or not model or len(model) > 160 or not 1 <= timeout <= 20:
+    if (not valid or not model or len(model) > 160
+            or isinstance(timeout, bool) or not isinstance(timeout, (int, float))
+            or not math.isfinite(timeout) or not 1 <= timeout <= 20):
         raise ProviderUnavailable("Configure a model, an HTTPS or loopback URL, and a 1–20 second timeout.")
-    return {"provider": provider, "base": base, "model": model, "timeout": timeout}
+    if not isinstance(key, str) or len(key) > 4096 or any(not 33 <= ord(char) <= 126 for char in key):
+        raise ProviderUnavailable("Configure a valid service credential.")
+    return {"provider": provider, "base": base, "model": model, "timeout": timeout, "key": key}
+
+
+def configuration():
+    return transport_configuration(
+        provider=getattr(settings, "RAG_PROVIDER", "disabled"),
+        base=getattr(settings, "RAG_BASE_URL", ""),
+        model=getattr(settings, "RAG_MODEL", ""),
+        timeout=getattr(settings, "RAG_TIMEOUT_SECONDS", 15),
+        key=getattr(settings, "RAG_API_KEY", ""),
+    )
 
 
 def generate(question, sources, timeout=None):
@@ -76,7 +91,7 @@ def generate(question, sources, timeout=None):
         endpoint = config["base"] + "/chat/completions"
         payload.update(temperature=0, max_tokens=900)
     headers = {"Accept": "application/json", "Accept-Encoding": "identity"}
-    key = getattr(settings, "RAG_API_KEY", "")
+    key = config["key"]
     if key:
         headers["Authorization"] = "Bearer " + key
     async def request():
