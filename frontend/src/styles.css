@@ -91,7 +91,7 @@
 .sidebar__toggle { display: grid; flex: 0 0 auto; width: 1.75rem; height: 2rem; place-items: center; padding: 0; border: 1px solid rgb(255 255 255 / 20%); border-radius: .45rem; color: #c5cedf; background: transparent; cursor: pointer; font: inherit; font-size: 1.5rem; line-height: 1; }
 .sidebar__toggle:hover { color: white; background: rgb(255 255 255 / 12%); }
 .sidebar__toggle:focus-visible, .sidebar__settings-toggle:focus-visible { outline: 2px solid var(--mint); outline-offset: 3px; }
-.sidebar__content { display: flex; flex: 1; flex-direction: column; min-height: 0; overflow-y: auto; }
+.sidebar__content { display: flex; flex: 1; flex-direction: column; min-height: 0; overflow-y: auto; scrollbar-width: thin; scrollbar-color: #526079 transparent; }
 .sidebar__content[hidden], .sidebar__settings-links[hidden] { display: none; }
 .workspace-shell--sidebar-collapsed .sidebar { padding: 1.15rem .25rem; }
 .workspace-shell--sidebar-collapsed .sidebar__header { justify-content: center; }
