@@ -2,7 +2,8 @@
 .sidebar .nav-link:focus-visible { outline: 2px solid #a6e0c6; outline-offset: 2px; }
 @media (max-width: 760px) {
   .sidebar .nav-list { display: flex; overflow-x: auto; gap: .4rem; padding-bottom: .3rem; }
-  .sidebar .nav-link { flex: 0 0 auto; min-height: 44px; justify-content: flex-start; white-space: nowrap; }
-  .sidebar .nav-link > span:nth-child(2) { display: inline; overflow: visible; }
-  .sidebar .nav-link > span:first-child { display: none; }
+  .sidebar .nav-list .nav-link { flex: 0 0 auto; min-height: 44px; justify-content: flex-start; white-space: nowrap; }
+  .sidebar .nav-list .nav-link > span:nth-child(2) { display: inline; overflow: visible; }
+  .sidebar .nav-list .nav-link > span:first-child { display: none; }
+  .sidebar__settings-links .nav-link > span:nth-child(2) { white-space: normal; }
 }

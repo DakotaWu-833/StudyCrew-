@@ -1,4 +1,4 @@
-import { Suspense } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { NavLink, Outlet, useLocation, useNavigate, useParams } from "react-router-dom";
 import { accountApi, notificationApi, projectApi } from "../api/resources";
@@ -13,11 +13,22 @@ const mainLinks = [
   ["/app/calendar/", "Calendar", "▦"],
   ["/app/invitations/", "Invitations", "✉"],
   ["/app/notifications/", "Notifications", "◉"],
+  ["/app/offline/", "Offline tasks", "⇄"],
+] as const;
+
+const settingsLinks = [
   ["/app/profile/", "Profile", "○"],
   ["/app/notification-settings/", "Notification settings", "⚙"],
   ["/app/security/", "Security & privacy", "◇"],
   ["/app/support/", "Help & feedback", "?"],
 ] as const;
+
+const sidebarPreference = "studycrew.sidebar.collapsed";
+
+function storedSidebarPreference() {
+  try { return localStorage.getItem(sidebarPreference) === "true"; }
+  catch { return false; }
+}
 
 const projectSections = [
   ["overview", "Overview", "Overview"],
@@ -47,6 +58,17 @@ export default function Layout() {
   const { projectId } = useParams();
   const location = useLocation();
   const navigate = useNavigate();
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(storedSidebarPreference);
+  const [settingsExpanded, setSettingsExpanded] = useState(false);
+  useEffect(() => {
+    try { localStorage.setItem(sidebarPreference, String(sidebarCollapsed)); }
+    catch { /* Navigation still works when browser storage is unavailable. */ }
+  }, [sidebarCollapsed]);
+  useEffect(() => {
+    if (settingsLinks.some(([path]) => location.pathname.startsWith(path)) || location.pathname.startsWith("/app/operations/")) {
+      setSettingsExpanded(true);
+    }
+  }, [location.pathname]);
   const selectedId = projectId ?? location.pathname.match(/\/projects\/([^/]+)/)?.[1];
   const selected = projects.data?.results.find((project) => project.id === selectedId);
   const activeProjects = projects.data?.results.filter((project) => !project.archived_at) ?? [];
@@ -60,9 +82,17 @@ export default function Layout() {
     return location.pathname === sectionPath || location.pathname.startsWith(`${sectionPath}/`);
   })?.[0] ?? "overview";
   return (
-    <div className="workspace-shell">
+    <div className={`workspace-shell${sidebarCollapsed ? " workspace-shell--sidebar-collapsed" : ""}`}>
       <aside className="sidebar" aria-label="Workspace navigation">
-        <a className="brand" href="/"><span className="brand__mark">S</span><span>StudyCrew</span></a>
+        <div className="sidebar__header">
+          <a className="brand" href="/"><span className="brand__mark">S</span><span>StudyCrew</span></a>
+          <button type="button" className="sidebar__toggle" aria-label={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+            title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"} aria-expanded={!sidebarCollapsed}
+            aria-controls="workspace-sidebar-content" onClick={() => setSidebarCollapsed(value => !value)}>
+            <span aria-hidden="true">{sidebarCollapsed ? "›" : "‹"}</span>
+          </button>
+        </div>
+        <div id="workspace-sidebar-content" className="sidebar__content" hidden={sidebarCollapsed}>
         <nav className="nav-list" aria-label="Main">
           {mainLinks.map(([to, label, icon]) => (
             <NavLink key={to} to={to} end={to === "/app/"} aria-label={label} className={({ isActive }) => isActive ? "nav-link nav-link--active" : "nav-link"}>
@@ -70,10 +100,6 @@ export default function Layout() {
               {label === "Notifications" && Boolean(unreadCount) && <span className="nav-count" aria-label={`${unreadCount} unread`}>{unreadCount}</span>}
             </NavLink>
           ))}
-          {me.data?.permissions.site_moderator && <NavLink to="/app/operations/" className={({ isActive }) => isActive ? "nav-link nav-link--active" : "nav-link"}><span aria-hidden="true">⚙</span><span>Service operations</span></NavLink>}
-          <NavLink to="/app/offline/" aria-label="Offline tasks" className={({ isActive }) => isActive ? "nav-link nav-link--active" : "nav-link"}>
-            <span aria-hidden="true">⇄</span><span>Offline tasks</span>
-          </NavLink>
         </nav>
         <div className="sidebar__projects">
           <p className="sidebar__eyebrow">Projects</p>
@@ -85,6 +111,21 @@ export default function Layout() {
           ))}
           {!activeProjects.length && <span className="sidebar__empty">No active projects</span>}
         </div>
+        <div className="sidebar__settings">
+          <button type="button" className="sidebar__settings-toggle" aria-expanded={settingsExpanded}
+            aria-controls="workspace-settings-links" onClick={() => setSettingsExpanded(value => !value)}>
+            <span aria-hidden="true">⚙</span><span>Settings</span>
+            <span className="sidebar__settings-chevron" aria-hidden="true">{settingsExpanded ? "⌃" : "⌄"}</span>
+          </button>
+          <nav id="workspace-settings-links" className="sidebar__settings-links" aria-label="Settings" hidden={!settingsExpanded}>
+            {settingsLinks.map(([to, label, icon]) => (
+              <NavLink key={to} to={to} aria-label={label} className={({ isActive }) => isActive ? "nav-link nav-link--active" : "nav-link"}>
+                <span aria-hidden="true">{icon}</span><span>{label}</span>
+              </NavLink>
+            ))}
+            {me.data?.permissions.site_moderator && <NavLink to="/app/operations/" aria-label="Service operations" className={({ isActive }) => isActive ? "nav-link nav-link--active" : "nav-link"}><span aria-hidden="true">⚙</span><span>Service operations</span></NavLink>}
+          </nav>
+        </div>
         <div className="sidebar__account">
           <span className="avatar" aria-hidden="true">{me.data?.profile.avatar_image_url || me.data?.profile.avatar_url
             ? <img src={me.data.profile.avatar_image_url
@@ -92,6 +133,7 @@ export default function Layout() {
               : me.data.profile.avatar_url} alt="" />
             : me.data?.user.display_name.slice(0, 1).toUpperCase()}</span>
           <span><strong>{me.data?.user.display_name}</strong><small>{me.data?.email}</small></span>
+        </div>
         </div>
       </aside>
       <div className="workspace-main">
