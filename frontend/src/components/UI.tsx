@@ -5,6 +5,13 @@ export function Button({ className = "", variant = "primary", ...props }: Button
   return <button className={`button button--${variant} ${className}`.trim()} {...props} />;
 }
 
+const PanelCloseContext = createContext<(() => void) | null>(null);
+
+export function PanelCancel({ busy = false }: { busy?: boolean }) {
+  const requestClose = useContext(PanelCloseContext);
+  return <Button type="button" variant="secondary" disabled={busy} onClick={() => requestClose?.()}>Cancel</Button>;
+}
+
 export function FloatingPanel({
   children,
   onDismiss,
@@ -88,6 +95,7 @@ export function FloatingPanel({
       aria-busy={busy || undefined}
       onCancel={(event) => {
         event.preventDefault();
+        event.stopPropagation();
         requestClose();
       }}
       onClick={(event) => {
@@ -102,7 +110,7 @@ export function FloatingPanel({
         <Button type="button" variant="quiet" className="floating-panel__close" aria-label={`Close ${title}`} disabled={busy || closing} onClick={requestClose}>×</Button>
       </header>
       <div className="floating-panel__body" inert={closing || undefined}>
-        {children}
+        <PanelCloseContext value={requestClose}>{children}</PanelCloseContext>
         {busy && <p className="floating-panel__working" role="status">Working… Please keep this window open.</p>}
         {confirmDiscard && dirty && <section className="floating-panel__discard" aria-labelledby={discardId}>
           <h3 id={discardId}>Discard unsaved changes?</h3>

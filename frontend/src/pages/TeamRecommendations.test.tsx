@@ -1,3 +1,4 @@
+import { openCreation } from "../../tests/dialogs";
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -30,18 +31,18 @@ beforeEach(() => {
 });
 afterEach(async () => { await act(async () => root.unmount()); cache.clear(); container.remove(); });
 async function render() { await act(async () => root.render(<QueryClientProvider client={cache}><MemoryRouter><TeamFinderPage /></MemoryRouter></QueryClientProvider>)); }
-async function click(label: string) { const button = [...container.querySelectorAll("button")].find(value => value.textContent === label); if (!button) throw new Error("Missing button: " + label); await act(async () => { button.click(); }); }
+async function click(label: string) { const button = [...document.body.querySelectorAll("button")].find(value => value.textContent === label); if (!button) throw new Error("Missing button: " + label); await act(async () => { button.click(); }); }
 async function submit(form: HTMLFormElement) { await act(async () => { form.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true })); }); }
 async function waitForContent(text: string) {
   await vi.waitFor(async () => {
     // Flush the query observer's scheduled notification inside React's act.
     await act(async () => { await new Promise<void>(resolve => setTimeout(resolve, 0)); });
-    expect(container.textContent).toContain(text);
+    expect(document.body.textContent).toContain(text);
   });
 }
 
 function heading(text: string) {
-  return [...container.querySelectorAll<HTMLHeadingElement>("h3")].find(value => value.textContent === text)!;
+  return [...document.body.querySelectorAll<HTMLHeadingElement>("h3")].find(value => value.textContent === text)!;
 }
 
 function addManagedProject() {
@@ -66,7 +67,7 @@ it("reveals the selected opening after loading and when the same opening is view
   await waitForContent("Apply to join team");
   expect(document.activeElement).toBe(heading("Opening details"));
   expect(scroll).toHaveBeenCalledWith({ block: "start", behavior: "instant" });
-  const opener = [...container.querySelectorAll("button")].find(value => value.textContent === "View opening")!;
+  const opener = [...document.body.querySelectorAll("button")].find(value => value.textContent === "View opening")!;
   opener.focus();
   await click("View opening");
   expect(document.activeElement).toBe(heading("Opening details"));
@@ -77,8 +78,9 @@ it("reveals the publishing form without publishing or changing project data", as
   addManagedProject();
   await render();
   await click("Publish a team opening");
-  expect(document.activeElement).toBe(heading("Publish an opening"));
-  expect(container.querySelector<HTMLSelectElement>('[name="project"]')?.disabled).toBe(false);
+  expect(document.body.querySelector("dialog")?.contains(document.activeElement)).toBe(true);
+  expect(document.body.querySelector("dialog h2")?.textContent).toBe("Publish an opening");
+  expect(document.body.querySelector<HTMLSelectElement>('[name="project"]')?.disabled).toBe(false);
   expect(recruitingApi.create).not.toHaveBeenCalled();
   expect(recruitingApi.update).not.toHaveBeenCalled();
 });
@@ -92,9 +94,10 @@ it("moves focus from opening details to the populated edit form", async () => {
   await click("View opening");
   await waitForContent("Edit opening");
   await click("Edit opening");
-  expect(document.activeElement).toBe(heading("Edit team opening"));
-  expect(container.querySelector<HTMLInputElement>('[name="title"]')?.value).toBe(listing.title);
-  expect(container.querySelector<HTMLSelectElement>('[name="project"]')?.disabled).toBe(true);
+  expect(document.body.querySelector("dialog")?.contains(document.activeElement)).toBe(true);
+  expect(document.body.querySelector("dialog h2")?.textContent).toBe("Edit team opening");
+  expect(document.body.querySelector<HTMLInputElement>('[name="title"]')?.value).toBe(listing.title);
+  expect(document.body.querySelector<HTMLSelectElement>('[name="project"]')?.disabled).toBe(true);
   expect(recruitingApi.update).not.toHaveBeenCalled();
 });
 
@@ -103,28 +106,28 @@ it("loads suggestions on demand with factual explanations and keeps joining expl
   await click("Show suggestions");
   await waitForContent("Skills in common: Python.");
   expect(recruitingApi.recommendations).toHaveBeenCalledWith({}, 1);
-  expect(container.textContent).toContain("Skills in common: Python.");
-  expect(container.textContent).toContain("Joining still requires an application and approval.");
-  expect(container.textContent).not.toContain("score");
+  expect(document.body.textContent).toContain("Skills in common: Python.");
+  expect(document.body.textContent).toContain("Joining still requires an application and approval.");
+  expect(document.body.textContent).not.toContain("score");
   expect(recruitingApi.listingAction).not.toHaveBeenCalled();
   vi.mocked(recruitingApi.detail).mockResolvedValue(listing);
   await click("View suggested opening");
   await waitForContent("Apply to join team");
   expect(recruitingApi.detail).toHaveBeenCalledWith("suggestion");
-  expect(container.textContent).toContain("Apply to join team");
+  expect(document.body.textContent).toContain("Apply to join team");
   expect(recruitingApi.decide).not.toHaveBeenCalled();
 });
 
 it("uses temporary course and skill preferences without writing a profile or application", async () => {
   await render(); await click("Show suggestions");
-  const form = container.querySelector<HTMLInputElement>('[placeholder="Use my courses"]')!.closest("form")!;
+  const form = document.body.querySelector<HTMLInputElement>('[placeholder="Use my courses"]')!.closest("form")!;
   form.querySelector<HTMLInputElement>('[name="course"]')!.value = "  COMP1001 ";
   form.querySelector<HTMLInputElement>('[name="skill"]')!.value = "中文写作";
   form.querySelector<HTMLSelectElement>('[name="cooperation"]')!.value = "campus";
   await submit(form);
   await waitForContent("Preferences here do not change your profile.");
   expect(recruitingApi.recommendations).toHaveBeenLastCalledWith({ course: "COMP1001", university: "", skill: "中文写作", language: "", cooperation: "campus" }, 1);
-  expect(container.textContent).toContain("Preferences here do not change your profile.");
+  expect(document.body.textContent).toContain("Preferences here do not change your profile.");
   expect(recruitingApi.listingAction).not.toHaveBeenCalled();
   await click("Use my profile");
   expect(recruitingApi.recommendations).toHaveBeenLastCalledWith({}, 1);
@@ -134,19 +137,19 @@ it("handles incomplete profiles and bounded discovery without inventing matches"
   vi.mocked(recruitingApi.recommendations).mockResolvedValue({ ...matching, results: [], count: 0, limited: true, examined_count: 200, eligible_count: 250, preferences: { courses: [], skills: [], languages: [], cooperation: "", overrides: [], missing_fields: ["course", "skills", "languages", "working style"] } });
   await render(); await click("Show suggestions");
   await waitForContent("No matching suggestions yet");
-  expect(container.textContent).toContain("No matching suggestions yet");
-  expect(container.textContent).toContain("200 most recent eligible openings");
-  expect(container.querySelector<HTMLAnchorElement>('[href="/app/profile"]')?.textContent).toBe("Edit your profile");
-  expect(container.textContent).not.toContain("Matching study team");
+  expect(document.body.textContent).toContain("No matching suggestions yet");
+  expect(document.body.textContent).toContain("200 most recent eligible openings");
+  expect(document.body.querySelector<HTMLAnchorElement>('[href="/app/profile"]')?.textContent).toBe("Edit your profile");
+  expect(document.body.textContent).not.toContain("Matching study team");
 });
 
 it("keeps discovery usable when suggestion loading fails and permits retry", async () => {
   vi.mocked(recruitingApi.recommendations).mockRejectedValueOnce(new APIError(503, { error: { message: "Suggestions unavailable" } }));
   await render(); await click("Show suggestions");
   await waitForContent("Suggestions unavailable");
-  expect(container.textContent).toContain("Suggestions unavailable");
-  expect(container.textContent).toContain("Find teams");
+  expect(document.body.textContent).toContain("Suggestions unavailable");
+  expect(document.body.textContent).toContain("Find teams");
   await click("Refresh suggestions");
   await waitForContent("Skills in common: Python.");
-  expect(container.textContent).toContain("Skills in common: Python.");
+  expect(document.body.textContent).toContain("Skills in common: Python.");
 });

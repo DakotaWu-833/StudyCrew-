@@ -142,6 +142,10 @@
 .sidebar__account small { color: #9da9be; font-size: .72rem; }
 
 .workspace-main { min-width: 0; }
+.creation-dialog__content { min-width: 0; margin: 0; padding: 0; border: 0; }
+.creation-dialog__content form { max-width: none; margin: 0; }
+.creation-dialog__content > .panel { box-shadow: none; }
+.creation-dialog__cancel { margin-top: .8rem; }
 .topbar {
   display: flex;
   min-height: 5.6rem;

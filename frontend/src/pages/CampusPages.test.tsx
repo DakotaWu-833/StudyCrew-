@@ -1,3 +1,4 @@
+import { openCreation } from "../../tests/dialogs";
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -38,10 +39,10 @@ describe("academic pages support real member actions", () => {
 
   it("lets a member confirm the displayed agreement revision without owner controls", async () => {
     await render("plan");
-    expect(container.textContent).toContain("Revision 3");
-    expect(container.textContent).not.toContain("Start from an assignment template");
-    expect(container.textContent).not.toContain("Create private join link");
-    const button = [...container.querySelectorAll<HTMLButtonElement>("button")].find((item) => item.textContent === "Confirm this agreement")!;
+    expect(document.body.textContent).toContain("Revision 3");
+    expect(document.body.textContent).not.toContain("Start from an assignment template");
+    expect(document.body.textContent).not.toContain("Create private join link");
+    const button = [...document.body.querySelectorAll<HTMLButtonElement>("button")].find((item) => item.textContent === "Confirm this agreement")!;
     await act(async () => button.click()); await settle();
     expect(campusApi.projectAction).toHaveBeenCalledWith("project-a", "agreement/confirm/", { revision: 3 }, "POST");
   });
@@ -51,11 +52,11 @@ describe("academic pages support real member actions", () => {
     const page = { results: [resource], total: 1, page: 1, pages: 1, page_size: 25 };
     client.setQueryData(["resources", "project-a", "", "", 1], page);
     vi.mocked(campusApi.resources).mockResolvedValue(page);
-    await render("resources");
-    const link = container.querySelector<HTMLAnchorElement>('a[href="https://example.com/brief"]')!;
+    await render("resources"); await openCreation("Add resource link");
+    const link = document.body.querySelector<HTMLAnchorElement>('a[href="https://example.com/brief"]')!;
     expect(link.rel).toContain("noreferrer"); expect(link.target).toBe("_blank");
-    expect([...container.querySelectorAll("button")].some((button) => button.textContent === "Edit")).toBe(false);
-    const form = container.querySelector<HTMLFormElement>("form")!;
+    expect([...document.body.querySelectorAll("button")].some((button) => button.textContent === "Edit")).toBe(false);
+    const form = document.body.querySelector<HTMLFormElement>("form")!;
     form.querySelector<HTMLInputElement>('[name="title"]')!.value = "Team notes";
     form.querySelector<HTMLInputElement>('[name="url"]')!.value = "https://example.com/notes";
     form.querySelector<HTMLInputElement>('[name="tags"]')!.value = "notes, research";

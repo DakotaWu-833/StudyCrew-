@@ -1,3 +1,4 @@
+import CreationDialog from "../components/CreationDialog";
 import { useState, type FormEvent } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useParams } from "react-router-dom";
@@ -45,7 +46,9 @@ export default function LearningExchangePage() {
       <p className="muted">Exports escape spreadsheet formulas. The current-task export includes official and internal deadlines; each batch export retains the confirmed import snapshot, including skipped rows.</p>
     </Panel>
     {message && <p className="notice" role="status">{message}</p>}
-    {data.project.can_import ? <Panel><h2>1. Upload and validate</h2>
+    {data.project.can_import ? <CreationDialog key={String(projectId) + ":creation-1"} title="Import assignments" triggerLabel="Import assignments" busy={busy}
+      completedKey={importFile.isSuccess ? importFile.submittedAt : undefined} error={upload.error || importFile.error}
+      onClose={() => { setPreview(null); setConfirmed(false); upload.reset(); importFile.reset(); }}><Panel><h2>1. Upload and validate</h2>
       <form className="form-grid" onSubmit={prepare} onChange={() => { setPreview(null); setConfirmed(false); }}>
         <fieldset className="form-grid" disabled={busy}><legend>Private project import</legend>
           <Field label="UTF-8 CSV file (256 KiB, 100 assignments maximum)"><input name="file" type="file" accept=".csv,text/csv" required /></Field>
@@ -57,7 +60,7 @@ export default function LearningExchangePage() {
         </fieldset>
       </form>
       {upload.error && <p role="alert">{errorMessage(upload.error)}</p>}
-    </Panel> : <p className="notice">{data.project.archived_at ? "This project is archived. Its imports are read-only." : "Only a project owner or facilitator can import assignments."}</p>}
+    </Panel>
     {preview && <Panel><h2>2. Review every assignment</h2>
       <p>{preview.create_count} to create · {preview.skip_count} existing source IDs to skip · timezone {preview.timezone_name}</p>
       {preview.ignored_columns.length > 0 && <p className="notice">Ignored columns: {preview.ignored_columns.join(", ")}</p>}
@@ -66,6 +69,7 @@ export default function LearningExchangePage() {
       {preview.valid && preview.preview_id && data.project.can_import && <div className="form-grid"><p className="muted">Preview expires {formatDate(preview.expires_at)}. Changed duplicates or expired previews require another upload.</p><label><input type="checkbox" checked={confirmed} disabled={busy} onChange={event => setConfirmed(event.target.checked)} /> I reviewed every row and confirm this import into {data.project.name}.</label><Button disabled={!confirmed || busy} onClick={() => importFile.mutate(preview.preview_id!)}>Confirm import</Button></div>}
       {importFile.error && <p role="alert">{errorMessage(importFile.error)}</p>}
     </Panel>}
+    </CreationDialog> : <p className="notice">{data.project.archived_at ? "This project is archived. Its imports are read-only." : "Only a project owner or facilitator can import assignments."}</p>}
     <Panel><h2>Import history</h2>
       {!data.batches.length && <p>No confirmed imports yet.</p>}
       {data.batches.map(batch => <article className="learning-batch" key={batch.id}><div><strong>{batch.source_namespace}</strong> · {batch.source}<p>{formatDate(batch.created_at)} · {batch.imported_count} created · {batch.skipped_count} skipped</p></div><a href={api.exportUrl(projectId, batch.id)} download>Export batch snapshot</a></article>)}

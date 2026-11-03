@@ -1,3 +1,4 @@
+import CreationDialog from "../components/CreationDialog";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 import { chatApi, type ChatMessage, type ChatState } from "../api/chat";
@@ -20,6 +21,8 @@ export default function ProjectChatPage() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [state, setState] = useState<ChatState>();
   const [body, setBody] = useState("");
+  const [sentCount, setSentCount] = useState(0);
+  const [sendError, setSendError] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -87,9 +90,9 @@ export default function ProjectChatPage() {
     const sentEpoch = projectEpoch.current;
     const text = body.trim(); if (!text || busy) return;
     if (nonce.current?.body !== text) nonce.current = { body: text, value: crypto.randomUUID() };
-    setBusy(true); setError("");
-    try { const row = await chatApi.send(projectId, text, nonce.current.value); if (currentProject.current !== sentProject || projectEpoch.current !== sentEpoch) return; setMessages(rows => mergeMessages(rows, [row])); setBody(""); nonce.current = undefined; }
-    catch (value) { if (currentProject.current === sentProject && projectEpoch.current === sentEpoch) setError(errorMessage(value)); }
+    setBusy(true); setError(""); setSendError("");
+    try { const row = await chatApi.send(projectId, text, nonce.current.value); if (currentProject.current !== sentProject || projectEpoch.current !== sentEpoch) return; setMessages(rows => mergeMessages(rows, [row])); setBody(""); nonce.current = undefined; setSentCount(value => value + 1); }
+    catch (value) { if (currentProject.current === sentProject && projectEpoch.current === sentEpoch) setSendError(errorMessage(value)); }
     finally { if (currentProject.current === sentProject && projectEpoch.current === sentEpoch) setBusy(false); }
   };
   const remove = async (row: ChatMessage) => {
@@ -118,6 +121,6 @@ export default function ProjectChatPage() {
         <p className="prose">{row.hidden ? <em>{row.removed ? "Message removed" : "Message hidden by your block settings"}</em> : row.body}</p>
         {!state?.read_only && row.can_remove && <Button variant="quiet" disabled={busy} onClick={() => void remove(row)}>Remove message</Button>}
       </article>)}<div ref={bottom} /></div>}
-      {state?.read_only ? <p className="notice">This project is archived. Chat history is read-only.</p> : <form className="chat-compose" onSubmit={event => { event.preventDefault(); void send(); }}><label className="field"><span>Message</span><textarea value={body} onChange={event => setBody(event.target.value)} required maxLength={2000} rows={3} disabled={busy} /></label><Button type="submit" disabled={busy || !body.trim() || loading}>{busy ? "Sending…" : "Send message"}</Button></form>}
+      {state?.read_only ? <p className="notice">This project is archived. Chat history is read-only.</p> : <CreationDialog title="New chat message" triggerLabel="New message" busy={busy} completedKey={sentCount} error={sendError || error} key={String(projectId) + ":creation-1"} disabled={loading || Boolean(state?.read_only)} onClose={() => { setBody(""); setSendError(""); }}><form className="chat-compose" onSubmit={event => { event.preventDefault(); void send(); }}><label className="field"><span>Message</span><textarea value={body} onChange={event => setBody(event.target.value)} required maxLength={2000} rows={3} disabled={busy} /></label><Button type="submit" disabled={busy || !body.trim() || loading}>{busy ? "Sending…" : "Send message"}</Button></form></CreationDialog>}
     </Panel></div>;
 }

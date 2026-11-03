@@ -1,3 +1,4 @@
+import { openCreation } from "../../tests/dialogs";
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { MemoryRouter, Route, Routes, useNavigate } from "react-router-dom";
@@ -31,12 +32,13 @@ async function render() {
   await act(async () => root.render(<MemoryRouter initialEntries={["/projects/A/chat"]}><Navigation /><Routes><Route path="/projects/:projectId/chat" element={<ProjectChatPage />} /></Routes></MemoryRouter>));
 }
 async function click(text: string) {
-  const button = [...container.querySelectorAll<HTMLButtonElement>("button")].find(row => row.textContent === text);
+  const button = [...document.body.querySelectorAll<HTMLButtonElement>("button")].find(row => row.textContent === text);
   expect(button, `Missing button ${text}`).toBeDefined();
   await act(async () => { button!.click(); });
 }
 async function compose(body: string) {
-  const textarea = container.querySelector("textarea")!;
+  if (!document.body.querySelector("dialog textarea")) await openCreation("New message");
+  const textarea = document.body.querySelector("textarea")!;
   await act(async () => {
     Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, "value")!.set!.call(textarea, body);
     textarea.dispatchEvent(new Event("input", { bubbles: true }));
@@ -58,13 +60,13 @@ afterEach(async () => { await act(async () => root.unmount()); container.remove(
 it("keeps a failed send draft and retries with the same nonce to avoid duplicate messages", async () => {
   vi.mocked(chatApi.send).mockRejectedValueOnce(new Error("Connection interrupted")).mockResolvedValueOnce(message("sent", "One update"));
   await render(); await compose("One update"); await click("Send message");
-  expect(container.querySelector("textarea")?.value).toBe("One update");
-  expect(container.querySelector('[role="alert"]')?.textContent).toContain("Connection interrupted");
+  expect(document.body.querySelector("textarea")?.value).toBe("One update");
+  expect(document.body.querySelector('[role="alert"]')?.textContent).toContain("Connection interrupted");
   await click("Send message");
   expect(chatApi.send).toHaveBeenCalledTimes(2);
   expect(vi.mocked(chatApi.send).mock.calls[1]![2]).toBe(vi.mocked(chatApi.send).mock.calls[0]![2]);
-  expect(container.querySelector("textarea")?.value).toBe("");
-  expect([...container.querySelectorAll(".chat-message")].map(row => row.textContent).filter(text => text?.includes("One update"))).toHaveLength(1);
+  expect(document.body.querySelector("dialog")).toBeNull();
+  expect([...document.body.querySelectorAll(".chat-message")].map(row => row.textContent).filter(text => text?.includes("One update"))).toHaveLength(1);
 });
 
 it("replaces withdrawn content with a tombstone and rejects older poll content", async () => {
@@ -73,9 +75,9 @@ it("replaces withdrawn content with a tombstone and rejects older poll content",
   vi.mocked(chatApi.remove).mockResolvedValue({ ...original, body: "", removed: true, hidden: true, can_remove: false, updated_at: "2026-10-02T01:01:00Z" });
   await render(); await click("Remove message");
   expect(chatApi.remove).toHaveBeenCalledWith("A", original, "Message withdrawn from project chat");
-  expect(container.textContent).toContain("Message removed"); expect(container.textContent).not.toContain("Withdraw this message");
+  expect(document.body.textContent).toContain("Message removed"); expect(document.body.textContent).not.toContain("Withdraw this message");
   await advance(2000);
-  expect(container.textContent).toContain("Message removed"); expect(container.textContent).not.toContain("Withdraw this message");
+  expect(document.body.textContent).toContain("Message removed"); expect(document.body.textContent).not.toContain("Withdraw this message");
 });
 
 it("ignores an initial A response that arrives after navigating to project B", async () => {
@@ -83,7 +85,7 @@ it("ignores an initial A response that arrives after navigating to project B", a
   vi.mocked(chatApi.list).mockImplementation(project => project === "A" ? old.promise : Promise.resolve(feed([message("B", "Private B message")])));
   await render(); await click("Open B");
   await act(async () => { old.resolve(feed([message("A", "Private A message")])); });
-  expect(container.textContent).toContain("Private B message"); expect(container.textContent).not.toContain("Private A message");
+  expect(document.body.textContent).toContain("Private B message"); expect(document.body.textContent).not.toContain("Private A message");
 });
 
 it("ignores a send response from A after navigating to project B and clears A's draft", async () => {
@@ -91,10 +93,12 @@ it("ignores a send response from A after navigating to project B and clears A's 
   vi.mocked(chatApi.send).mockReturnValue(old.promise);
   vi.mocked(chatApi.list).mockImplementation(project => Promise.resolve(feed([message(project, `${project} history`)])));
   await render(); await compose("A pending send"); await click("Send message"); await click("Open B");
-  expect(container.querySelector("textarea")?.value).toBe("");
+  expect(document.body.querySelector("dialog")).toBeNull();
   await act(async () => { old.resolve(message("sent-A", "A pending send")); });
-  expect(container.textContent).toContain("B history"); expect(container.textContent).not.toContain("A pending send");
-  expect(container.querySelector<HTMLButtonElement>('button[type="submit"]')?.disabled).toBe(true);
+  expect(document.body.textContent).toContain("B history"); expect(document.body.textContent).not.toContain("A pending send");
+  expect(document.body.querySelector("dialog")).toBeNull();
+  await openCreation("New message");
+  expect(document.body.querySelector<HTMLButtonElement>('button[type="submit"]')?.disabled).toBe(true);
 });
 
 it("preserves a new draft when an old send resolves after leaving A and returning to A", async () => {
@@ -103,9 +107,9 @@ it("preserves a new draft when an old send resolves after leaving A and returnin
   await render(); await compose("Previous A visit"); await click("Send message");
   await click("Open B"); await click("Open A"); await compose("Current A draft");
   await act(async () => { old.resolve(message("previous-A", "Previous A visit")); });
-  expect(container.querySelector("textarea")?.value).toBe("Current A draft");
-  expect(container.textContent).not.toContain("Previous A visit");
-  expect(container.querySelector<HTMLButtonElement>('button[type="submit"]')?.disabled).toBe(false);
+  expect(document.body.querySelector("textarea")?.value).toBe("Current A draft");
+  expect(document.body.textContent).not.toContain("Previous A visit");
+  expect(document.body.querySelector<HTMLButtonElement>('button[type="submit"]')?.disabled).toBe(false);
 });
 
 it("ignores delayed older history from A after navigating to project B", async () => {
@@ -113,7 +117,7 @@ it("ignores delayed older history from A after navigating to project B", async (
   vi.mocked(chatApi.list).mockImplementation((project, params) => params?.before ? old.promise : Promise.resolve(feed([message(project, `${project} history`)], { older_than: project === "A" ? "older-A" : null })));
   await render(); await click("Load earlier messages"); await click("Open B");
   await act(async () => { old.resolve(feed([message("older", "A older secret")])); });
-  expect(container.textContent).toContain("B history"); expect(container.textContent).not.toContain("A older secret");
+  expect(document.body.textContent).toContain("B history"); expect(document.body.textContent).not.toContain("A older secret");
 });
 
 it("preserves the visible reading position when older messages are prepended and scrolls for new messages", async () => {
@@ -130,7 +134,7 @@ it("preserves the visible reading position when older messages are prepended and
     await render();
     expect(scrollToMessage).toHaveBeenCalledOnce();
     scrollToMessage.mockClear();
-    const log = container.querySelector<HTMLDivElement>(".chat-messages")!;
+    const log = document.body.querySelector<HTMLDivElement>(".chat-messages")!;
     Object.defineProperty(log, "scrollHeight", { configurable: true, get: () => log.querySelectorAll(".chat-message").length * 200 });
     log.scrollTop = 40;
     await click("Load earlier messages");
@@ -138,7 +142,7 @@ it("preserves the visible reading position when older messages are prepended and
     expect(log.scrollTop).toBe(240);
     expect(scrollToMessage).not.toHaveBeenCalled();
     await advance(2000);
-    expect(container.textContent).toContain("Newly received message");
+    expect(document.body.textContent).toContain("Newly received message");
     expect(scrollToMessage).toHaveBeenCalledOnce();
   } finally {
     if (previousDescriptor) Object.defineProperty(HTMLElement.prototype, "scrollIntoView", previousDescriptor);
@@ -155,12 +159,12 @@ it("refreshes the complete feed when block and unblock visibility changes", asyn
     .mockResolvedValueOnce(feed([blocked], { cursor: 2, visibility_key: "blocked" }))
     .mockResolvedValueOnce(feed([], { cursor: 3, visibility_key: "unblocked-again" }))
     .mockResolvedValue(feed([original], { cursor: 3, visibility_key: "unblocked-again" }));
-  await render(); expect(container.textContent).toContain("Teammate message");
+  await render(); expect(document.body.textContent).toContain("Teammate message");
   await advance(2001);
-  expect(container.textContent).not.toContain("Teammate message"); expect(container.textContent).toContain("Message hidden by your block settings");
+  expect(document.body.textContent).not.toContain("Teammate message"); expect(document.body.textContent).toContain("Message hidden by your block settings");
   expect(vi.mocked(chatApi.list).mock.calls[2]).toEqual(["A", {}]);
   await advance(2001);
-  expect(container.textContent).toContain("Teammate message"); expect(container.textContent).not.toContain("Message hidden by your block settings");
+  expect(document.body.textContent).toContain("Teammate message"); expect(document.body.textContent).not.toContain("Message hidden by your block settings");
   expect(vi.mocked(chatApi.list).mock.calls[4]).toEqual(["A", {}]);
 });
 
@@ -174,7 +178,7 @@ it("does not reintroduce unblocked history when an older request resolves after 
     return Promise.resolve(feed([message("latest", "", { hidden: true })], { cursor: 2, visibility_key: "blocked" }));
   });
   await render(); await click("Load earlier messages"); await advance(2001);
-  expect(container.textContent).toContain("Message hidden by your block settings");
+  expect(document.body.textContent).toContain("Message hidden by your block settings");
   await act(async () => { old.resolve(feed([message("older", "Blocked teammate older secret")], { visibility_key: "unblocked" })); });
-  expect(container.textContent).not.toContain("Blocked teammate older secret");
+  expect(document.body.textContent).not.toContain("Blocked teammate older secret");
 });

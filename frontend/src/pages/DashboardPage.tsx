@@ -5,7 +5,7 @@ import { invitationApi, projectApi } from "../api/resources";
 import { campusApi } from "../api/campus";
 import { errorMessage } from "../api/client";
 import { formatDate, parseOptionalDateTime } from "../app/format";
-import { Button, EmptyState, ErrorState, Field, FloatingPanel, Loading, StatusBadge } from "../components/UI";
+import { Button, EmptyState, ErrorState, Field, FloatingPanel, Loading, PanelCancel, StatusBadge } from "../components/UI";
 
 export default function DashboardPage() {
   const queryClient = useQueryClient();
@@ -14,6 +14,7 @@ export default function DashboardPage() {
   const invitations = useQuery({ queryKey: ["invitations", "mine"], queryFn: invitationApi.listMine });
   const todos = useQuery({ queryKey: ["personal-todos", "dashboard"], queryFn: () => campusApi.todos() });
   const [showCreate, setShowCreate] = useState(false);
+  const [createDirty, setCreateDirty] = useState(false);
   const [formError, setFormError] = useState("");
   const createProject = useMutation({
     mutationFn: projectApi.create,
@@ -46,20 +47,20 @@ export default function DashboardPage() {
     <div className="page-stack">
       <div className="page-heading">
         <div><p className="eyebrow">Overview</p><h2>Keep the group moving</h2><p>Projects, invitations and the next pieces of work in one place.</p></div>
-        <Button onClick={() => setShowCreate(true)} aria-expanded={showCreate}>New project</Button>
+        <Button onClick={() => { setFormError(""); setCreateDirty(false); setShowCreate(true); }} aria-expanded={showCreate}>New project</Button>
       </div>
 
       {!activeProjects.length && <section className="panel" aria-labelledby="getting-started"><h3 id="getting-started">Set up your study group</h3><ol><li><Link to="/app/campus/">Add your course and semester</Link>.</li><li>Create a project and invite your team.</li><li>Open Project plan to choose a template, agree responsibilities and set deadlines.</li><li>Use Calendar and Meeting tools to find a time and record decisions.</li></ol><Link to="/app/security/">Set a recovery email before you rely on the account</Link></section>}
       <section aria-labelledby="personal-work"><div className="section-heading"><h2 id="personal-work">My next tasks</h2><Link to="/app/campus/">All personal tasks</Link></div>{todos.isLoading ? <Loading label="Checking your tasks…" /> : todos.error ? <ErrorState error={todos.error} retry={() => void todos.refetch()} /> : todos.data?.results.length ? <div className="compact-list">{todos.data.results.slice(0, 5).map(task => <Link className="compact-row" key={task.id} to={`/app/projects/${task.project}/tasks/${task.id}/`}><span><strong>{task.title}</strong><small>{task.project_name}</small></span><span>Due {formatDate(task.internal_due_at)}</span></Link>)}</div> : <p className="muted">You have no open assigned tasks.</p>}</section>
 
       {showCreate && (
-        <FloatingPanel title="Create a project" onDismiss={() => setShowCreate(false)}>
-          <form className="form-grid" onSubmit={submit}>
+        <FloatingPanel title="Create a project" busy={createProject.isPending} dirty={createDirty} onDismiss={() => setShowCreate(false)}>
+          <form className="form-grid" onSubmit={submit} onChange={() => setCreateDirty(true)}>
             <Field label="Project name"><input name="name" minLength={3} maxLength={100} required autoFocus /></Field>
             <Field label="Due date and time" hint="Optional; shown in your local time."><input name="due_at" type="datetime-local" /></Field>
             <Field label="Description"><textarea name="description" maxLength={2000} rows={3} /></Field>
             {formError && <p className="form-error" role="alert">{formError}</p>}
-            <div className="form-actions"><Button type="submit" disabled={createProject.isPending}>{createProject.isPending ? "Creating…" : "Create project"}</Button><Button type="button" variant="quiet" disabled={createProject.isPending} onClick={() => setShowCreate(false)}>Cancel</Button></div>
+            <div className="form-actions"><Button type="submit" disabled={createProject.isPending}>{createProject.isPending ? "Creating…" : "Create project"}</Button><PanelCancel busy={createProject.isPending} /></div>
           </form>
         </FloatingPanel>
       )}

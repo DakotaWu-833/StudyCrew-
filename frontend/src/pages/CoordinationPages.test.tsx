@@ -1,3 +1,4 @@
+import { openCreation } from "../../tests/dialogs";
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -77,10 +78,10 @@ describe("calendar, coordination and evidence user flows", () => {
     await act(async () => root.render(<QueryClientProvider client={client}><MemoryRouter initialEntries={[path]}><CoordinationNavigation /><Routes><Route path="/app/calendar/" element={<CalendarPage />} /><Route path="/app/projects/:projectId/coordination/" element={<CoordinationPage />} /><Route path="/app/projects/:projectId/evidence/" element={<EvidencePage />} /></Routes></MemoryRouter></QueryClientProvider>));
     await settle();
   };
-  const button = (label: string) => [...container.querySelectorAll<HTMLButtonElement>("button")].find((item) => item.textContent === label)!;
+  const button = (label: string) => [...document.body.querySelectorAll<HTMLButtonElement>("button")].find((item) => item.textContent === label)!;
   const control = (label: string) => {
-    const element = [...container.querySelectorAll<HTMLLabelElement>("label")].find((item) => item.textContent === label)!;
-    return container.querySelector<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>(`[id="${element.htmlFor}"]`)!;
+    const element = [...document.body.querySelectorAll<HTMLLabelElement>("label")].find((item) => item.textContent === label)!;
+    return document.body.querySelector<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>(`[id="${element.htmlFor}"]`)!;
   };
   const change = async (element: HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement, value: string) => {
     const prototype = element instanceof HTMLSelectElement ? HTMLSelectElement.prototype : element instanceof HTMLTextAreaElement ? HTMLTextAreaElement.prototype : HTMLInputElement.prototype;
@@ -98,11 +99,14 @@ describe("calendar, coordination and evidence user flows", () => {
     expect(metadata).toHaveBeenCalledWith(citedMeeting);
     expect(coordinationApi.meetingRecord).toHaveBeenCalledWith(citedMeeting);
     expect(control("Meeting").value).toBe(citedMeeting);
-    expect(container.querySelector<HTMLTextAreaElement>('[name="minutes"]')?.value).toBe("Historical source notes");
-    expect(container.textContent).toContain("Earlier cited review · selected meeting");
+    await openCreation("Record minutes");
+    expect(document.body.querySelector<HTMLTextAreaElement>('[name="minutes"]')?.value).toBe("Historical source notes");
+    await act(async () => { document.body.querySelector<HTMLButtonElement>('button[aria-label="Close Record minutes and decisions"]')!.click(); await new Promise(resolve => setTimeout(resolve, 210)); });
+    expect(document.body.textContent).toContain("Earlier cited review · selected meeting");
     await selectMeeting();
     expect(control("Meeting").value).toBe(record.id);
-    expect(container.querySelector<HTMLTextAreaElement>('[name="minutes"]')?.value).toBe(record.minutes);
+    await openCreation("Record minutes");
+    expect(document.body.querySelector<HTMLTextAreaElement>('[name="minutes"]')?.value).toBe(record.minutes);
     expect(metadata).toHaveBeenCalledOnce();
   });
 
@@ -113,31 +117,32 @@ describe("calendar, coordination and evidence user flows", () => {
     await act(async () => button("Open another citation").click()); await settle();
     expect(coordinationApi.meetingRecord).toHaveBeenLastCalledWith(otherCitation);
     expect(control("Meeting").value).toBe(otherCitation);
-    expect(container.querySelector<HTMLTextAreaElement>('[name="minutes"]')?.value).toBe("New citation notes");
+    await openCreation("Record minutes");
+    expect(document.body.querySelector<HTMLTextAreaElement>('[name="minutes"]')?.value).toBe("New citation notes");
   });
 
   it("rejects malformed meeting links without fetching a record", async () => {
     const metadata = vi.mocked(meetingApi.get);
     await render("coordination", "/app/projects/project-a/coordination/?meeting=not-a-uuid");
-    expect(container.querySelector('[role="alert"]')?.textContent).toContain("This meeting link is invalid");
+    expect(document.body.querySelector('[role="alert"]')?.textContent).toContain("This meeting link is invalid");
     expect(metadata).not.toHaveBeenCalled();
     expect(coordinationApi.meetingRecord).not.toHaveBeenCalled();
-    expect(container.querySelector('[name="minutes"]')).toBeNull();
+    expect(document.body.querySelector('[name="minutes"]')).toBeNull();
   });
 
   it.each([403, 404])("handles an unavailable cited meeting (%s) without displaying notes", async status => {
     vi.mocked(meetingApi.get).mockRejectedValue(new APIError(status, { error: { message: "This meeting is unavailable." } }));
     await render("coordination", `/app/projects/project-a/coordination/?meeting=${citedMeeting}`);
-    expect(container.querySelector('[role="alert"]')?.textContent).toContain("This meeting is unavailable");
+    expect(document.body.querySelector('[role="alert"]')?.textContent).toContain("This meeting is unavailable");
     expect(coordinationApi.meetingRecord).not.toHaveBeenCalled();
-    expect(container.querySelector('[name="minutes"]')).toBeNull();
+    expect(document.body.querySelector('[name="minutes"]')).toBeNull();
   });
 
   it("rejects a reference to another permitted project before retrieving its notes", async () => {
     vi.mocked(meetingApi.get).mockResolvedValue({ ...meetingMetadata(citedMeeting, "project-b"), title: "Private other project title" });
     await render("coordination", `/app/projects/project-a/coordination/?meeting=${citedMeeting}`);
-    expect(container.querySelector('[role="alert"]')?.textContent).toContain("not available in this project");
-    expect(container.textContent).not.toContain("Private other project title");
+    expect(document.body.querySelector('[role="alert"]')?.textContent).toContain("not available in this project");
+    expect(document.body.textContent).not.toContain("Private other project title");
     expect(coordinationApi.meetingRecord).not.toHaveBeenCalled();
   });
 
@@ -151,79 +156,81 @@ describe("calendar, coordination and evidence user flows", () => {
     await render("coordination", `/app/projects/project-a/coordination/?meeting=${citedMeeting}`);
     await act(async () => button("Open another project").click()); await settle();
     await act(async () => resolve({ ...record, id: citedMeeting, minutes: "Previous project private notes" })); await settle();
-    expect(container.textContent).toContain("Other team");
+    expect(document.body.textContent).toContain("Other team");
     expect(control("Meeting").value).toBe("");
-    expect(container.textContent).not.toContain("Previous project private notes");
-    expect(container.querySelector('[name="minutes"]')).toBeNull();
+    expect(document.body.textContent).not.toContain("Previous project private notes");
+    expect(document.body.querySelector('[name="minutes"]')).toBeNull();
   });
 
   it("switches month and Monday-based week ranges, preserving ICS and local multi-day events", async () => {
     vi.mocked(coordinationApi.calendar).mockImplementation(async (start, end) => ({ range_start: start, range_end: end, time_zone: "Australia/Sydney", truncated: false, events: [{ id: "overnight", kind: "meeting", title: "Overnight session", project_id: project.id, project_name: project.name, starts_at: "2026-10-05T11:00:00Z", ends_at: "2026-10-05T16:00:00Z", location: "", description: "", cancelled: false, updated_at: "2026-10-01T00:00:00Z", url: "/app/projects/project-a/coordination/" }] }));
     await render("calendar"); await change(control("Month"), "2026-10"); await change(control("View"), "week"); await change(control("Week starting Monday"), "2026-10-07");
     expect(coordinationApi.calendar).toHaveBeenLastCalledWith("2026-10-05", "2026-10-11", undefined);
-    expect(container.querySelectorAll(".coord-calendar-cell")).toHaveLength(7);
-    expect(container.querySelector('section[aria-label="2026-10-05"]')?.textContent).toContain("Overnight session");
-    expect(container.querySelector('section[aria-label="2026-10-06"]')?.textContent).toContain("Overnight session");
-    expect(container.querySelector<HTMLAnchorElement>('a[href*="/calendar/export/"]')!.href).toContain("range_end=2026-10-11");
+    expect(document.body.querySelectorAll(".coord-calendar-cell")).toHaveLength(7);
+    expect(document.body.querySelector('section[aria-label="2026-10-05"]')?.textContent).toContain("Overnight session");
+    expect(document.body.querySelector('section[aria-label="2026-10-06"]')?.textContent).toContain("Overnight session");
+    expect(document.body.querySelector<HTMLAnchorElement>('a[href*="/calendar/export/"]')!.href).toContain("range_end=2026-10-11");
     await act(async () => button("Next week").click()); await settle();
     expect(coordinationApi.calendar).toHaveBeenLastCalledWith("2026-10-12", "2026-10-18", undefined);
-    await change(control("View"), "month"); expect(container.querySelectorAll(".coord-calendar-cell")).toHaveLength(31);
+    await change(control("View"), "month"); expect(document.body.querySelectorAll(".coord-calendar-cell")).toHaveLength(31);
   });
 
   it("uses private labels by default, blocks duplicate submission and hides the returned-once subscription URL", async () => {
     let resolve!: (value: CalendarSubscription) => void;
     vi.mocked(coordinationApi.subscribe).mockImplementationOnce(() => new Promise((done) => { resolve = done; }));
     await render("calendar");
-    expect(container.textContent).toContain("A clear month"); expect(container.textContent).toContain("No subscriptions");
-    const form = container.querySelector<HTMLInputElement>('[name="details"]')!.form!;
+    expect(document.body.textContent).toContain("A clear month"); expect(document.body.textContent).toContain("No subscriptions");
+    await openCreation("New subscription"); const form = document.body.querySelector<HTMLInputElement>('[name="details"]')!.form!;
     await submit(form); expect(coordinationApi.subscribe).toHaveBeenCalledWith(undefined, false); expect(button("Create personal subscription").disabled).toBe(true);
     await act(async () => resolve(subscription)); await settle();
-    expect(control("Private subscription URL").value).toBe(subscription.feed_url); expect(container.querySelector('[role="status"]')?.textContent).toContain("only shown once");
-    await act(async () => button("Hide private URL").click()); expect(container.querySelector('input[readonly]')).toBeNull();
-    await act(async () => container.querySelector<HTMLInputElement>('[name="details"]')!.click()); await submit(form);
+    expect(control("Private subscription URL").value).toBe(subscription.feed_url); expect(document.body.querySelector('[role="status"]')?.textContent).toContain("only shown once");
+    await act(async () => button("Hide private URL").click()); expect(document.body.querySelector('input[readonly]')).toBeNull();
+    await openCreation("New subscription");
+    const detailedForm = document.body.querySelector<HTMLInputElement>('[name="details"]')!.form!;
+    await act(async () => document.body.querySelector<HTMLInputElement>('[name="details"]')!.click()); await submit(detailedForm);
     expect(coordinationApi.subscribe).toHaveBeenLastCalledWith(undefined, true);
   });
 
   it("shows server errors and clears stale error feedback after a successful retry", async () => {
     vi.mocked(coordinationApi.subscribe).mockRejectedValueOnce(new APIError(403, { error: { message: "Your membership has ended." } }));
-    await render("calendar"); const form = container.querySelector<HTMLInputElement>('[name="details"]')!.form!;
-    await submit(form); expect(container.querySelector('[role="alert"]')?.textContent).toContain("Your membership has ended.");
-    await submit(form); expect(container.querySelector('[role="alert"]')).toBeNull(); expect(container.textContent).toContain("Subscription created.");
+    await render("calendar"); await openCreation("New subscription"); const form = document.body.querySelector<HTMLInputElement>('[name="details"]')!.form!;
+    await submit(form); expect(document.body.querySelector('[role="alert"]')?.textContent).toContain("Your membership has ended.");
+    await submit(form); expect(document.body.querySelector('[role="alert"]')).toBeNull(); expect(document.body.textContent).toContain("Subscription created.");
   });
 
   it("submits actual availability blocks and invited member votes with visible success", async () => {
     vi.mocked(coordinationApi.polls).mockResolvedValue({ polls: [poll], truncated: false, page: 1, pages: 1, count: 1 });
     await render("coordination");
-    const form = container.querySelector<HTMLSelectElement>('[name="weekday"]')!.form!;
+    await openCreation("Edit recurring free time"); const form = document.body.querySelector<HTMLSelectElement>('[name="weekday"]')!.form!;
     form.querySelector<HTMLSelectElement>('[name="weekday"]')!.value = "1"; form.querySelector<HTMLInputElement>('[name="end"]')!.value = "10:30";
     await submit(form); expect(button("Save availability").disabled).toBe(false);
     await act(async () => button("Save availability").click()); await settle();
     expect(coordinationApi.saveAvailability).toHaveBeenCalledWith(project.id, "Australia/Sydney", [{ weekday: 1, start_minute: 540, end_minute: 630 }]);
-    expect(container.textContent).toContain("Your recurring free time was saved.");
-    expect(container.textContent).toContain("Alex (optional)"); expect(container.textContent).toContain("Morgan (required)");
+    expect(document.body.textContent).toContain("Your recurring free time was saved.");
+    expect(document.body.textContent).toContain("Alex (optional)"); expect(document.body.textContent).toContain("Morgan (required)");
     await act(async () => button("Available").click()); await settle();
-    expect(coordinationApi.vote).toHaveBeenCalledWith("option-a", "yes"); expect(container.textContent).toContain("Your vote was saved.");
-    expect(container.textContent).not.toContain("Schedule this time");
+    expect(coordinationApi.vote).toHaveBeenCalledWith("option-a", "yes"); expect(document.body.textContent).toContain("Your vote was saved.");
+    expect(document.body.textContent).not.toContain("Schedule this time");
   });
 
   it("saves minutes, records a historical member and turns action input into an assigned real task", async () => {
     await render("coordination"); await selectMeeting();
-    expect(container.textContent).toContain("Morgan (version 2)");
-    const minutesForm = container.querySelector<HTMLTextAreaElement>('[name="minutes"]')!.form!;
+    expect(document.body.textContent).toContain("Morgan (version 2)");
+    await openCreation("Record minutes"); const minutesForm = document.body.querySelector<HTMLTextAreaElement>('[name="minutes"]')!.form!;
     minutesForm.querySelector<HTMLTextAreaElement>('[name="minutes"]')!.value = "Reviewed the corrected diagram";
     minutesForm.querySelector<HTMLTextAreaElement>('[name="decisions"]')!.value = "Upload the final diagram";
     await submit(minutesForm);
     expect(coordinationApi.saveRecord).toHaveBeenCalledWith(record.id, { minutes: "Reviewed the corrected diagram", decisions: "Upload the final diagram", expected_version: record.version });
-    expect(container.textContent).toContain("Existing confirmations refer to earlier versions");
-    const attendanceForm = container.querySelector<HTMLSelectElement>('[name="attended"]')!.form!;
+    expect(document.body.textContent).toContain("Existing confirmations refer to earlier versions");
+    await openCreation("Record attendance"); const attendanceForm = document.body.querySelector<HTMLSelectElement>('[name="attended"]')!.form!;
     attendanceForm.querySelector<HTMLSelectElement>('[name="user"]')!.value = former.id; attendanceForm.querySelector<HTMLInputElement>('[name="note"]')!.value = "Verified after checking the call notes";
     await submit(attendanceForm); expect(coordinationApi.attendance).toHaveBeenCalledWith(record.id, former.id, true, "Verified after checking the call notes");
-    const actionForm = container.querySelector<HTMLTextAreaElement>('[name="description"]')!.form!;
+    await openCreation("New action task"); const actionForm = document.body.querySelector<HTMLTextAreaElement>('[name="description"]')!.form!;
     actionForm.querySelector<HTMLInputElement>('[name="title"]')!.value = "Upload final diagram"; actionForm.querySelector<HTMLTextAreaElement>('[name="description"]')!.value = "Apply the meeting decision";
     actionForm.querySelector<HTMLInputElement>('[name="assignee"][value="member"]')!.checked = true;
     await submit(actionForm);
     expect(coordinationApi.action).toHaveBeenCalledWith(record.id, { title: "Upload final diagram", description: "Apply the meeting decision", due_at: null, assignee_ids: [member.id] });
-    expect(container.textContent).toContain("Action item created as a real assigned task.");
+    expect(document.body.textContent).toContain("Action item created as a real assigned task.");
     await act(async () => button("Confirm I have read version 3").click()); await settle(); expect(coordinationApi.confirmMinutes).toHaveBeenCalledWith(record.id, 3);
   });
 
@@ -231,42 +238,42 @@ describe("calendar, coordination and evidence user flows", () => {
     const readonly = { ...record, can_manage: false };
     vi.mocked(coordinationApi.meetingRecord).mockResolvedValue(readonly);
     await render("coordination"); await selectMeeting();
-    expect(container.textContent).toContain("Reviewed the draft"); expect(container.textContent).toContain("Observed during the meeting");
-    expect(container.querySelector('[name="minutes"]')).toBeNull(); expect(container.textContent).not.toContain("Create task from action"); expect(container.textContent).not.toContain("Record or correct attendance");
+    expect(document.body.textContent).toContain("Reviewed the draft"); expect(document.body.textContent).toContain("Observed during the meeting");
+    expect(document.body.querySelector('[name="minutes"]')).toBeNull(); expect(document.body.textContent).not.toContain("Create task from action"); expect(document.body.textContent).not.toContain("Record or correct attendance");
     expect(button("Confirm I have read version 3")).toBeDefined();
   });
 
   it("submits contribution statements with collaborator attribution and preserves evidence distinctions", async () => {
     await render("evidence");
-    expect(container.textContent).toContain("Former member"); expect(container.textContent).toContain("counts, not a contribution score or grade"); expect(container.textContent).toContain("No contribution statements");
-    const form = container.querySelector<HTMLInputElement>('[name="title"]')!.form!;
+    expect(document.body.textContent).toContain("Former member"); expect(document.body.textContent).toContain("counts, not a contribution score or grade"); expect(document.body.textContent).toContain("No contribution statements");
+    await openCreation("New contribution statement"); const form = document.body.querySelector<HTMLInputElement>('[name="title"]')!.form!;
     form.querySelector<HTMLInputElement>('[name="title"]')!.value = "Prepared the report"; form.querySelector<HTMLTextAreaElement>('[name="statement"]')!.value = "I prepared the report and reviewed the final source files.";
     form.querySelector<HTMLInputElement>('[name="link"]')!.value = "https://example.com/report"; form.querySelector<HTMLInputElement>('[name="contributor"][value="member"]')!.checked = true;
     await submit(form);
     expect(coordinationApi.claim).toHaveBeenCalledWith({ project: project.id, title: "Prepared the report", statement: "I prepared the report and reviewed the final source files.", artifact_url: "https://example.com/report", task_id: null, contributor_ids: [member.id], supersedes_id: null });
-    expect(container.textContent).toContain("submitted as self-reported evidence"); expect(form.querySelector<HTMLInputElement>('[name="title"]')!.value).toBe("");
+    expect(document.body.textContent).toContain("submitted as self-reported evidence"); expect(form.querySelector<HTMLInputElement>('[name="title"]')!.value).toBe("");
   });
 
   it("exposes attribution only for the named collaborator and independent review only when permitted", async () => {
     vi.mocked(coordinationApi.evidence).mockResolvedValue({ ...evidence, claims: [{ ...claim, can_respond: true, status: "awaiting_collaborators" }, { ...claim, id: "independent-claim", author: former, contributors: [], can_review: true, status: "self_reported" }], count: 2 });
     await render("evidence");
-    const link = container.querySelector<HTMLAnchorElement>('a[href="https://example.com/result"]')!; expect(link.target).toBe("_blank"); expect(link.rel).toContain("noreferrer");
-    expect(container.querySelectorAll("button")).toBeDefined();
+    const link = document.body.querySelector<HTMLAnchorElement>('a[href="https://example.com/result"]')!; expect(link.target).toBe("_blank"); expect(link.rel).toContain("noreferrer");
+    expect(document.body.querySelectorAll("button")).toBeDefined();
     await act(async () => button("Confirm my attribution").click()); await settle(); expect(coordinationApi.respondClaim).toHaveBeenCalledWith(claim.id, "confirmed");
-    const form = container.querySelector<HTMLSelectElement>('[name="outcome"]')!.form!;
+    await openCreation("Add team review"); const form = document.body.querySelector<HTMLSelectElement>('[name="outcome"]')!.form!;
     form.querySelector<HTMLSelectElement>('[name="outcome"]')!.value = "confirmed"; form.querySelector<HTMLInputElement>('[name="note"]')!.value = "Reviewed the delivered file";
-    await submit(form); expect(coordinationApi.reviewClaim).toHaveBeenCalledWith("independent-claim", "confirmed", "Reviewed the delivered file"); expect(container.textContent).toContain("Independent team review recorded.");
-    expect(container.textContent).toContain("Checked the delivered result");
+    await submit(form); expect(coordinationApi.reviewClaim).toHaveBeenCalledWith("independent-claim", "confirmed", "Reviewed the delivered file"); expect(document.body.textContent).toContain("Independent team review recorded.");
+    expect(document.body.textContent).toContain("Checked the delivered result");
   });
 
   it("keeps archived project contribution pages read-only and surfaces load failures", async () => {
     client.setQueryData(["project", project.id], { ...project, archived_at: "2026-10-01T00:00:00Z" });
     vi.mocked(coordinationApi.evidence).mockResolvedValue({ ...evidence, claims: [claim], count: 1 });
-    await render("evidence"); expect(container.textContent).toContain("reviews are read-only"); expect(container.querySelector('[name="statement"]')).toBeNull(); expect(container.textContent).not.toContain("Save review");
+    await render("evidence"); expect(document.body.textContent).toContain("reviews are read-only"); expect(document.body.querySelector('[name="statement"]')).toBeNull(); expect(document.body.textContent).not.toContain("Save review");
     await act(async () => { client.setQueryData(["project", project.id], project); client.removeQueries({ queryKey: ["coord-evidence"] }); });
     vi.mocked(coordinationApi.evidence).mockRejectedValue(new Error("Evidence is temporarily unavailable"));
     await act(async () => client.invalidateQueries({ queryKey: ["coord-evidence"] })); await settle();
-    if (!container.querySelector('[role="alert"]')) { await act(async () => client.refetchQueries({ queryKey: ["coord-evidence"] })); await settle(); }
-    expect(container.textContent).toContain("Evidence is temporarily unavailable");
+    if (!document.body.querySelector('[role="alert"]')) { await act(async () => client.refetchQueries({ queryKey: ["coord-evidence"] })); await settle(); }
+    expect(document.body.textContent).toContain("Evidence is temporarily unavailable");
   });
 });

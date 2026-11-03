@@ -1,3 +1,4 @@
+import { openCreation } from "../../tests/dialogs";
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -12,7 +13,7 @@ beforeEach(() => { Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true })
 afterEach(async () => { await act(async () => root.unmount()); cache.clear(); container.remove(); localStorage.clear(); });
 async function render() { await act(async () => root.render(<QueryClientProvider client={cache}><MemoryRouter initialEntries={["/projects/team/updates"]}><Routes><Route path="/projects/:projectId/updates" element={<ProjectUpdatesPage />} /></Routes></MemoryRouter></QueryClientProvider>)); }
 it("submits a pinned announcement with explicit teammate mentions and resets only after success", async () => {
-  vi.mocked(discussionsApi.create).mockResolvedValue({} as never); await render(); const form = container.querySelector("form")!;
+  vi.mocked(discussionsApi.create).mockResolvedValue({} as never); await render(); await openCreation("New discussion"); const form = document.body.querySelector("form")!;
   form.querySelector<HTMLInputElement>('[name="title"]')!.value = "Review decision"; form.querySelector<HTMLTextAreaElement>('[name="body"]')!.value = "Please review the final draft.";
   form.querySelector<HTMLSelectElement>('[name="kind"]')!.value = "announcement"; form.querySelector<HTMLInputElement>('[name="pinned"]')!.checked = true;
   form.querySelector<HTMLOptionElement>('[name="mention_ids"] option')!.selected = true;
@@ -22,5 +23,5 @@ it("submits a pinned announcement with explicit teammate mentions and resets onl
 });
 it("shows archived discussions as read-only", async () => {
   cache.setQueryData(["project", "team"], { id: "team", current_user_role: "member", archived_at: "2026-10-01" }); await render();
-  expect(container.textContent).not.toContain("Start a discussion"); expect(container.querySelector("textarea")).toBeNull();
+  expect(document.body.textContent).not.toContain("Start a discussion"); expect(document.body.querySelector("textarea")).toBeNull();
 });

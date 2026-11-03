@@ -1,3 +1,4 @@
+import { openCreation } from "../../tests/dialogs";
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -35,7 +36,7 @@ beforeEach(() => {
 afterEach(async () => { await act(async () => root.unmount()); cache.clear(); container.remove(); });
 async function renderTeam(path = "/find-team") { await act(async () => root.render(<QueryClientProvider client={cache}><MemoryRouter initialEntries={[path]}><TeamFinderPage /></MemoryRouter></QueryClientProvider>)); }
 async function renderFiles() { await act(async () => root.render(<QueryClientProvider client={cache}><MemoryRouter initialEntries={["/projects/team/files"]}><Routes><Route path="/projects/:projectId/files" element={<ProjectFilesPage />} /></Routes></MemoryRouter></QueryClientProvider>)); }
-async function click(name: string) { const button = Array.from(container.querySelectorAll("button")).find(item => item.textContent === name); if (!button) throw new Error("Missing button "+name); await act(async () => { button.click(); await new Promise(resolve => setTimeout(resolve, 25)); }); }
+async function click(name: string) { const button = Array.from(document.body.querySelectorAll("button")).find(item => item.textContent === name); if (!button) throw new Error("Missing button "+name); await act(async () => { button.click(); await new Promise(resolve => setTimeout(resolve, 25)); }); }
 async function submit(form: HTMLFormElement) { await act(async () => { form.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true })); await new Promise(resolve => setTimeout(resolve, 25)); }); }
 
 it("publishes only the selected opening details after explicit consent", async () => {
@@ -43,63 +44,67 @@ it("publishes only the selected opening details after explicit consent", async (
   vi.mocked(recruitingApi.detail).mockResolvedValue({ ...listing, is_owner: true } as never);
   vi.mocked(recruitingApi.applications).mockResolvedValue({ results: [], count: 0, page: 1, pages: 1 });
   await renderTeam(); await click("Publish a team opening");
-  const form = container.querySelector<HTMLSelectElement>('[name="project"]')!.closest("form")!;
+  const form = document.body.querySelector<HTMLSelectElement>('[name="project"]')!.closest("form")!;
   for (const [name, value] of Object.entries({ project: "team", title: "Study group", university: "University", course: "COMP", term: "Semester 2", description: "Build a project together", skills: "Python, Writing", languages: "English", expires: "2026-11-01" })) form.querySelector<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>(`[name="${name}"]`)!.value = value;
   form.querySelector<HTMLInputElement>('[name="publish_consent"]')!.checked = true;
   await submit(form);
   expect(recruitingApi.create).toHaveBeenCalledWith(expect.objectContaining({ project: "team", title: "Study group", skills: ["Python", "Writing"], publish_consent: true }));
-  expect(container.textContent).toContain("Recruiting updated.");
+  expect(document.body.textContent).toContain("Recruiting updated.");
 });
 it("submits an application without automatically granting project membership", async () => {
   cache.setQueryData(["recruiting-detail", "opening"], listing);
   vi.mocked(recruitingApi.listingAction).mockResolvedValue({} as never);
   vi.mocked(recruitingApi.detail).mockResolvedValue(listing as never);
-  await renderTeam("/find-team?listing=opening");
-  const message = container.querySelector<HTMLTextAreaElement>('[name="message"]')!; message.value = "I can help with Python and meet on Mondays.";
+  await renderTeam("/find-team?listing=opening"); await openCreation("Apply to join team");
+  const message = document.body.querySelector<HTMLTextAreaElement>('[name="message"]')!; message.value = "I can help with Python and meet on Mondays.";
   await submit(message.closest("form")!);
   expect(recruitingApi.listingAction).toHaveBeenCalledWith("opening", "apply", { message: message.value || "I can help with Python and meet on Mondays." });
   expect(recruitingApi.decide).not.toHaveBeenCalled();
-  expect(container.textContent).not.toContain("Open private project");
+  expect(document.body.textContent).not.toContain("Open private project");
 });
 it("shows a pending application with withdrawal instead of another apply form", async () => {
   cache.setQueryData(["recruiting-detail", "opening"], { ...listing, my_application: { id: "application", status: "pending" } });
   await renderTeam("/find-team?listing=opening");
-  expect(container.textContent).toContain("Withdraw application");
-  expect(container.querySelector('[name="message"]')).toBeNull();
+  expect(document.body.textContent).toContain("Withdraw application");
+  expect(document.body.querySelector('[name="message"]')).toBeNull();
 });
 it("reports a stale opening edit as an error and keeps editing available", async () => {
   cache.setQueryData(["recruiting-detail", "opening"], { ...listing, is_owner: true, project: "team" });
   cache.setQueryData(["recruiting-applications", "opening", 1], { results: [], count: 0, page: 1, pages: 1 });
   vi.mocked(recruitingApi.update).mockRejectedValue(new APIError(409, { error: { message: "Opening changed. Reload before editing." } }));
   await renderTeam("/find-team?listing=opening"); await click("Edit opening");
-  const form = container.querySelector('[name="title"]')!.closest("form")!; await submit(form);
+  const form = document.body.querySelector('[name="title"]')!.closest("form")!; await submit(form);
   expect(recruitingApi.update).toHaveBeenCalledWith("opening", expect.objectContaining({ expected_updated_at: listing.updated_at }));
   const submitted = vi.mocked(recruitingApi.update).mock.calls[0]![1] as object;
   expect(submitted).not.toHaveProperty("project"); expect(submitted).not.toHaveProperty("publish_consent");
-  expect(container.querySelector('[role="alert"]')?.textContent).toContain("Opening changed");
-  expect(container.querySelector('[name="title"]')).not.toBeNull();
+  expect(document.body.querySelector('[role="alert"]')?.textContent).toContain("Opening changed");
+  expect(document.body.querySelector('[name="title"]')).not.toBeNull();
 });
 it("retains upload details on a scanner failure and never shows false success", async () => {
   vi.mocked(privateFilesApi.upload).mockRejectedValue(new APIError(400, { error: { message: "Malware scanner unavailable." } }));
-  await renderFiles(); const title = container.querySelector<HTMLInputElement>('[name="title"]')!; title.value = "Keep my brief";
+  await renderFiles(); await openCreation("Upload file"); const title = document.body.querySelector<HTMLInputElement>('[name="title"]')!; title.value = "Keep my brief";
   await submit(title.closest("form")!);
-  expect(container.querySelector('[role="alert"]')?.textContent).toContain("scanner unavailable");
-  expect(title.value).toBe("Keep my brief"); expect(container.textContent).not.toContain("Project files updated.");
+  expect(document.body.querySelector('[role="alert"]')?.textContent).toContain("scanner unavailable");
+  expect(title.value).toBe("Keep my brief"); expect(document.body.textContent).not.toContain("Project files updated.");
 });
 it("shows archived files for download with no upload or editing actions", async () => {
   cache.setQueryData(["project", "team"], { id: "team", current_user_role: "owner", archived_at: "2026-10-02" });
-  await renderFiles(); expect(container.querySelector('input[type="file"]')).toBeNull();
-  expect(container.textContent).not.toContain("Edit details");
-  expect(container.querySelector<HTMLAnchorElement>('[href="/download/brief"]')?.textContent).toContain("brief.txt");
+  await renderFiles(); expect(document.body.querySelector('input[type="file"]')).toBeNull();
+  expect(document.body.textContent).not.toContain("Edit details");
+  expect(document.body.querySelector<HTMLAnchorElement>('[href="/download/brief"]')?.textContent).toContain("brief.txt");
 });
 it("uses the current document revision when adding a new version", async () => {
   cache.setQueryData(["private-file", "team", "doc"], doc);
   vi.mocked(privateFilesApi.version).mockResolvedValue(doc);
   vi.mocked(privateFilesApi.detail).mockResolvedValue(doc);
-  await renderFiles(); await click("Versions"); const form = container.querySelector('[name="file"]')!.closest("form")!;
-  const forms = Array.from(container.querySelectorAll("form")); const versionForm = forms.find(item => item.textContent?.includes("Upload new version"))!;
-  expect(form).not.toBe(versionForm); await submit(versionForm);
+  await renderFiles(); await click("Versions"); await openCreation("Upload file"); const form = document.body.querySelector('[name="file"]')!.closest("form")!;
+  const forms = Array.from(document.body.querySelectorAll("form")); const versionForm = forms.find(item => item.textContent?.includes("Upload new version"))!;
+  expect(versionForm).toBeUndefined();
+  await act(async () => { document.body.querySelector<HTMLButtonElement>('button[aria-label="Close Upload a file"]')!.click(); await new Promise(resolve => setTimeout(resolve, 210)); });
+  await openCreation("Upload new version");
+  const newVersionForm = document.body.querySelector<HTMLFormElement>('dialog form:has([name="file"])')!;
+  expect(form).not.toBe(newVersionForm); await submit(newVersionForm);
   const body = vi.mocked(privateFilesApi.version).mock.calls[0]![2];
   expect(body.get("expected_revision")).toBe("4");
-  expect(container.textContent).toContain("Not malware scanned");
+  expect(document.body.textContent).toContain("Not malware scanned");
 });

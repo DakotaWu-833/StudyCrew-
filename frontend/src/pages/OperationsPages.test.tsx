@@ -1,3 +1,4 @@
+import { openCreation } from "../../tests/dialogs";
 import { act, type ReactNode } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -41,15 +42,15 @@ describe("notification and support workflows", () => {
 
   it("saves independent channels, quiet hours and digest using actual form values", async () => {
     await render(<NotificationSettingsPage />);
-    const form = container.querySelector<HTMLFormElement>("form")!;
+    const form = document.body.querySelector<HTMLFormElement>("form")!;
     form.querySelector<HTMLInputElement>('[name="in_app"]')!.checked = false;
     form.querySelector<HTMLSelectElement>('[name="digest"]')!.value = "weekly";
     form.querySelector<HTMLInputElement>('[name="quiet_start"]')!.value = "22:00";
     form.querySelector<HTMLInputElement>('[name="quiet_end"]')!.value = "08:00";
     await submit(form);
     expect(operationsApi.updatePreferences).toHaveBeenCalledWith(expect.objectContaining({ in_app: false, email: true, digest: "weekly", quiet_start: "22:00", quiet_end: "08:00" }), expect.anything());
-    expect(container.textContent).toContain("preferences are saved");
-    expect(container.textContent).toContain("Accepted means the mail server accepted");
+    expect(document.body.textContent).toContain("preferences are saved");
+    expect(document.body.textContent).toContain("Accepted means the mail server accepted");
   });
 
   it("keeps pending notification lists distinct from confirmed empty results", async () => {
@@ -58,10 +59,10 @@ describe("notification and support workflows", () => {
     vi.mocked(operationsApi.blocks).mockImplementation(() => new Promise(() => undefined));
     vi.mocked(operationsApi.deliveries).mockImplementation(() => new Promise(() => undefined));
     await render(<NotificationSettingsPage />);
-    expect(container.textContent).toContain("Loading blocked people");
-    expect(container.textContent).toContain("Loading email status");
-    expect(container.textContent).not.toContain("No blocked people");
-    expect(container.textContent).not.toContain("No email records");
+    expect(document.body.textContent).toContain("Loading blocked people");
+    expect(document.body.textContent).toContain("Loading email status");
+    expect(document.body.textContent).not.toContain("No blocked people");
+    expect(document.body.textContent).not.toContain("No email records");
   });
 
   it("shows notification-list failures without claiming the lists are empty", async () => {
@@ -70,10 +71,10 @@ describe("notification and support workflows", () => {
     vi.mocked(operationsApi.blocks).mockRejectedValue(new Error("Blocked people unavailable"));
     vi.mocked(operationsApi.deliveries).mockRejectedValue(new Error("Email status unavailable"));
     await render(<NotificationSettingsPage />); await settle();
-    expect(container.textContent).toContain("Blocked people unavailable");
-    expect(container.textContent).toContain("Email status unavailable");
-    expect(container.textContent).not.toContain("No blocked people");
-    expect(container.textContent).not.toContain("No email records");
+    expect(document.body.textContent).toContain("Blocked people unavailable");
+    expect(document.body.textContent).toContain("Email status unavailable");
+    expect(document.body.textContent).not.toContain("No blocked people");
+    expect(document.body.textContent).not.toContain("No email records");
   });
 
   it("shows reminder content separately from activity and supports marking both read", async () => {
@@ -81,8 +82,8 @@ describe("notification and support workflows", () => {
     cache.setQueryData(["scheduled-alerts"], alerts); cache.setQueryData(["notifications", "all"], { count: 0, results: [] });
     vi.mocked(operationsApi.alerts).mockResolvedValue(alerts); vi.mocked(notificationApi.list).mockResolvedValue({ count: 0, results: [] } as never);
     await render(<NotificationsPage />);
-    expect(container.textContent).toContain("Due soon: Research"); expect(container.textContent).not.toContain("You are up to date");
-    const button = [...container.querySelectorAll<HTMLButtonElement>("button")].find(row => row.textContent === "Mark all read")!;
+    expect(document.body.textContent).toContain("Due soon: Research"); expect(document.body.textContent).not.toContain("You are up to date");
+    const button = [...document.body.querySelectorAll<HTMLButtonElement>("button")].find(row => row.textContent === "Mark all read")!;
     await act(async () => button.click()); await settle();
     expect(operationsApi.readAll).toHaveBeenCalledOnce();
   });
@@ -90,21 +91,21 @@ describe("notification and support workflows", () => {
   it("submits a privacy support case with the user's entered description", async () => {
     cache.setQueryData(["support"], { results: [] });
     vi.mocked(operationsApi.createTicket).mockResolvedValue({ id: "case", category: "privacy", subject: "Data export", description: "I need help downloading my data.", status: "open", resolution: "", created_at: "2026-10-01", updated_at: "2026-10-01", replies: [] });
-    await render(<SupportPage />);
-    const form = container.querySelector<HTMLFormElement>("form")!;
+    await render(<SupportPage />); await openCreation("New request");
+    const form = document.body.querySelector<HTMLFormElement>("form")!;
     form.querySelector<HTMLSelectElement>('[name="category"]')!.value = "privacy";
     form.querySelector<HTMLInputElement>('[name="subject"]')!.value = "Data export";
     form.querySelector<HTMLTextAreaElement>('[name="description"]')!.value = "I need help downloading my data.";
     await submit(form);
     expect(operationsApi.createTicket).toHaveBeenCalledWith({ category: "privacy", subject: "Data export", description: "I need help downloading my data." }, expect.anything());
-    expect(container.textContent).toContain("Your request has been saved");
+    expect(document.body.textContent).toContain("Your request has been saved");
     expect(form.querySelector<HTMLInputElement>('[name="subject"]')!.value).toBe("");
   });
 
   it("does not load the moderator inbox for a student", async () => {
     cache.setQueryData(["me"], { permissions: { site_moderator: false } });
     await render(<OperationsPage />);
-    expect(container.textContent).toContain("Site moderator permission is required");
+    expect(document.body.textContent).toContain("Site moderator permission is required");
     expect(operationsApi.adminTickets).not.toHaveBeenCalled(); expect(operationsApi.adminContacts).not.toHaveBeenCalled();
     expect(operationsApi.summary).not.toHaveBeenCalled();
   });
@@ -112,8 +113,8 @@ describe("notification and support workflows", () => {
   it("shows an account lookup error instead of a moderator permission denial", async () => {
     vi.mocked(accountApi.me).mockRejectedValue(new Error("Account details unavailable"));
     await render(<OperationsPage />); await settle();
-    expect(container.textContent).toContain("Account details unavailable");
-    expect(container.textContent).not.toContain("Site moderator permission is required");
+    expect(document.body.textContent).toContain("Account details unavailable");
+    expect(document.body.textContent).not.toContain("Site moderator permission is required");
     expect(operationsApi.adminTickets).not.toHaveBeenCalled();
   });
 });
