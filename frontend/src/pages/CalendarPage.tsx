@@ -43,7 +43,7 @@ export default function CalendarPage() {
   const validRange = /^\d{4}-\d{2}-\d{2}$/.test(start) && /^\d{4}-\d{2}-\d{2}$/.test(end) && start >= "1900-01-01" && end <= "9998-12-31";
   const scope = projectId || selectedProject || undefined;
   const projects = useQuery({ queryKey: ["projects"], queryFn: projectApi.list });
-  const calendar = useQuery({ queryKey: ["calendar", start, end, scope], queryFn: () => coordinationApi.calendar(start, end, scope), enabled: validRange });
+  const calendar = useQuery({ queryKey: ["calendar", start, end, scope], queryFn: () => coordinationApi.calendar(start, end, scope), enabled: validRange, refetchOnMount: "always", refetchOnWindowFocus: "always" });
   const subscriptions = useQuery({ queryKey: ["calendar-subscriptions"], queryFn: coordinationApi.subscriptions });
   const operation = useMutation({ mutationFn: async (action: () => Promise<unknown>) => action(), onSuccess: async () => { setError(""); await client.invalidateQueries({ queryKey: ["calendar-subscriptions"] }); }, onError: (value) => { setMessage(""); setError(errorMessage(value)); } });
   const busy = operation.isPending;

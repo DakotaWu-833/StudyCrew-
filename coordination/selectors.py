@@ -62,7 +62,7 @@ def calendar_events(*, user, range_start, range_end, project=None):
     submission_due_pairs = {(row.project_id, instant) for row in submissions for instant in (row.internal_due_at, row.official_due_at) if instant}
     for item in projects.filter(due_at__gte=start, due_at__lt=end)[:1001]:
         if (item.pk, item.due_at) not in submission_due_pairs:
-            items.append(deadline_item(row=item, kind="project", title=f"{item.name} · project deadline", due_at=item.due_at, project=item, description="Project deadline", url=f"/app/projects/{item.pk}/"))
+            items.append(deadline_item(row=item, kind="project", title=f"{item.name} · project deadline", due_at=item.due_at, project=item, description="Project deadline", url=f"/app/projects/{item.pk}/overview/"))
     for submission in submissions:
         url = f"/app/projects/{submission.project_id}/plan/"
         if submission.internal_due_at and start <= submission.internal_due_at < end:

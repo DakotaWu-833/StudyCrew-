@@ -162,6 +162,23 @@ describe("calendar, coordination and evidence user flows", () => {
     expect(document.body.querySelector('[name="minutes"]')).toBeNull();
   });
 
+  it("refreshes a cached calendar on return so new task deadlines are visible", async () => {
+    const now = new Date();
+    const month = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+    const start = `${month}-01`;
+    const end = `${month}-${new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate()}`;
+    client.setQueryData(["calendar", start, end, undefined], { range_start: start, range_end: end, time_zone: "Australia/Sydney", events: [], truncated: false });
+    vi.mocked(coordinationApi.calendar).mockResolvedValue({
+      range_start: start, range_end: end, time_zone: "Australia/Sydney", truncated: false,
+      events: [{ id: "new-task", kind: "task", title: "Newly created deadline", project_id: project.id, project_name: project.name,
+        starts_at: `${month}-10T01:00:00Z`, ends_at: `${month}-10T01:15:00Z`, updated_at: `${month}-01T00:00:00Z`,
+        location: "", description: "", cancelled: false, url: "/app/projects/project-a/tasks/new-task/" }],
+    });
+    await render("calendar");
+    expect(coordinationApi.calendar).toHaveBeenCalledWith(start, end, undefined);
+    expect(container.textContent).toContain("Newly created deadline");
+  });
+
   it("switches month and Monday-based week ranges, preserving ICS and local multi-day events", async () => {
     vi.mocked(coordinationApi.calendar).mockImplementation(async (start, end) => ({ range_start: start, range_end: end, time_zone: "Australia/Sydney", truncated: false, events: [{ id: "overnight", kind: "meeting", title: "Overnight session", project_id: project.id, project_name: project.name, starts_at: "2026-10-05T11:00:00Z", ends_at: "2026-10-05T16:00:00Z", location: "", description: "", cancelled: false, updated_at: "2026-10-01T00:00:00Z", url: "/app/projects/project-a/coordination/" }] }));
     await render("calendar"); await change(control("Month"), "2026-10"); await change(control("View"), "week"); await change(control("Week starting Monday"), "2026-10-07");

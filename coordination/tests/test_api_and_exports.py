@@ -17,6 +17,48 @@ from .test_coordination import CoordinationFixture
 
 
 class CoordinationAPIBoundaryTests(CoordinationFixture):
+    def test_project_links_open_overview_and_assigned_task_deadlines_stay_current(self):
+        self.authenticate(self.owner)
+        created = self.client.post("/api/v1/projects/", {
+            "name": "Calendar launch", "due_at": "2026-10-06T01:00:00Z",
+        }, format="json")
+        self.assertEqual(created.status_code, 201)
+        project_id = created.json()["id"]
+        created_task = self.client.post("/api/v1/tasks/", {
+            "project": project_id, "title": "Prepare calendar launch",
+            "due_at": "2026-10-05T01:00:00Z",
+        }, format="json")
+        self.assertEqual(created_task.status_code, 201)
+        task_id = created_task.json()["id"]
+        self.assertFalse(TaskAssignment.objects.filter(task_id=task_id).exists())
+
+        params = "range_start=2026-10-01&range_end=2026-10-10"
+        unassigned = self.client.get(f"/api/v1/coordination/calendar/?{params}").json()
+        self.assertNotIn(task_id, [item["id"] for item in unassigned["events"]])
+        assigned = self.client.put(f"/api/v1/tasks/{task_id}/assignees/", {"assignee_ids": [str(self.owner.pk)]}, format="json")
+        self.assertEqual(assigned.status_code, 200)
+
+        response = self.client.get("/api/v1/coordination/calendar/?range_start=2026-10-01&range_end=2026-10-10")
+        self.assertEqual(response.status_code, 200)
+        events = response.json()["events"]
+        self.assertIn(task_id, [item["id"] for item in events])
+        project_event = next(item for item in events if item["kind"] == "project" and item["id"] == project_id)
+        self.assertEqual(project_event["url"], f"/app/projects/{project_id}/overview/")
+        task_event = next(item for item in events if item["kind"] == "task" and item["id"] == task_id)
+        self.assertEqual(task_event["url"], f"/app/projects/{project_id}/tasks/{task_id}/")
+
+        updated = self.client.patch(f"/api/v1/tasks/{task_id}/", {"due_at": "2026-10-07T01:00:00Z"}, format="json")
+        self.assertEqual(updated.status_code, 200)
+        old_day = self.client.get("/api/v1/coordination/calendar/?range_start=2026-10-05&range_end=2026-10-05").json()
+        new_day = self.client.get("/api/v1/coordination/calendar/?range_start=2026-10-07&range_end=2026-10-07").json()
+        self.assertNotIn(task_id, [item["id"] for item in old_day["events"]])
+        self.assertIn(task_id, [item["id"] for item in new_day["events"]])
+
+        removed = self.client.put(f"/api/v1/tasks/{task_id}/assignees/", {"assignee_ids": []}, format="json")
+        self.assertEqual(removed.status_code, 200)
+        no_longer_assigned = self.client.get(f"/api/v1/coordination/calendar/?{params}").json()
+        self.assertNotIn(task_id, [item["id"] for item in no_longer_assigned["events"]])
+
     def test_calendar_json_export_and_subscription_management_are_operable(self):
         self.meeting()
         self.authenticate(self.owner)

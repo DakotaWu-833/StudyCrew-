@@ -238,6 +238,28 @@ class CoordinationTests(CoordinationFixture):
         with self.assertRaises(PermissionDenied):
             selectors.calendar_events(user=self.outsider, project=self.project, range_start=self.now.date(), range_end=due.date())
 
+    def test_assigned_calendar_tasks_remain_private_deduplicated_and_current(self):
+        due = self.now + timedelta(days=2)
+        task = Task.objects.create(project=self.project, created_by=self.member, title="My new deadline", due_at=due)
+        other = Task.objects.create(project=self.other, created_by=self.outsider, title="Private deadline", due_at=due)
+        TaskAssignment.objects.create(task=task, user=self.member, assigned_by=self.owner)
+        TaskAssignment.objects.create(task=task, user=self.facilitator, assigned_by=self.owner)
+        def ids(user):
+            data = selectors.calendar_events(user=user, range_start=self.now.date(), range_end=due.date())
+            return [item["id"] for item in data["events"]]
+        self.assertEqual(ids(self.member).count(str(task.pk)), 1)
+        self.assertNotIn(str(other.pk), ids(self.member))
+        self.assertNotIn(str(task.pk), ids(self.owner))
+        task.status = "done"
+        task.completed_at = self.now
+        task.save(update_fields=("status", "completed_at"))
+        self.assertNotIn(str(task.pk), ids(self.member))
+        task.status = "todo"
+        task.completed_at = None
+        task.save(update_fields=("status", "completed_at"))
+        ProjectMembership.objects.filter(project=self.project, user=self.member).update(removed_at=self.now)
+        self.assertNotIn(str(task.pk), ids(self.member))
+
     def test_ics_escaping_utf8_folding_and_cancelled_status(self):
         at = self.now.isoformat()
         events = [{"id": "id", "kind": "meeting", "title": "很长的标题" * 30 + ";,\\\n", "project_name": "Team", "starts_at": at, "ends_at": (self.now + timedelta(hours=1)).isoformat(), "updated_at": at, "cancelled": True, "description": "Line one\nLine two", "location": "Library"}]
